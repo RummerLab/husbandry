@@ -1,32 +1,42 @@
-# AGENTS.md - Agentic Guidelines for RummerLab Husbandry
+# AGENTS.md — RummerLab Husbandry (Room 12)
 
-This document provides context, conventions, and guidelines for AI coding agents working on the `lab-maintainance` repository.
+> **Living document.** Future AI agents (and humans) should read this before changing the repo, and **update it** when they learn something new, correct a mistake, or retire outdated guidance. Prefer short, actionable notes over essays. Remove stale info rather than commenting it out.
 
----
+Mobile-first Progressive Web App (PWA) and automated Google Sheets sync system for **RummerLab** (Physioshark / James Cook University), ensuring strict animal ethics compliance and daily shark husbandry tracking in **Room 12**.
 
-## 🏛️ Project & Domain Overview
-
-- **Organization:** RummerLab ([rummerlab.com](https://rummerlab.com)), lead by Dr. Jodie Rummer (Physioshark, James Cook University).
-- **Domain:** Marine biology, shark physiology and husbandry research.
-- **Facility:** Room 12 (shark aquarium, nursery, Life Support Systems).
-- **Core Goal:** Eliminate skipped data entries and protect animal ethics compliance by providing a mobile PWA checklist that synchronizes with Google Sheets.
-- **Production URL:** `https://husbandry.rummerlab.com`
+Production URL: `https://husbandry.rummerlab.com`
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## 🏛️ Product & Domain Principles
 
-1. **Framework:** SvelteKit (Svelte 5 runes mode: `$state`, `$derived`, `$props`, `$effect`, `$state.snapshot`).
-2. **Language:** TypeScript (`strict: true`).
-3. **Data Storage & Sync:**
-   - Server: Google Sheets API (`googleapis`) via JWT Google Service Account credentials.
-   - Client: `localStorage` for device ID, saved user initials, and device-local submission history.
-   - Offline Queue: Automatically queues submissions when offline and retries on reconnect.
-4. **PWA:**
-   - Manifest at `/static/manifest.webmanifest`.
-   - Service Worker at `/static/sw.js`.
-   - App icons at `/static/icon-192.png` and `/static/icon-512.png`.
-5. **Deployment:** Vercel serverless functions with custom domain `husbandry.rummerlab.com`.
+1. **Animal Ethics Compliance is Non-Negotiable.**
+   - Incomplete or skipped entries in Room 12 records risk ethics non-compliance and animal welfare penalties.
+   - **Mandatory validation:** The UI must lock advancing to subsequent steps until all required fields on the current step are completed. Never weaken or bypass form validations.
+2. **Master Google Sheet is Upstream Source of Truth.**
+   - Submissions post via `/api/submit` to Google Sheets API using the server-side Service Account credentials.
+   - Row structures and column ordering must match `Room 12 Records 2026.xlsx` across all four operational tabs (`LSS Checks`, `Tanks + Eggs`, `Feeds`, `Water Quality`).
+3. **Device Privacy.**
+   - Do **not** send historical lab submissions from other researchers down to the browser.
+   - Each device stores and displays only the records submitted from that physical device (`localStorage`), preserving privacy between team members while the master Google Sheet consolidates all lab data for lab directors.
+4. **Offline Resilience in Room 12.**
+   - Wi-Fi and mobile reception in Room 12 can drop. The application must cache submissions locally in an offline queue and automatically sync when network connectivity is restored.
+5. **Mock Fallback for Local Dev & Testing.**
+   - If Google Cloud credentials (`GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`) are absent, the server must gracefully return `{ mode: 'mock', synced: true }` rather than crashing.
+
+---
+
+## 🛠️ Stack & Tooling
+
+| Layer | Choice |
+| :--- | :--- |
+| **Framework** | SvelteKit 3 + Svelte 5 (runes: `$props`, `$derived`, `$state`, `$effect`, `$state.snapshot`) |
+| **Language** | TypeScript (`strict: true`) |
+| **API Client** | Google Sheets API (`googleapis`) with JWT Service Account auth |
+| **CSS & Design** | Mobile-first CSS, high-contrast touch targets (≥48px), marine lab theme |
+| **PWA** | Manifest at `/static/manifest.webmanifest`, SW at `/static/sw.js` |
+| **Hosting** | Vercel Serverless Functions (`@sveltejs/adapter-auto`) |
+| **Imports** | Clean relative paths within `src/` (e.g. `../types`, `../tanksConfig`) |
 
 ---
 
@@ -64,10 +74,50 @@ Any modification to data structures must maintain exact column parity with `Room
 
 ---
 
-## 🛡️ Coding & Safety Guidelines for Agents
+## 🚦 Issues, Refactoring & Pull Requests
 
-- **Mandatory Validation:** Never disable or weaken form validations that permit users to submit empty ethics questions. The entire purpose of this application is preventing missing records.
-- **Relative Imports:** Use clean relative paths (e.g., `../types`, `../tanksConfig`) within the codebase for maximum compatibility across bundlers and tools.
-- **Mock Fallback:** When Google Sheets environment variables (`GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`) are absent, the server MUST return a mock success response (`mode: 'mock'`) rather than crashing. This enables local development and CI testing.
-- **Client Privacy:** Never send all historical lab submissions down to the browser. The browser only stores and shows entries submitted from that physical device.
-- **Verification:** Always execute `npm run check` and `npm run build` before opening a PR or committing code.
+### When to File an Issue
+Whenever you notice:
+- A potential edge-case bug or validation loophole.
+- An area of the codebase that needs refactoring or optimization.
+- A new feature idea (e.g. barcode/QR tag scanning for eggs, audio confirmations).
+- Changes in Room 12 tank configurations or animal moves that need spreadsheet updates.
+
+**File a GitHub Issue immediately** with:
+1. Clear, concise title.
+2. Context and rationale (why it matters for lab workflow or ethics).
+3. Proposed solution or technical approach.
+
+### Mandatory Labeling
+**Always label both Issues and PRs appropriately.** Never leave an Issue or PR without labels. Use:
+
+| Label | Purpose |
+| :--- | :--- |
+| `bug` | Something isn't working or allows skipping validation |
+| `enhancement` | New feature, usability improvement, or workflow speedup |
+| `refactor` | Code restructuring, typing improvements, or dead code cleanup |
+| `ethics-compliance` | Critical husbandry record completeness or validation guards |
+| `documentation` | README, AGENTS.md, or setup instructions |
+| `dependencies` | Dependabot package updates |
+| `ci` | GitHub Actions, build scripts, or Vercel configurations |
+
+### PR Guidelines
+- **Always run verification commands** before pushing or opening a PR:
+  ```bash
+  npm run check   # Svelte & TypeScript diagnostics (must be 0 errors)
+  npm run build   # Production bundle build verification
+  ```
+- Keep pull request diffs focused. Do not mix unrelated refactors with bug fixes.
+- Reference related issue numbers in the PR description (e.g. `Fixes #12` or `Closes #4`).
+
+---
+
+## 📝 Agent Change Log
+
+| Date | Agent / Change Summary |
+| :--- | :--- |
+| 2026-11 | Initial release: Full SvelteKit 3 PWA with 4-module wizard, offline queue, per-device history, and Google Sheets sync API. |
+| 2026-11 | Branding standardized to **RummerLab**; secured `.gitignore` for service account credentials; updated remote to `RummerLab/husbandry`. |
+| 2026-11 | Enhanced environment variable diagnostics at `/api/health` and robust runtime `process.env` loading. |
+
+_Add a row when you change behaviour, data structures, or conventions that future agents must know about._
