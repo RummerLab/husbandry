@@ -29,5 +29,10 @@ vite.config.ts.timestamp-*
 !tsconfig.json
 !static/manifest.webmanifest
 
+# Excel & Raw Spreadsheets
+*.xlsx
+*.xls
+Room 12 Records 2026.xlsx
+
 
 
