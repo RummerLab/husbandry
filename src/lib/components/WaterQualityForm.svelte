@@ -1,0 +1,393 @@
+<script lang="ts">
+	import type { WaterQualityData } from '../types';
+
+	interface Props {
+		data: WaterQualityData;
+		onValidChange?: (isValid: boolean) => void;
+	}
+
+	let { data = $bindable(), onValidChange }: Props = $props();
+
+	let isValid = $derived(
+		Boolean(
+			data.initials?.trim() &&
+			data.tempA?.trim() &&
+			data.tempB?.trim() &&
+			data.salinityA?.trim() &&
+			data.salinityB?.trim()
+		)
+	);
+
+	$effect(() => {
+		if (onValidChange) onValidChange(isValid);
+	});
+
+	function fillTypicalRoutine() {
+		data.tempA = '26.3';
+		data.tempB = '26.2';
+		data.pHA = '8.2';
+		data.pHB = '8.2';
+		data.salinityA = '36';
+		data.salinityB = '36';
+		data.doA = '/';
+		data.doB = '/';
+	}
+
+	function fillTypicalWeekly() {
+		fillTypicalRoutine();
+		data.isWeeklyCheck = true;
+		data.alkA = '115';
+		data.alkB = '118';
+		data.weeklypHA = '8.2';
+		data.weeklypHB = '8.2';
+		data.nh3A = '0';
+		data.nh3B = '0';
+		data.no2A = '0';
+		data.no2B = '0';
+		data.no3A = '20';
+		data.no3B = '20';
+		data.po4A = '1.8';
+		data.po4B = '1.8';
+	}
+</script>
+
+<div class="form-container">
+	<div class="header-box">
+		<div class="header-text">
+			<h3>Room 12 Water Quality Log</h3>
+			<p class="subtitle">Side A & Side B system testing (Routine M/W/F + Weekly Chemistry)</p>
+		</div>
+		<div class="btn-group-header">
+			<button type="button" class="quick-pass-btn" onclick={fillTypicalRoutine}>
+				⚡ Routine Typical (Temp & Salinity)
+			</button>
+			<button type="button" class="quick-pass-btn weekly" onclick={fillTypicalWeekly}>
+				🧪 Full Weekly Typical
+			</button>
+		</div>
+	</div>
+
+	<!-- Initials -->
+	<div class="section-card">
+		<h4>1. Analyst Personnel</h4>
+		<div class="input-field">
+			<label for="wq-initials">
+				Analyst Initials <span class="required-star">*</span>
+			</label>
+			<input
+				id="wq-initials"
+				type="text"
+				placeholder="e.g. TV or CD"
+				bind:value={data.initials}
+				required
+			/>
+		</div>
+	</div>
+
+	<!-- Routine M/W/F Checks -->
+	<div class="section-card">
+		<h4>2. Routine Checks (Mon, Wed, Fri)</h4>
+		<p class="section-hint">Mandatory parameters for daily marine life support</p>
+
+		<div class="table-grid">
+			<div class="grid-header">
+				<span>Parameter</span>
+				<span>Side A</span>
+				<span>Side B</span>
+			</div>
+
+			<div class="grid-row">
+				<div class="param-title">
+					<strong>Temperature (°C)</strong>
+					<span class="required-star">*</span>
+				</div>
+				<input type="text" placeholder="e.g. 26.3" bind:value={data.tempA} />
+				<input type="text" placeholder="e.g. 26.2" bind:value={data.tempB} />
+			</div>
+
+			<div class="grid-row">
+				<div class="param-title">
+					<strong>Salinity (ppt)</strong>
+					<span class="required-star">*</span>
+				</div>
+				<input type="text" placeholder="e.g. 36" bind:value={data.salinityA} />
+				<input type="text" placeholder="e.g. 36" bind:value={data.salinityB} />
+			</div>
+
+			<div class="grid-row">
+				<div class="param-title">
+					<strong>pH</strong>
+				</div>
+				<input type="text" placeholder="e.g. 8.20" bind:value={data.pHA} />
+				<input type="text" placeholder="e.g. 8.25" bind:value={data.pHB} />
+			</div>
+
+			<div class="grid-row">
+				<div class="param-title">
+					<strong>Dissolved Oxygen (%)</strong>
+				</div>
+				<input type="text" placeholder="e.g. 98% or /" bind:value={data.doA} />
+				<input type="text" placeholder="e.g. 98% or /" bind:value={data.doB} />
+			</div>
+		</div>
+	</div>
+
+	<!-- Weekly Testing Panel -->
+	<div class="section-card">
+		<div class="card-header-flex">
+			<h4>3. Weekly Water Chemistry (API / Spintouch)</h4>
+			<label class="toggle-label">
+				<input type="checkbox" bind:checked={data.isWeeklyCheck} />
+				<span>Include Weekly Data</span>
+			</label>
+		</div>
+
+		{#if data.isWeeklyCheck}
+			<div class="table-grid" style="margin-top: 0.8rem;">
+				<div class="grid-header">
+					<span>Parameter</span>
+					<span>Side A</span>
+					<span>Side B</span>
+				</div>
+
+				<div class="grid-row">
+					<div class="param-title">Alkalinity (dKH / ppm)</div>
+					<input type="text" placeholder="e.g. 116" bind:value={data.alkA} />
+					<input type="text" placeholder="e.g. 118" bind:value={data.alkB} />
+				</div>
+
+				<div class="grid-row">
+					<div class="param-title">Weekly pH</div>
+					<input type="text" placeholder="e.g. 8.2" bind:value={data.weeklypHA} />
+					<input type="text" placeholder="e.g. 8.2" bind:value={data.weeklypHB} />
+				</div>
+
+				<div class="grid-row">
+					<div class="param-title">Ammonia NH3 (ppm)</div>
+					<input type="text" placeholder="0" bind:value={data.nh3A} />
+					<input type="text" placeholder="0" bind:value={data.nh3B} />
+				</div>
+
+				<div class="grid-row">
+					<div class="param-title">Nitrite NO2 (ppm)</div>
+					<input type="text" placeholder="0" bind:value={data.no2A} />
+					<input type="text" placeholder="0" bind:value={data.no2B} />
+				</div>
+
+				<div class="grid-row">
+					<div class="param-title">Nitrate NO3 (ppm)</div>
+					<input type="text" placeholder="e.g. 20" bind:value={data.no3A} />
+					<input type="text" placeholder="e.g. 15" bind:value={data.no3B} />
+				</div>
+
+				<div class="grid-row">
+					<div class="param-title">Phosphate PO4 (ppm)</div>
+					<input type="text" placeholder="e.g. 1.5" bind:value={data.po4A} />
+					<input type="text" placeholder="e.g. 1.8" bind:value={data.po4B} />
+				</div>
+			</div>
+		{:else}
+			<p class="section-hint">Toggle checkbox above if performing full weekly water chemistry test.</p>
+		{/if}
+	</div>
+
+	<!-- Notes -->
+	<div class="section-card">
+		<h4>Observations, Water Changes & Actions</h4>
+		<div class="input-field">
+			<label for="wq-notes">Notes</label>
+			<textarea
+				id="wq-notes"
+				rows="2"
+				placeholder="e.g. Weekly 1000L water change on side A completed, Spintouch calibrated..."
+				bind:value={data.notes}
+			></textarea>
+		</div>
+	</div>
+</div>
+
+<style>
+	.form-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+	}
+
+	.header-box {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		padding: 1rem 1.25rem;
+		background: #ecfeff;
+		border: 1px solid #a5f3fc;
+		border-radius: 10px;
+	}
+
+	.header-text h3 {
+		margin: 0;
+		color: #0e7490;
+		font-size: 1.15rem;
+	}
+
+	.subtitle {
+		margin: 0.2rem 0 0;
+		font-size: 0.82rem;
+		color: #0891b2;
+	}
+
+	.btn-group-header {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.quick-pass-btn {
+		background: #0891b2;
+		color: #ffffff;
+		border: none;
+		border-radius: 6px;
+		padding: 0.55rem 0.9rem;
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+
+	.quick-pass-btn:hover {
+		background: #0e7490;
+	}
+
+	.quick-pass-btn.weekly {
+		background: #0284c7;
+	}
+
+	.section-card {
+		background: #ffffff;
+		border: 1px solid #e2e8f0;
+		border-radius: 10px;
+		padding: 1.1rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	}
+
+	.card-header-flex {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		border-bottom: 2px solid #f1f5f9;
+		padding-bottom: 0.4rem;
+	}
+
+	.card-header-flex h4 {
+		margin: 0;
+		border-bottom: none;
+		padding-bottom: 0;
+	}
+
+	.section-card h4 {
+		margin: 0 0 0.9rem;
+		color: #0f172a;
+		font-size: 0.98rem;
+		border-bottom: 2px solid #f1f5f9;
+		padding-bottom: 0.4rem;
+	}
+
+	.section-hint {
+		font-size: 0.8rem;
+		color: #64748b;
+		margin: -0.4rem 0 0.8rem;
+	}
+
+	.toggle-label {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.86rem;
+		font-weight: 600;
+		color: #0284c7;
+		cursor: pointer;
+	}
+
+	.table-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+	}
+
+	.grid-header {
+		display: grid;
+		grid-template-columns: 2fr 1.2fr 1.2fr;
+		gap: 0.6rem;
+		font-size: 0.78rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		color: #64748b;
+		padding: 0 0.4rem;
+	}
+
+	.grid-row {
+		display: grid;
+		grid-template-columns: 2fr 1.2fr 1.2fr;
+		gap: 0.6rem;
+		align-items: center;
+		background: #f8fafc;
+		padding: 0.5rem 0.65rem;
+		border-radius: 6px;
+		border: 1px solid #f1f5f9;
+	}
+
+	.param-title {
+		font-size: 0.88rem;
+		color: #1e293b;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.grid-row input {
+		padding: 0.45rem 0.6rem;
+		border: 1.5px solid #cbd5e1;
+		border-radius: 5px;
+		font-size: 0.88rem;
+		outline: none;
+		color: #1e293b;
+		background: #ffffff;
+	}
+
+	.grid-row input:focus {
+		border-color: #0891b2;
+	}
+
+	.input-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.input-field label {
+		font-size: 0.88rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.required-star {
+		color: #dc2626;
+	}
+
+	.input-field input,
+	.input-field textarea {
+		padding: 0.65rem 0.85rem;
+		border: 1.5px solid #cbd5e1;
+		border-radius: 6px;
+		font-size: 0.92rem;
+		color: #1e293b;
+		outline: none;
+		font-family: inherit;
+	}
+
+	.input-field input:focus,
+	.input-field textarea:focus {
+		border-color: #0891b2;
+	}
+</style>

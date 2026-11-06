@@ -1,0 +1,23 @@
+{
+  "name": "RummerLab Husbandry - Room 12",
+  "short_name": "RummerLab",
+  "description": "Room 12 Husbandry, LSS, Feeds, and Water Quality records for Rummer Lab",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
