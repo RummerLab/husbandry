@@ -2,16 +2,39 @@ import { google } from 'googleapis';
 import type { FullHusbandrySubmission, LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../types';
 import { ROOM12_TANKS } from '../tanksConfig';
 
-// Environment variables can come from process.env (Vercel)
+// Environment variables from runtime process.env (Vercel & Node)
 function getEnv(name: string): string {
-	return process.env[name] || '';
+	if (typeof process !== 'undefined' && process.env && process.env[name]) {
+		return process.env[name]!.trim();
+	}
+	return '';
 }
 
-export function isGoogleSheetsConfigured(): boolean {
+export function getSheetsConfigStatus(): {
+	configured: boolean;
+	hasEmail: boolean;
+	hasKey: boolean;
+	hasSheetId: boolean;
+	email: string;
+	sheetId: string;
+} {
 	const email = getEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
 	const key = getEnv('GOOGLE_PRIVATE_KEY');
 	const sheetId = getEnv('GOOGLE_SHEET_ID');
-	return Boolean(email && key && sheetId);
+
+	return {
+		configured: Boolean(email && key && sheetId),
+		hasEmail: Boolean(email),
+		hasKey: Boolean(key),
+		hasSheetId: Boolean(sheetId),
+		email: email ? `${email.substring(0, 8)}...` : '',
+		sheetId: sheetId ? `${sheetId.substring(0, 6)}...` : ''
+	};
+}
+
+export function isGoogleSheetsConfigured(): boolean {
+	const status = getSheetsConfigStatus();
+	return status.configured;
 }
 
 function getSheetsClient() {
@@ -42,12 +65,20 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 	message: string;
 	tabsUpdated: string[];
 }> {
-	if (!isGoogleSheetsConfigured()) {
-		console.warn('Google Sheets not configured. Mocking append operation.');
+	const status = getSheetsConfigStatus();
+	if (!status.configured) {
+		const missing: string[] = [];
+		if (!status.hasEmail) missing.push('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+		if (!status.hasKey) missing.push('GOOGLE_PRIVATE_KEY');
+		if (!status.hasSheetId) missing.push('GOOGLE_SHEET_ID');
+
+		const logMsg = `[Google Sheets] Credentials missing: ${missing.join(', ')}. Operating in mock mode.`;
+		console.warn(logMsg);
+
 		return {
 			synced: true,
 			mode: 'mock',
-			message: 'Mock sync successful. Configure GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, and GOOGLE_SHEET_ID for live Google Sheets sync.',
+			message: `Mock sync successful. Missing in environment: ${missing.join(', ')}.`,
 			tabsUpdated: submission.modulesSubmitted
 		};
 	}
