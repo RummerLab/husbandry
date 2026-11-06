@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { validateModule } from "../validation";
 	import type { LSSData } from '../types';
 	import OptionSelector from './OptionSelector.svelte';
 
@@ -10,51 +11,12 @@
 	let { data = $bindable(), onValidChange }: Props = $props();
 
 	// Derived validation: all required fields must be answered
-	let isValid = $derived(
-		Boolean(
-			data.amInitials?.trim() &&
-			data.skimmerVenturi &&
-			data.skimmerSprayDown &&
-			data.filterCleaned &&
-			data.filterReplaced &&
-			data.waterLevelsAM &&
-			data.waterLevelsPM &&
-			data.waterFlowAM &&
-			data.waterFlowPM &&
-			data.airstonesAM &&
-			data.airstonesPM &&
-			data.vacNetTanks &&
-			data.tanksScrubbed &&
-			data.overflowCleaned &&
-			data.hoseFloorLadder &&
-			data.footTubLidsSqueegee &&
-			data.equipmentDisinfected
-		)
-	);
+	let isValid = $derived(validateModule('lss', data).length === 0);
 
 	$effect(() => {
 		if (onValidChange) onValidChange(isValid);
 	});
 
-	function applyAllStandard() {
-		data.skimmerVenturi = '/';
-		data.skimmerSprayDown = '/';
-		data.filterCleaned = 'Y';
-		data.filterReplaced = '/';
-		data.waterLevelsAM = 'Y';
-		data.waterLevelsPM = 'Y';
-		data.waterFlowAM = 'Y';
-		data.waterFlowPM = 'Y';
-		data.airstonesAM = 'Y';
-		data.airstonesPM = 'Y';
-		data.vacNetTanks = 'Y';
-		data.tanksScrubbed = 'N';
-		data.overflowCleaned = 'Y';
-		data.hoseFloorLadder = 'Y';
-		data.footTubLidsSqueegee = 'Y';
-		data.equipmentDisinfected = 'Y';
-		if (!data.concerns) data.concerns = 'None';
-	}
 </script>
 
 <div class="form-container">
@@ -63,9 +25,7 @@
 			<h3>Life Support Systems (LSS) Checks</h3>
 			<p class="subtitle">Room 12 Daily Maintenance & Checks (Mon, Wed & Fri focus)</p>
 		</div>
-		<button type="button" class="quick-pass-btn" onclick={applyAllStandard}>
-			⚡ Quick Fill Standard (Normal Run)
-		</button>
+
 	</div>
 
 	<!-- Person In Charge -->
@@ -279,21 +239,7 @@
 		color: #166534;
 	}
 
-	.quick-pass-btn {
-		background: #15803d;
-		color: #ffffff;
-		border: none;
-		border-radius: 6px;
-		padding: 0.55rem 0.9rem;
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: background 0.15s ease;
-	}
 
-	.quick-pass-btn:hover {
-		background: #166534;
-	}
 
 	.section-card {
 		background: #ffffff;

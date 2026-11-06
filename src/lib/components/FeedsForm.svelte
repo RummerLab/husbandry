@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { validateModule } from "../validation";
 	import type { FeedsData } from '../types';
 	import { ROOM12_TANKS } from '../tanksConfig';
 	import OptionSelector from './OptionSelector.svelte';
@@ -16,7 +17,7 @@
 			data.tanks[tank.id] = {
 				amountFed: '',
 				meds: {},
-				uneatenGrams: '0'
+				uneatenGrams: ''
 			};
 		}
 	}
@@ -45,31 +46,12 @@
 		return missing;
 	});
 
-	let isValid = $derived(
-		Boolean(data.initials?.trim()) && incompleteTanks.length === 0
-	);
+	let isValid = $derived(validateModule('feeds', data).length === 0);
 
 	$effect(() => {
 		if (onValidChange) onValidChange(isValid);
 	});
 
-	function fillAllStandardFeeds() {
-		for (const tank of ROOM12_TANKS) {
-			const entry = data.tanks[tank.id] || { amountFed: '', meds: {}, uneatenGrams: '0' };
-			if (tank.targetAmt) {
-				entry.amountFed = tank.targetAmt.replace('g', '');
-			} else {
-				entry.amountFed = '50';
-			}
-			entry.uneatenGrams = '0';
-			for (const shark of tank.sharks) {
-				if (shark.medId) {
-					entry.meds[shark.medId] = 'N'; // default routine is N unless prescribed
-				}
-			}
-			data.tanks[tank.id] = entry;
-		}
-	}
 </script>
 
 <div class="form-container">
@@ -78,9 +60,7 @@
 			<h3>Room 12 Feeding Log</h3>
 			<p class="subtitle">Record exact food intake, supplement administration (Elasmotab/Formula), & uneaten feed</p>
 		</div>
-		<button type="button" class="quick-pass-btn" onclick={fillAllStandardFeeds}>
-			⚡ Quick Fill Standard Portions (0g Uneaten)
-		</button>
+
 	</div>
 
 	{#if incompleteTanks.length > 0}
@@ -240,21 +220,7 @@
 		color: #a21caf;
 	}
 
-	.quick-pass-btn {
-		background: #a21caf;
-		color: #ffffff;
-		border: none;
-		border-radius: 6px;
-		padding: 0.55rem 0.9rem;
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: background 0.15s ease;
-	}
 
-	.quick-pass-btn:hover {
-		background: #86198f;
-	}
 
 	.ethics-warning-banner {
 		padding: 0.75rem 1rem;

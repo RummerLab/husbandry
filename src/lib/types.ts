@@ -1,5 +1,5 @@
-export type YesNoNA = 'Y' | 'N' | 'N/A' | '/';
-export type PalpationOption = '0' | 'L' | 'R' | 'B' | 'N/A';
+export type YesNoNA = '' | 'X' | 'Y' | 'N' | 'N/A' | '/';
+export type PalpationOption = '' | '0' | 'L' | 'R' | 'B' | 'N/A';
 
 export interface LSSData {
 	date: string;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { validateModule } from "../validation";
 	import type { WaterQualityData } from '../types';
 
 	interface Props {
@@ -8,69 +9,13 @@
 
 	let { data = $bindable(), onValidChange }: Props = $props();
 
-	let isValid = $derived.by(() => {
-		const routineFilled = Boolean(
-			data.initials?.trim() &&
-			data.tempA?.trim() &&
-			data.tempB?.trim() &&
-			data.pHA?.trim() &&
-			data.pHB?.trim() &&
-			data.salinityA?.trim() &&
-			data.salinityB?.trim()
-		);
-
-		if (!routineFilled) return false;
-
-		if (data.isWeeklyCheck) {
-			const weeklyFilled = Boolean(
-				data.alkA?.trim() &&
-				data.alkB?.trim() &&
-				data.nh3A?.trim() &&
-				data.nh3B?.trim() &&
-				data.no2A?.trim() &&
-				data.no2B?.trim() &&
-				data.no3A?.trim() &&
-				data.no3B?.trim() &&
-				data.po4A?.trim() &&
-				data.po4B?.trim()
-			);
-			return weeklyFilled;
-		}
-
-		return true;
-	});
+	let isValid = $derived(validateModule('waterQuality', data).length === 0);
 
 	$effect(() => {
 		if (onValidChange) onValidChange(isValid);
 	});
 
-	function fillTypicalRoutine() {
-		data.tempA = '26.3';
-		data.tempB = '26.2';
-		data.pHA = '8.2';
-		data.pHB = '8.2';
-		data.salinityA = '36';
-		data.salinityB = '36';
-		data.doA = '/';
-		data.doB = '/';
-	}
 
-	function fillTypicalWeekly() {
-		fillTypicalRoutine();
-		data.isWeeklyCheck = true;
-		data.alkA = '115';
-		data.alkB = '118';
-		data.weeklypHA = '8.2';
-		data.weeklypHB = '8.2';
-		data.nh3A = '0';
-		data.nh3B = '0';
-		data.no2A = '0';
-		data.no2B = '0';
-		data.no3A = '20';
-		data.no3B = '20';
-		data.po4A = '1.8';
-		data.po4B = '1.8';
-	}
 </script>
 
 <div class="form-container">
@@ -80,12 +25,8 @@
 			<p class="subtitle">Side A & Side B system testing (Routine M/W/F + Weekly Chemistry)</p>
 		</div>
 		<div class="btn-group-header">
-			<button type="button" class="quick-pass-btn" onclick={fillTypicalRoutine}>
-				⚡ Routine Typical (Temp & Salinity)
-			</button>
-			<button type="button" class="quick-pass-btn weekly" onclick={fillTypicalWeekly}>
-				🧪 Full Weekly Typical
-			</button>
+
+
 		</div>
 	</div>
 
@@ -265,25 +206,8 @@
 		flex-wrap: wrap;
 	}
 
-	.quick-pass-btn {
-		background: #1d5fb8;
-		color: #ffffff;
-		border: none;
-		border-radius: 6px;
-		padding: 0.55rem 0.9rem;
-		font-size: 0.82rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: background 0.15s ease;
-	}
 
-	.quick-pass-btn:hover {
-		background: #1a4f99;
-	}
 
-	.quick-pass-btn.weekly {
-		background: #0b1a30;
-	}
 
 	.section-card {
 		background: #ffffff;

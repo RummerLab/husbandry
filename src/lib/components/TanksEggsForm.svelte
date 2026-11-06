@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { validateModule } from "../validation";
 	import type { TanksEggsData, PalpationOption } from '../types';
 	import OptionSelector from './OptionSelector.svelte';
 
@@ -17,47 +18,13 @@
 		{ value: 'N/A', label: 'N/A', badgeColor: 'gray' }
 	];
 
-	let isValid = $derived(
-		Boolean(
-			data.initials?.trim() &&
-			data.palpationHO103 &&
-			data.palpationHO102 &&
-			data.palpationHO116 &&
-			data.palpationHO105 &&
-			data.palpationHO117 &&
-			data.newEmbryos &&
-			data.candling &&
-			data.foodRecordsEnteredPM &&
-			data.whatsappUpdateAM &&
-			data.whatsappUpdatePM
-		)
-	);
+	let isValid = $derived(validateModule('tanksEggs', data).length === 0);
 
 	$effect(() => {
 		if (onValidChange) onValidChange(isValid);
 	});
 
-	function setAllFemalesZero() {
-		data.palpationHO103 = '0';
-		data.palpationHO102 = '0';
-		data.palpationHO116 = '0';
-		data.palpationHO105 = '0';
-		data.palpationHO117 = '0';
-	}
 
-	function setStandardEggChecks() {
-		setAllFemalesZero();
-		if (!data.windEggs) data.windEggs = '0';
-		if (!data.newEggs) data.newEggs = '0';
-		if (!data.newEggTag) data.newEggTag = '0';
-		data.newEmbryos = 'N';
-		data.candling = 'Y';
-		if (!data.deadEggTag) data.deadEggTag = '0';
-		data.foodRecordsEnteredPM = 'Y';
-		data.whatsappUpdateAM = 'Y';
-		data.whatsappUpdatePM = 'Y';
-		if (!data.moveDescription) data.moveDescription = 'None';
-	}
 </script>
 
 <div class="form-container">
@@ -66,9 +33,7 @@
 			<h3>Tanks + Eggs Checks</h3>
 			<p class="subtitle">Daily female palpations, egg collection, embryology & room updates</p>
 		</div>
-		<button type="button" class="quick-pass-btn" onclick={setStandardEggChecks}>
-			⚡ Quick Fill Normal (0 Eggs / None Palpated)
-		</button>
+
 	</div>
 
 	<!-- Initials -->
@@ -92,9 +57,7 @@
 	<div class="section-card">
 		<div class="card-header-flex">
 			<h4>2. Females Palpated?</h4>
-			<button type="button" class="small-btn" onclick={setAllFemalesZero}>
-				Set All to 0 (None)
-			</button>
+
 		</div>
 		<p class="legend">Legend: <strong>0</strong> = None | <strong>B</strong> = Both sides | <strong>L</strong> = Left | <strong>R</strong> = Right</p>
 		<div class="grid-2">
@@ -295,21 +258,7 @@
 		color: #3a4a5f;
 	}
 
-	.quick-pass-btn {
-		background: #1d5fb8;
-		color: #ffffff;
-		border: none;
-		border-radius: 6px;
-		padding: 0.55rem 0.9rem;
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: background 0.15s ease;
-	}
 
-	.quick-pass-btn:hover {
-		background: #1a4f99;
-	}
 
 	.section-card {
 		background: #ffffff;
@@ -342,16 +291,6 @@
 		padding-bottom: 0.4rem;
 	}
 
-	.small-btn {
-		background: #e8f0fb;
-		color: #1a4f99;
-		border: 1px solid #cde2fb;
-		border-radius: 4px;
-		padding: 0.25rem 0.6rem;
-		font-size: 0.78rem;
-		font-weight: 600;
-		cursor: pointer;
-	}
 
 	.legend {
 		font-size: 0.8rem;
