@@ -152,3 +152,11 @@ npm run build
 
 Developed for **RummerLab** / **Physioshark**, James Cook University.
 All rights reserved.
+
+### Offline app updates
+
+SvelteKit builds and registers `src/service-worker/index.ts` at `/service-worker.js`. The worker precaches the generated JavaScript/CSS manifest, static assets and root shell. Navigation is network-first (five-second timeout), with the installed shell as offline fallback. API requests, mutations and third-party requests are never served from this cache.
+
+A new worker waits until existing tabs close, protecting active forms. After saving records, close all app tabs and reopen to activate a waiting version. `static/sw.js` is a network-only bridge for old installations; do not remove it until those devices have migrated. The cached shell's date is refreshed to Brisbane's current date when mounted.
+
+Verification: `npm test`, `npm run check` (including worker TypeScript), and `npm run build`. For device acceptance, visit a production preview online, wait for worker installation, then close/reopen offline with the HTTP cache cleared but Cache Storage preserved. Verify every form loads; repeat across two builds and verify the old worker yields after tabs close.

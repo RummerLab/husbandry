@@ -34,7 +34,7 @@ Production URL: `https://husbandry.rummerlab.com`
 | **Language** | TypeScript (`strict: true`) |
 | **API Client** | Google Sheets API (`googleapis`) with JWT Service Account auth |
 | **CSS & Design** | Mobile-first CSS, high-contrast touch targets (≥48px), marine lab theme |
-| **PWA** | Manifest at `/static/manifest.webmanifest`, SW at `/static/sw.js` |
+| **PWA** | Manifest at `/static/manifest.webmanifest`, generated worker at `/src/service-worker/index.ts` |
 | **Hosting** | Vercel Serverless Functions (`@sveltejs/adapter-auto`) |
 | **Imports** | Clean relative paths within `src/` (e.g. `../types`, `../tanksConfig`) |
 
@@ -127,3 +127,5 @@ Whenever you notice:
 _Add a row when you change behaviour, data structures, or conventions that future agents must know about._
 
 - 2026-11: Shared runtime validation is in `src/lib/validation.ts`; observations start unanswered. Bulk measurement defaults are prohibited. Dates use Australia/Brisbane. Run `npm test` plus check/build. Pure spreadsheet formatters live in `src/lib/server/rows.ts`; routine-only chemistry exports blank cells.
+
+- 2026-11: SvelteKit 3 bundles/registers `src/service-worker/index.ts` using `$app/manifest` assets and `$app/env` version. Cache the complete build and use network-first navigation with offline shell fallback. Keep `static/sw.js` as a network-only migration bridge for legacy devices. Updates wait until open tabs close; do not force reload active forms.
