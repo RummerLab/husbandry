@@ -242,21 +242,21 @@
 		flex-wrap: wrap;
 		gap: 0.75rem;
 		padding: 1rem 1.25rem;
-		background: #ecfeff;
-		border: 1px solid #a5f3fc;
+		background: #e8f0fb;
+		border: 1px solid #cde2fb;
 		border-radius: 10px;
 	}
 
 	.header-text h3 {
 		margin: 0;
-		color: #0e7490;
+		color: #1a4f99;
 		font-size: 1.15rem;
 	}
 
 	.subtitle {
 		margin: 0.2rem 0 0;
 		font-size: 0.82rem;
-		color: #0891b2;
+		color: #3a4a5f;
 	}
 
 	.btn-group-header {
@@ -266,7 +266,7 @@
 	}
 
 	.quick-pass-btn {
-		background: #0891b2;
+		background: #1d5fb8;
 		color: #ffffff;
 		border: none;
 		border-radius: 6px;
@@ -278,11 +278,11 @@
 	}
 
 	.quick-pass-btn:hover {
-		background: #0e7490;
+		background: #1a4f99;
 	}
 
 	.quick-pass-btn.weekly {
-		background: #0284c7;
+		background: #0b1a30;
 	}
 
 	.section-card {
@@ -378,7 +378,8 @@
 	}
 
 	.grid-row input:focus {
-		border-color: #0891b2;
+		border-color: #1d5fb8;
+		box-shadow: 0 0 0 2px rgba(29, 95, 184, 0.15);
 	}
 
 	.input-field {
@@ -410,6 +411,7 @@
 
 	.input-field input:focus,
 	.input-field textarea:focus {
-		border-color: #0891b2;
+		border-color: #1d5fb8;
+		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.15);
 	}
 </style>

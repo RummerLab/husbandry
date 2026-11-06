@@ -162,11 +162,11 @@
 		background: #f1f5f9;
 		padding: 0.15rem 0.35rem;
 		border-radius: 4px;
-		color: #0369a1;
+		color: #1d5fb8;
 	}
 
 	.sync-btn {
-		background: #0284c7;
+		background: #1d5fb8;
 		color: #ffffff;
 		border: none;
 		border-radius: 6px;
@@ -178,7 +178,7 @@
 	}
 
 	.sync-btn:hover:not(:disabled) {
-		background: #0369a1;
+		background: #1a4f99;
 	}
 
 	.sync-btn:disabled {

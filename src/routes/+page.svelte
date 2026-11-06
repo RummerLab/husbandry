@@ -307,41 +307,56 @@
 </script>
 
 <div class="app-layout">
-	<!-- Navbar / Header -->
-	<header class="top-nav">
-		<div class="nav-brand">
-			<div class="brand-badge">🦈</div>
-			<div>
-				<h1 class="brand-title">RummerLab Husbandry</h1>
-				<p class="brand-subtitle">Room 12 Records • RummerLab</p>
+	<!-- Navbar / Header with Physioshark & RummerLab branding -->
+	<header class="site-header">
+		<div class="header-container">
+			<div class="brand-group">
+				<a class="brand" href="/" aria-label="RummerLab Husbandry home">
+					<img
+						class="brand-logo"
+						src="/rummerlab_logo_transparent.png"
+						alt="RummerLab"
+						height="38"
+					/>
+					<span class="badge-app">Husbandry</span>
+				</a>
+				<div class="room-pill">
+					<span class="room-dot"></span>
+					<span>Room 12 Records</span>
+				</div>
+			</div>
+
+			<div class="nav-controls">
+				<div class="network-badge" class:online={isOnline} class:offline={!isOnline}>
+					<span class="status-dot"></span>
+					<span>{isOnline ? 'Online' : 'Offline Mode'}</span>
+				</div>
+
+				<div class="nav-tabs" role="tablist">
+					<button
+						type="button"
+						role="tab"
+						aria-selected={activeTab === 'form'}
+						class="nav-tab"
+						class:active={activeTab === 'form'}
+						onclick={() => (activeTab = 'form')}
+					>
+						📝 Enter Records
+					</button>
+					<button
+						type="button"
+						role="tab"
+						aria-selected={activeTab === 'history'}
+						class="nav-tab"
+						class:active={activeTab === 'history'}
+						onclick={() => (activeTab = 'history')}
+					>
+						📱 My Device History
+					</button>
+				</div>
 			</div>
 		</div>
-
-		<div class="nav-controls">
-			<div class="network-badge" class:online={isOnline} class:offline={!isOnline}>
-				<span class="status-dot"></span>
-				<span>{isOnline ? 'Online' : 'Offline Mode'}</span>
-			</div>
-
-			<div class="nav-tabs">
-				<button
-					type="button"
-					class="nav-tab"
-					class:active={activeTab === 'form'}
-					onclick={() => (activeTab = 'form')}
-				>
-					📝 Enter Records
-				</button>
-				<button
-					type="button"
-					class="nav-tab"
-					class:active={activeTab === 'history'}
-					onclick={() => (activeTab = 'history')}
-				>
-					📱 My Device History
-				</button>
-			</div>
-		</div>
+		<div class="navy-bar"></div>
 	</header>
 
 	<main class="main-content">
@@ -529,10 +544,10 @@
 	<!-- Footer -->
 	<footer class="app-footer">
 		<p>
-			<strong>RummerLab Room 12 Husbandry System</strong> • James Cook University / Physioshark
+			<strong>RummerLab Room 12 Husbandry System</strong> • Physioshark / James Cook University
 		</p>
 		<p class="ethics-note">
-			Animal Ethics Compliance & Strict Husbandry Records • Domain: <code>husbandry.rummerlab.com</code>
+			Animal Ethics Compliance & Strict Husbandry Records • Production: <code>husbandry.rummerlab.com</code>
 		</p>
 	</footer>
 </div>
@@ -542,48 +557,86 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
+		background: var(--page);
 	}
 
-	.top-nav {
-		background: #0369a1;
-		color: #ffffff;
-		padding: 0.85rem 1.25rem;
+	.site-header {
+		position: sticky;
+		top: 0;
+		z-index: 50;
+		background: #ffffff;
+		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.05);
+	}
+
+	.header-container {
+		max-width: 1040px;
+		margin: 0 auto;
+		padding: 0.75rem 1.25rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.75rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		gap: 0.85rem;
 	}
 
-	.nav-brand {
+	.brand-group {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: 0.85rem;
+		flex-wrap: wrap;
 	}
 
-	.brand-badge {
-		font-size: 1.8rem;
-		background: rgba(255, 255, 255, 0.15);
-		width: 44px;
-		height: 44px;
-		border-radius: 10px;
+	.brand {
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		gap: 0.65rem;
+		text-decoration: none;
+		color: var(--ink);
 	}
 
-	.brand-title {
-		margin: 0;
-		font-size: 1.15rem;
+	.brand-logo {
+		display: block;
+		height: 38px;
+		width: auto;
+		object-fit: contain;
+	}
+
+	.badge-app {
 		font-weight: 700;
-		letter-spacing: -0.01em;
+		font-size: 0.76rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #ffffff;
+		background: var(--accent);
+		padding: 3px 8px;
+		border-radius: 6px;
+		box-shadow: 0 1px 2px rgba(29, 95, 184, 0.25);
 	}
 
-	.brand-subtitle {
-		margin: 0.1rem 0 0;
-		font-size: 0.78rem;
-		opacity: 0.9;
+	.room-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.76rem;
+		font-weight: 600;
+		color: var(--ink-2);
+		background: var(--surface-2);
+		padding: 0.2rem 0.6rem;
+		border-radius: 20px;
+		border: 1px solid var(--hairline);
+	}
+
+	.room-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--accent);
+	}
+
+	.navy-bar {
+		height: 4px;
+		background: var(--navy);
+		width: 100%;
 	}
 
 	.nav-controls {
@@ -594,89 +647,105 @@
 	}
 
 	.network-badge {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0.25rem 0.6rem;
+		padding: 0.25rem 0.65rem;
 		border-radius: 20px;
-		font-size: 0.74rem;
+		font-size: 0.76rem;
 		font-weight: 600;
 	}
 
 	.network-badge.online {
-		background: #059669;
-		color: #ecfdf5;
+		background: var(--good-bg);
+		color: var(--good);
+		border: 1px solid var(--good-border);
 	}
 
 	.network-badge.offline {
-		background: #d97706;
-		color: #fffbeb;
+		background: var(--warn-bg);
+		color: var(--warn);
+		border: 1px solid var(--warn-border);
 	}
 
 	.status-dot {
 		width: 7px;
 		height: 7px;
 		border-radius: 50%;
-		background: #ffffff;
+	}
+
+	.network-badge.online .status-dot {
+		background: var(--good);
+	}
+
+	.network-badge.offline .status-dot {
+		background: var(--warn);
 	}
 
 	.nav-tabs {
 		display: flex;
-		gap: 0.35rem;
-		background: rgba(0, 0, 0, 0.15);
+		gap: 0.3rem;
+		background: var(--surface-2);
 		padding: 0.25rem;
 		border-radius: 8px;
+		border: 1px solid var(--hairline);
 	}
 
 	.nav-tab {
 		background: transparent;
 		border: none;
-		color: #e0f2fe;
-		padding: 0.4rem 0.75rem;
+		color: var(--ink-2);
+		padding: 0.45rem 0.85rem;
 		border-radius: 6px;
-		font-size: 0.82rem;
+		font-size: 0.84rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.15s ease;
+		font-family: inherit;
+	}
+
+	.nav-tab:hover {
+		color: var(--ink);
 	}
 
 	.nav-tab.active {
 		background: #ffffff;
-		color: #0369a1;
+		color: var(--accent);
+		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.08);
 	}
 
 	.main-content {
 		flex: 1;
-		max-width: 960px;
+		max-width: 1040px;
 		width: 100%;
 		margin: 0 auto;
-		padding: 1.25rem 1rem 3rem;
+		padding: 1.5rem 1.25rem 3.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1.1rem;
+		gap: 1.25rem;
 	}
 
 	.feedback-banner {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 0.85rem 1.1rem;
+		padding: 0.9rem 1.25rem;
 		border-radius: 8px;
-		font-size: 0.9rem;
+		font-size: 0.92rem;
 		font-weight: 500;
-		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+		box-shadow: var(--shadow);
 	}
 
 	.feedback-banner.success {
-		background: #f0fdf4;
-		border: 1.5px solid #86efac;
-		color: #166534;
+		background: var(--good-bg);
+		border: 1.5px solid var(--good-border);
+		color: var(--good);
 	}
 
 	.feedback-banner.error {
-		background: #fef2f2;
-		border: 1.5px solid #fca5a5;
-		color: #991b1b;
+		background: var(--bad-bg);
+		border: 1.5px solid var(--bad-border);
+		color: var(--bad);
 	}
 
 	.feedback-close {
@@ -689,91 +758,109 @@
 	}
 
 	.session-bar {
-		background: #ffffff;
-		border: 1px solid #e2e8f0;
-		border-radius: 10px;
-		padding: 0.85rem 1.1rem;
+		background: var(--surface);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius);
+		padding: 0.9rem 1.25rem;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		flex-wrap: wrap;
 		gap: 0.85rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+		box-shadow: var(--shadow);
 	}
 
 	.session-input {
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
-		font-size: 0.85rem;
+		gap: 0.5rem;
+		font-size: 0.86rem;
 		font-weight: 600;
-		color: #334155;
+		color: var(--ink-2);
 	}
 
 	.session-input input {
-		padding: 0.35rem 0.6rem;
-		border: 1.5px solid #cbd5e1;
+		padding: 0.4rem 0.65rem;
+		border: 1.5px solid var(--hairline);
 		border-radius: 6px;
-		font-size: 0.85rem;
-		color: #1e293b;
+		font-size: 0.88rem;
+		color: var(--ink);
+		background: var(--surface);
+		transition: border-color 0.15s;
+		font-family: inherit;
+	}
+
+	.session-input input:focus {
+		border-color: var(--accent);
+		outline: none;
+		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.12);
 	}
 
 	.workflow-toggle label {
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
-		font-size: 0.82rem;
+		gap: 0.45rem;
+		font-size: 0.84rem;
 		font-weight: 600;
-		color: #475569;
+		color: var(--ink-2);
 		cursor: pointer;
 	}
 
 	.stepper-nav {
 		display: flex;
-		gap: 0.5rem;
+		gap: 0.6rem;
 		overflow-x: auto;
 		padding-bottom: 0.25rem;
 	}
 
 	.step-chip {
 		flex: 1;
-		min-width: 140px;
+		min-width: 150px;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.65rem 0.85rem;
-		background: #ffffff;
-		border: 1.5px solid #e2e8f0;
+		gap: 0.55rem;
+		padding: 0.7rem 0.95rem;
+		background: var(--surface);
+		border: 1.5px solid var(--hairline);
 		border-radius: 8px;
 		cursor: pointer;
 		transition: all 0.15s ease;
-		color: #64748b;
+		color: var(--muted);
 		user-select: none;
+		font-family: inherit;
+	}
+
+	.step-chip:hover {
+		border-color: #cbd5e1;
+		color: var(--ink-2);
 	}
 
 	.step-chip.active {
-		border-color: #0284c7;
-		background: #f0f9ff;
-		color: #0369a1;
-		box-shadow: 0 2px 5px rgba(2, 132, 199, 0.15);
+		border-color: var(--accent);
+		background: var(--accent-wash);
+		color: var(--accent-ink);
+		box-shadow: 0 2px 6px rgba(29, 95, 184, 0.12);
+		font-weight: 600;
 	}
 
 	.step-chip.complete {
-		border-color: #86efac;
-		color: #166534;
+		border-color: var(--good-border);
+		color: var(--good);
+		background: var(--good-bg);
 	}
 
 	.step-chip.complete.active {
-		border-color: #0284c7;
-		background: #f0f9ff;
+		border-color: var(--accent);
+		background: var(--accent-wash);
+		color: var(--accent-ink);
 	}
 
 	.step-num {
 		width: 24px;
 		height: 24px;
 		border-radius: 50%;
-		background: #e2e8f0;
-		color: #475569;
+		background: var(--surface-2);
+		color: var(--ink-2);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -782,12 +869,12 @@
 	}
 
 	.step-chip.active .step-num {
-		background: #0284c7;
+		background: var(--accent);
 		color: #ffffff;
 	}
 
 	.step-chip.complete .step-num {
-		background: #16a34a;
+		background: var(--good);
 		color: #ffffff;
 	}
 
@@ -802,70 +889,72 @@
 	}
 
 	.step-nav-footer {
-		background: #ffffff;
-		border: 1px solid #cbd5e1;
-		border-radius: 10px;
-		padding: 0.85rem 1.25rem;
+		background: var(--surface);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius);
+		padding: 0.9rem 1.35rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		position: sticky;
 		bottom: 1rem;
-		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-		z-index: 50;
+		box-shadow: var(--shadow-lg);
+		z-index: 40;
 	}
 
 	.step-indicator {
 		font-size: 0.88rem;
 		font-weight: 600;
-		color: #475569;
+		color: var(--ink-2);
 		display: flex;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.5rem;
 	}
 
 	.step-hint {
-		color: #dc2626;
+		color: var(--bad);
 		font-size: 0.78rem;
-		font-weight: 500;
+		font-weight: 600;
 	}
 
 	.nav-action-btn {
-		padding: 0.65rem 1.25rem;
+		padding: 0.65rem 1.35rem;
 		border-radius: 7px;
 		font-size: 0.9rem;
 		font-weight: 600;
 		cursor: pointer;
 		border: none;
 		transition: all 0.15s ease;
+		font-family: inherit;
 	}
 
 	.nav-action-btn.back {
-		background: #f1f5f9;
-		color: #334155;
+		background: var(--surface-2);
+		color: var(--ink-2);
 	}
 
 	.nav-action-btn.back:hover {
 		background: #e2e8f0;
+		color: var(--ink);
 	}
 
 	.nav-action-btn.next {
-		background: #0284c7;
+		background: var(--accent);
 		color: #ffffff;
 	}
 
 	.nav-action-btn.next:hover:not(:disabled) {
-		background: #0369a1;
+		background: var(--accent-ink);
 	}
 
 	.nav-action-btn.submit {
-		background: #16a34a;
+		background: var(--good);
 		color: #ffffff;
-		box-shadow: 0 3px 8px rgba(22, 163, 74, 0.35);
+		box-shadow: 0 3px 8px rgba(10, 127, 46, 0.3);
 	}
 
 	.nav-action-btn.submit:hover:not(:disabled) {
-		background: #15803d;
+		background: #086925;
 	}
 
 	.nav-action-btn.disabled,
@@ -881,20 +970,26 @@
 		align-items: center;
 		gap: 0.75rem;
 		font-size: 0.82rem;
-		color: #64748b;
+		color: var(--muted);
 		margin-top: 0.5rem;
 		flex-wrap: wrap;
 	}
 
 	.sub-single-btn {
-		background: #e2e8f0;
-		border: 1px solid #cbd5e1;
-		color: #334155;
-		padding: 0.3rem 0.65rem;
-		border-radius: 5px;
-		font-size: 0.78rem;
+		background: var(--surface-2);
+		border: 1px solid var(--hairline);
+		color: var(--ink-2);
+		padding: 0.35rem 0.75rem;
+		border-radius: 6px;
+		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.sub-single-btn:hover:not(:disabled) {
+		background: #e2e8f0;
+		color: var(--ink);
 	}
 
 	.sub-single-btn:disabled {
@@ -903,25 +998,29 @@
 	}
 
 	.app-footer {
-		background: #0f172a;
-		color: #94a3b8;
-		padding: 1.5rem 1rem;
+		background: var(--navy);
+		color: var(--on-navy-2);
+		padding: 2.25rem 1.25rem;
 		text-align: center;
-		font-size: 0.8rem;
+		font-size: 0.84rem;
 		margin-top: auto;
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
 	}
 
 	.app-footer p {
-		margin: 0.2rem 0;
+		margin: 0.3rem 0;
 	}
 
 	.ethics-note {
-		font-size: 0.75rem;
-		color: #64748b;
+		font-size: 0.78rem;
+		color: #8d9aae;
 	}
 
 	.app-footer code {
-		color: #38bdf8;
+		color: #7dd3fc;
+		background: rgba(255, 255, 255, 0.06);
+		padding: 0.15rem 0.4rem;
+		border-radius: 4px;
 	}
 
 	@media (max-width: 640px) {
@@ -935,6 +1034,9 @@
 		}
 		.step-indicator {
 			font-size: 0.78rem;
+		}
+		.room-pill {
+			display: none;
 		}
 	}
 </style>

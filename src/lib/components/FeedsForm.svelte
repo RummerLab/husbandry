@@ -387,7 +387,8 @@
 	}
 
 	.input-field.mini input:focus {
-		border-color: #0284c7;
+		border-color: #1d5fb8;
+		box-shadow: 0 0 0 2px rgba(29, 95, 184, 0.15);
 	}
 
 	.meds-section {
@@ -446,7 +447,7 @@
 	}
 
 	.med-btn.active {
-		background: #0284c7;
+		background: #1d5fb8;
 		color: #ffffff;
 	}
 
@@ -465,6 +466,7 @@
 	}
 
 	.input-field textarea:focus {
-		border-color: #0284c7;
+		border-color: #1d5fb8;
+		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.15);
 	}
 </style>

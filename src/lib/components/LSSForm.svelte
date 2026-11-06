@@ -347,7 +347,7 @@
 
 	.input-field input:focus,
 	.input-field textarea:focus {
-		border-color: #0284c7;
-		box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+		border-color: #1d5fb8;
+		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.15);
 	}
 </style>

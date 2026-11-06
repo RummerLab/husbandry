@@ -278,25 +278,25 @@
 		flex-wrap: wrap;
 		gap: 0.75rem;
 		padding: 1rem 1.25rem;
-		background: #f0f9ff;
-		border: 1px solid #bae6fd;
+		background: #e8f0fb;
+		border: 1px solid #cde2fb;
 		border-radius: 10px;
 	}
 
 	.header-text h3 {
 		margin: 0;
-		color: #0369a1;
+		color: #1a4f99;
 		font-size: 1.15rem;
 	}
 
 	.subtitle {
 		margin: 0.2rem 0 0;
 		font-size: 0.82rem;
-		color: #0284c7;
+		color: #3a4a5f;
 	}
 
 	.quick-pass-btn {
-		background: #0284c7;
+		background: #1d5fb8;
 		color: #ffffff;
 		border: none;
 		border-radius: 6px;
@@ -308,7 +308,7 @@
 	}
 
 	.quick-pass-btn:hover {
-		background: #0369a1;
+		background: #1a4f99;
 	}
 
 	.section-card {
@@ -343,9 +343,9 @@
 	}
 
 	.small-btn {
-		background: #e0f2fe;
-		color: #0369a1;
-		border: 1px solid #bae6fd;
+		background: #e8f0fb;
+		color: #1a4f99;
+		border: 1px solid #cde2fb;
 		border-radius: 4px;
 		padding: 0.25rem 0.6rem;
 		font-size: 0.78rem;
@@ -395,7 +395,7 @@
 
 	.input-field input:focus,
 	.input-field textarea:focus {
-		border-color: #0284c7;
-		box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+		border-color: #1d5fb8;
+		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.15);
 	}
 </style>

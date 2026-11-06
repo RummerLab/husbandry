@@ -156,10 +156,10 @@
 	}
 
 	.opt-btn.blue.selected {
-		background: #0284c7;
-		border-color: #0369a1;
+		background: #1d5fb8;
+		border-color: #1a4f99;
 		color: #ffffff;
-		box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+		box-shadow: 0 2px 6px rgba(29, 95, 184, 0.35);
 	}
 
 	.opt-btn.amber.selected {
