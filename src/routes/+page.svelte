@@ -313,7 +313,7 @@
 			<div class="brand-badge">🦈</div>
 			<div>
 				<h1 class="brand-title">RummerLab Husbandry</h1>
-				<p class="brand-subtitle">Room 12 Records • Dr Jodie Rummer Lab</p>
+				<p class="brand-subtitle">Room 12 Records • RummerLab</p>
 			</div>
 		</div>
 
