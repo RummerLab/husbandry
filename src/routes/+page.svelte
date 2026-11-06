@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { room12Date, canNavigate } from '../lib/recordRules';
+	import { validateModule } from '../lib/validation';
 	import { onMount } from 'svelte';
 	import type {
 		LSSData,
@@ -15,11 +17,10 @@
 	import LocalHistoryView from '../lib/components/LocalHistoryView.svelte';
 
 	// Today's date YYYY-MM-DD
-	const todayStr = new Date().toISOString().split('T')[0];
+	const todayStr = room12Date();
 
 	// Top level state
 	let activeTab = $state<'form' | 'history'>('form');
-	let wizardMode = $state<boolean>(true);
 	let currentStep = $state<number>(1);
 	let selectedDate = $state<string>(todayStr);
 	let userInitials = $state<string>('');
@@ -27,56 +28,50 @@
 	let isSubmitting = $state<boolean>(false);
 	let submissionFeedback = $state<{ type: 'success' | 'error'; message: string } | null>(null);
 
-	// Validation states for each step
-	let lssValid = $state<boolean>(false);
-	let tanksEggsValid = $state<boolean>(false);
-	let feedsValid = $state<boolean>(false);
-	let waterQualityValid = $state<boolean>(false);
-
 	// Form datasets
 	let lssData = $state<LSSData>({
 		date: todayStr,
 		amInitials: '',
 		pmInitials: '',
-		skimmerVenturi: '/',
-		skimmerSprayDown: '/',
-		filterCleaned: 'Y',
-		filterReplaced: '/',
-		waterLevelsAM: 'Y',
-		waterLevelsPM: 'Y',
-		waterFlowAM: 'Y',
-		waterFlowPM: 'Y',
-		airstonesAM: 'Y',
-		airstonesPM: 'Y',
-		vacNetTanks: 'Y',
-		tanksScrubbed: 'N',
-		overflowCleaned: 'Y',
-		hoseFloorLadder: 'Y',
-		footTubLidsSqueegee: 'Y',
-		equipmentDisinfected: 'Y',
-		concerns: 'None',
+		skimmerVenturi: '',
+		skimmerSprayDown: '',
+		filterCleaned: '',
+		filterReplaced: '',
+		waterLevelsAM: '',
+		waterLevelsPM: '',
+		waterFlowAM: '',
+		waterFlowPM: '',
+		airstonesAM: '',
+		airstonesPM: '',
+		vacNetTanks: '',
+		tanksScrubbed: '',
+		overflowCleaned: '',
+		hoseFloorLadder: '',
+		footTubLidsSqueegee: '',
+		equipmentDisinfected: '',
+		concerns: '',
 		notes: ''
 	});
 
 	let tanksEggsData = $state<TanksEggsData>({
 		date: todayStr,
 		initials: '',
-		palpationHO103: '0',
-		palpationHO102: '0',
-		palpationHO116: '0',
-		palpationHO105: '0',
-		palpationHO117: '0',
-		windEggs: '0',
-		newEggs: '0',
-		newEggTag: '0',
-		newEmbryos: 'N',
-		candling: 'Y',
-		deadEggTag: '0',
-		foodRecordsEnteredPM: 'Y',
-		whatsappUpdateAM: 'Y',
-		whatsappUpdatePM: 'Y',
+		palpationHO103: '',
+		palpationHO102: '',
+		palpationHO116: '',
+		palpationHO105: '',
+		palpationHO117: '',
+		windEggs: '',
+		newEggs: '',
+		newEggTag: '',
+		newEmbryos: '',
+		candling: '',
+		deadEggTag: '',
+		foodRecordsEnteredPM: '',
+		whatsappUpdateAM: '',
+		whatsappUpdatePM: '',
 		observationsNotes: '',
-		moveDescription: 'None',
+		moveDescription: '',
 		moveFrom: '',
 		moveTo: '',
 		moveQty: ''
@@ -93,16 +88,21 @@
 		date: todayStr,
 		initials: '',
 		isWeeklyCheck: false,
-		tempA: '26.3',
-		tempB: '26.2',
-		pHA: '8.2',
-		pHB: '8.2',
-		salinityA: '36',
-		salinityB: '36',
-		doA: '/',
-		doB: '/',
+		tempA: '',
+		tempB: '',
+		pHA: '',
+		pHB: '',
+		salinityA: '',
+		salinityB: '',
+		doA: '',
+		doB: '',
 		notes: ''
 	});
+
+	let lssValid = $derived(validateModule('lss', lssData).length === 0);
+	let tanksEggsValid = $derived(validateModule('tanksEggs', tanksEggsData).length === 0);
+	let feedsValid = $derived(validateModule('feeds', feedsData).length === 0);
+	let waterQualityValid = $derived(validateModule('waterQuality', waterQualityData).length === 0);
 
 	onMount(() => {
 		const saved = getSavedInitials();
@@ -150,7 +150,7 @@
 
 	function nextStep() {
 		if (canAdvance && currentStep < 4) {
-			currentStep++;
+			jumpToStep(currentStep + 1);
 			window.scrollTo({ top: 0, behavior: 'smooth' });
 		}
 	}
@@ -163,6 +163,7 @@
 	}
 
 	function jumpToStep(step: number) {
+		if (!canNavigate(currentStep, step, [lssValid, tanksEggsValid, feedsValid, waterQualityValid])) return;
 		currentStep = step;
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
@@ -243,6 +244,8 @@
 	}
 
 	async function submitSingleModule(module: 'lss' | 'tanksEggs' | 'feeds' | 'waterQuality') {
+		const data = { lss: lssData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData };
+		if (isSubmitting || validateModule(module, data[module]).length) return;
 		isSubmitting = true;
 		submissionFeedback = null;
 
@@ -398,13 +401,6 @@
 						oninput={(e) => handleInitialsChange(e.currentTarget.value)}
 					/>
 				</div>
-
-				<div class="workflow-toggle">
-					<label>
-						<input type="checkbox" bind:checked={wizardMode} />
-						<span>Guided Wizard (Step-by-Step)</span>
-					</label>
-				</div>
 			</div>
 
 			<!-- Stepper / Module Nav -->
@@ -459,22 +455,18 @@
 				{#if currentStep === 1}
 					<LSSForm
 						bind:data={lssData}
-						onValidChange={(val: boolean) => (lssValid = val)}
 					/>
 				{:else if currentStep === 2}
 					<TanksEggsForm
 						bind:data={tanksEggsData}
-						onValidChange={(val: boolean) => (tanksEggsValid = val)}
 					/>
 				{:else if currentStep === 3}
 					<FeedsForm
 						bind:data={feedsData}
-						onValidChange={(val: boolean) => (feedsValid = val)}
 					/>
 				{:else if currentStep === 4}
 					<WaterQualityForm
 						bind:data={waterQualityData}
-						onValidChange={(val: boolean) => (waterQualityValid = val)}
 					/>
 				{/if}
 			</div>
@@ -796,15 +788,6 @@
 		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.12);
 	}
 
-	.workflow-toggle label {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		font-size: 0.84rem;
-		font-weight: 600;
-		color: var(--ink-2);
-		cursor: pointer;
-	}
 
 	.stepper-nav {
 		display: flex;

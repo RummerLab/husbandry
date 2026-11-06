@@ -125,3 +125,5 @@ Whenever you notice:
 | 2026-11 | Hardened GitHub Actions CI workflow with explicit least-privilege token permissions (`contents: read`), resolving CodeQL code scanning alert #1. |
 
 _Add a row when you change behaviour, data structures, or conventions that future agents must know about._
+
+- 2026-11: Shared runtime validation is in `src/lib/validation.ts`; observations start unanswered. Bulk measurement defaults are prohibited. Dates use Australia/Brisbane. Run `npm test` plus check/build. Pure spreadsheet formatters live in `src/lib/server/rows.ts`; routine-only chemistry exports blank cells.
