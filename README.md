@@ -160,3 +160,11 @@ The app saves each submission on the device before sending it. Pending records a
 Each live write atomically creates a `husbandry_*` named-range receipt and appends all selected operational rows. Receipt IDs hash the submission ID and receipt names fingerprint its payload; replay with changed data is rejected. Keep these named ranges intact when maintaining the workbook. No extra operational columns or browser access to other researchers' records are introduced. Cell text is written literally, so notes cannot become formulas.
 
 Before rollout, reconcile any pending records from the old app that may already have partially reached Sheets; existing rows cannot be retrospectively deduplicated without their original IDs. Verify concurrent replay and lost-response recovery against a disposable copy of the workbook before production deployment. Unit tests model the [Sheets atomic batch contract](https://developers.google.com/workspace/sheets/api/guides/batch) and [duplicate named-range ID rejection](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/request#addnamedrangerequest); they do not call the live lab spreadsheet.
+
+### Offline app updates
+
+SvelteKit builds and registers `src/service-worker/index.ts` at `/service-worker.js`. The worker precaches the generated JavaScript/CSS manifest, static assets and root shell. Navigation is network-first (five-second timeout), with the installed shell as offline fallback. API requests, mutations and third-party requests are never served from this cache.
+
+A new worker waits until existing tabs close, protecting active forms. After saving records, close all app tabs and reopen to activate a waiting version. `static/sw.js` is a network-only bridge for old installations; do not remove it until those devices have migrated. The cached shell's date is refreshed to Brisbane's current date when mounted.
+
+Verification: `npm test`, `npm run check` (including worker TypeScript), and `npm run build`. For device acceptance, visit a production preview online, wait for worker installation, then close/reopen offline with the HTTP cache cleared but Cache Storage preserved. Verify every form loads; repeat across two builds and verify the old worker yields after tabs close.

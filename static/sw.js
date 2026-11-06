@@ -1,44 +1,7 @@
-const CACHE_NAME = 'rummerlab-husbandry-v1';
-const ASSETS_TO_CACHE = [
-	'/',
-	'/manifest.webmanifest',
-	'/favicon.svg'
-];
-
-self.addEventListener('install', (event) => {
-	event.waitUntil(
-		caches.open(CACHE_NAME).then((cache) => {
-			return cache.addAll(ASSETS_TO_CACHE);
-		}).then(() => self.skipWaiting())
-	);
+// Migration bridge for devices with the original cache-first /sw.js registered.
+// New pages register SvelteKit's generated /service-worker.js automatically.
+self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate', event => {
+ event.waitUntil(caches.delete('rummerlab-husbandry-v1').then(() => self.clients.claim()));
 });
-
-self.addEventListener('activate', (event) => {
-	event.waitUntil(
-		caches.keys().then((keys) => {
-			return Promise.all(
-				keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-			);
-		}).then(() => self.clients.claim())
-	);
-});
-
-self.addEventListener('fetch', (event) => {
-	// Let API requests pass straight through to network with offline fallback in app
-	if (event.request.url.includes('/api/')) {
-		return;
-	}
-
-	event.respondWith(
-		caches.match(event.request).then((cachedResponse) => {
-			if (cachedResponse) {
-				return cachedResponse;
-			}
-			return fetch(event.request).catch(() => {
-				if (event.request.mode === 'navigate') {
-					return caches.match('/');
-				}
-			});
-		})
-	);
-});
+// No fetch handler: the next navigation reaches the current application.

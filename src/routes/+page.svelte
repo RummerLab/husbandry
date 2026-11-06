@@ -106,6 +106,7 @@
 	let waterQualityValid = $derived(validateModule('waterQuality', waterQualityData).length === 0);
 
 	onMount(() => {
+		handleDateChange(room12Date());
 		try {
 			const saved = getSavedInitials();
 			if (saved) { userInitials = saved; applyInitialsToAll(saved); }
