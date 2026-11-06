@@ -4,6 +4,14 @@ import type { FullHusbandrySubmission } from '../types';
 import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow } from './rows';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
+function cellValue(title: string, value: string | number, column: number, width: number): sheets_v4.Schema$ExtendedValue {
+	// Keep measured quantities numeric for downstream spreadsheet calculations,
+	// while identifiers and free-text notes must never be interpreted as formulas.
+	const measured = (title === 'Feeds' || title === 'Water Quality') && column >= 2 && column < width - 1;
+	if (typeof value === 'number') return { numberValue: value };
+	if (measured && /^\d+(\.\d+)?$/.test(value.trim())) return { numberValue: Number(value) };
+	return { stringValue: value };
+}
 function canonical(value: unknown): string {
 	if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
 	if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -31,7 +39,7 @@ export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadshee
 	const requests: sheets_v4.Schema$Request[] = rows.map(row => {
 		const sheetId = data.sheets?.find(s => s.properties?.title === row.title)?.properties?.sheetId;
 		if (sheetId == null) throw new Error(`Missing operational tab: ${row.title}`);
-		return { appendCells: { sheetId, fields: 'userEnteredValue', rows: [{ values: row.values.map(value => ({ userEnteredValue: typeof value === 'number' ? { numberValue: value } : { stringValue: value } })) }] } };
+		return { appendCells: { sheetId, fields: 'userEnteredValue', rows: [{ values: row.values.map((value, column) => ({ userEnteredValue: cellValue(row.title, value, column, row.values.length) })) }] } };
 	});
 	requests.unshift({ addNamedRange: { namedRange: { namedRangeId: receiptId, name: receiptName, range: { sheetId: requests[0].appendCells!.sheetId!, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 } } } });
 	try {

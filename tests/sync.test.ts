@@ -74,5 +74,6 @@ describe('atomic Sheets writes', () => {
 		fake.fail = false; await writeAtomicSubmission(fake.client, 'sheet', payload()); expect(fake.appended).toBe(2);
 		const requests = fake.batchUpdate.mock.calls.at(-1)![0].requestBody.requests!;
 		expect(requests[1].appendCells!.rows![0].values!.at(-1)!.userEnteredValue).toEqual({ stringValue: '=1+1' });
+		expect(requests[2].appendCells!.rows![0].values![2].userEnteredValue).toEqual({ numberValue: 26 });
 	});
 });
