@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import type { FullHusbandrySubmission } from '../types';
-import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow } from './rows';
+import { writeAtomicSubmission } from './atomicSubmission';
 
 // Environment variables from runtime process.env (Vercel & Node)
 function getEnv(name: string): string {
@@ -85,55 +85,7 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 
 	const sheets = getSheetsClient();
 	const spreadsheetId = getEnv('GOOGLE_SHEET_ID');
-	const tabsUpdated: string[] = [];
-
-	// 1. LSS Checks
-	if (submission.lss && submission.modulesSubmitted.includes('lss')) {
-		const row = formatLSSRow(submission.lss);
-		await sheets.spreadsheets.values.append({
-			spreadsheetId,
-			range: "'LSS Checks'!A:U",
-			valueInputOption: 'USER_ENTERED',
-			requestBody: { values: [row] }
-		});
-		tabsUpdated.push('LSS Checks');
-	}
-
-	// 2. Tanks + Eggs
-	if (submission.tanksEggs && submission.modulesSubmitted.includes('tanksEggs')) {
-		const row = formatTanksEggsRow(submission.tanksEggs);
-		await sheets.spreadsheets.values.append({
-			spreadsheetId,
-			range: "'Tanks + Eggs'!A:U",
-			valueInputOption: 'USER_ENTERED',
-			requestBody: { values: [row] }
-		});
-		tabsUpdated.push('Tanks + Eggs');
-	}
-
-	// 3. Feeds
-	if (submission.feeds && submission.modulesSubmitted.includes('feeds')) {
-		const row = formatFeedsRow(submission.feeds);
-		await sheets.spreadsheets.values.append({
-			spreadsheetId,
-			range: "'Feeds'!A:CF",
-			valueInputOption: 'USER_ENTERED',
-			requestBody: { values: [row] }
-		});
-		tabsUpdated.push('Feeds');
-	}
-
-	// 4. Water Quality
-	if (submission.waterQuality && submission.modulesSubmitted.includes('waterQuality')) {
-		const row = formatWaterQualityRow(submission.waterQuality);
-		await sheets.spreadsheets.values.append({
-			spreadsheetId,
-			range: "'Water Quality'!A:W",
-			valueInputOption: 'USER_ENTERED',
-			requestBody: { values: [row] }
-		});
-		tabsUpdated.push('Water Quality');
-	}
+	const tabsUpdated = await writeAtomicSubmission(sheets, spreadsheetId, submission);
 
 	return {
 		synced: true,

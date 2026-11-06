@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { startAutoSync } from '../lib/autoSync';
 	import { room12Date, canNavigate } from '../lib/recordRules';
 	import { validateModule } from '../lib/validation';
 	import { onMount } from 'svelte';
@@ -9,7 +10,7 @@
 		WaterQualityData,
 		FullHusbandrySubmission
 	} from '../lib/types';
-	import { getSavedInitials, setSavedInitials, saveLocalSubmission, getDeviceId } from '../lib/storage';
+	import { getSavedInitials, setSavedInitials, queueSubmission, getLocalHistory } from '../lib/storage';
 	import LSSForm from '../lib/components/LSSForm.svelte';
 	import TanksEggsForm from '../lib/components/TanksEggsForm.svelte';
 	import FeedsForm from '../lib/components/FeedsForm.svelte';
@@ -105,22 +106,18 @@
 	let waterQualityValid = $derived(validateModule('waterQuality', waterQualityData).length === 0);
 
 	onMount(() => {
-		const saved = getSavedInitials();
-		if (saved) {
-			userInitials = saved;
-			applyInitialsToAll(saved);
-		}
-
-		if (typeof window !== 'undefined') {
-			isOnline = navigator.onLine;
-			window.addEventListener('online', () => (isOnline = true));
-			window.addEventListener('offline', () => (isOnline = false));
-		}
+		try {
+			const saved = getSavedInitials();
+			if (saved) { userInitials = saved; applyInitialsToAll(saved); }
+		} catch { submissionFeedback = { type: 'error', message: 'Device storage is unavailable. Keep this form open until saving succeeds.' }; }
+		const stop = startAutoSync(online => { isOnline = online; refreshPending(); }, error => { submissionFeedback = { type: 'error', message: String(error) }; });
+		window.addEventListener('storage', refreshPending);
+		return () => { stop(); window.removeEventListener('storage', refreshPending); };
 	});
 
 	function handleInitialsChange(val: string) {
 		userInitials = val;
-		setSavedInitials(val);
+		try { setSavedInitials(val); } catch { submissionFeedback = { type: 'error', message: 'Cannot save preferences: device storage unavailable.' }; }
 		applyInitialsToAll(val);
 	}
 
@@ -169,7 +166,7 @@
 	}
 
 	async function submitFullRoutine() {
-		if (!lssValid || !tanksEggsValid || !feedsValid || !waterQualityValid) {
+		if (isSubmitting || !lssValid || !tanksEggsValid || !feedsValid || !waterQualityValid) {
 			submissionFeedback = {
 				type: 'error',
 				message: 'Cannot submit: please ensure all required questions across all 4 sections are answered.'
@@ -180,7 +177,7 @@
 		isSubmitting = true;
 		submissionFeedback = null;
 
-		const submissionId = 'sub_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+		const submissionId = 'sub_' + crypto.randomUUID();
 		const payload: FullHusbandrySubmission = {
 			id: submissionId,
 			submittedAt: new Date().toISOString(),
@@ -191,56 +188,10 @@
 			tanksEggs: $state.snapshot(tanksEggsData),
 			feeds: $state.snapshot(feedsData),
 			waterQuality: $state.snapshot(waterQualityData),
-			clientDeviceId: getDeviceId()
+			clientDeviceId: undefined
 		};
 
-		let syncSuccess = false;
-		let responseMessage = '';
-
-		if (isOnline) {
-			try {
-				const res = await fetch('/api/submit', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-				const result = await res.json();
-				if (result.success) {
-					syncSuccess = true;
-					responseMessage = result.message || 'Synced to Google Sheets!';
-				} else {
-					responseMessage = result.error || 'Server rejected submission';
-				}
-			} catch (err) {
-				responseMessage = 'Network error during sync, saved offline.';
-			}
-		} else {
-			responseMessage = 'Saved to offline device queue. Will auto-sync when reconnected.';
-		}
-
-		// Save to local device history
-		saveLocalSubmission({
-			id: submissionId,
-			submittedAt: payload.submittedAt,
-			date: payload.date,
-			initials: payload.initials,
-			modules: payload.modulesSubmitted,
-			synced: syncSuccess,
-			syncError: syncSuccess ? undefined : responseMessage,
-			summary: `Complete Room 12 Routine (LSS, Tanks & Eggs, Feeds, Water Quality)`,
-			payload
-		});
-
-		isSubmitting = false;
-		submissionFeedback = {
-			type: 'success',
-			message: syncSuccess
-				? `🎉 Success! All data recorded and updated in Google Sheets.`
-				: `📦 Saved locally to this device! ${responseMessage}`
-		};
-
-		// Reset or remain on page with clear notice
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+		await persistSubmission(payload);
 	}
 
 	async function submitSingleModule(module: 'lss' | 'tanksEggs' | 'feeds' | 'waterQuality') {
@@ -249,14 +200,14 @@
 		isSubmitting = true;
 		submissionFeedback = null;
 
-		const submissionId = 'sub_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+		const submissionId = 'sub_' + crypto.randomUUID();
 		const payload: FullHusbandrySubmission = {
 			id: submissionId,
 			submittedAt: new Date().toISOString(),
 			date: selectedDate,
 			initials: userInitials || 'Lab Member',
 			modulesSubmitted: [module],
-			clientDeviceId: getDeviceId()
+			clientDeviceId: undefined
 		};
 
 		if (module === 'lss') payload.lss = $state.snapshot(lssData);
@@ -264,49 +215,24 @@
 		if (module === 'feeds') payload.feeds = $state.snapshot(feedsData);
 		if (module === 'waterQuality') payload.waterQuality = $state.snapshot(waterQualityData);
 
-		let syncSuccess = false;
-		let responseMessage = '';
-
-		if (isOnline) {
-			try {
-				const res = await fetch('/api/submit', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-				const result = await res.json();
-				if (result.success) {
-					syncSuccess = true;
-					responseMessage = result.message || 'Synced to Google Sheets!';
-				} else {
-					responseMessage = result.error || 'Server error';
-				}
-			} catch (err) {
-				responseMessage = 'Network error, saved to device.';
-			}
-		}
-
-		saveLocalSubmission({
-			id: submissionId,
-			submittedAt: payload.submittedAt,
-			date: payload.date,
-			initials: payload.initials,
-			modules: [module],
-			synced: syncSuccess,
-			syncError: syncSuccess ? undefined : responseMessage,
-			summary: `Single Module: ${module.toUpperCase()}`,
-			payload
-		});
-
-		isSubmitting = false;
-		submissionFeedback = {
-			type: 'success',
-			message: syncSuccess
-				? `✓ ${module.toUpperCase()} submitted and updated in Google Sheets.`
-				: `Saved to device queue: ${responseMessage}`
-		};
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+		await persistSubmission(payload);
 	}
+
+	async function persistSubmission(payload: FullHusbandrySubmission) {
+		try {
+			const record = await queueSubmission(payload, isOnline);
+			submissionFeedback = { type: record.synced ? 'success' : 'error', message: record.synced ? 'Saved and synced to Google Sheets.' : `Saved on this device; awaiting sync. ${record.syncError || 'Will retry when online.'}` };
+		} catch (error) {
+			submissionFeedback = { type: 'error', message: `Could not confirm saving. Keep this form open. ${error instanceof Error ? error.message : 'Storage unavailable'}` };
+		} finally { isSubmitting = false; refreshPending(); }
+	}
+
+	let pendingCount = $state(0);
+	function refreshPending() {
+		try { pendingCount = getLocalHistory().filter(h => !h.synced).length; }
+		catch (error) { submissionFeedback = { type: 'error', message: String(error) }; }
+	}
+
 </script>
 
 <div class="app-layout">
@@ -332,7 +258,7 @@
 			<div class="nav-controls">
 				<div class="network-badge" class:online={isOnline} class:offline={!isOnline}>
 					<span class="status-dot"></span>
-					<span>{isOnline ? 'Online' : 'Offline Mode'}</span>
+					<span>{isOnline ? 'Online' : 'Offline Mode'} · {pendingCount} pending</span>
 				</div>
 
 				<div class="nav-tabs" role="tablist">

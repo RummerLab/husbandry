@@ -152,3 +152,11 @@ npm run build
 
 Developed for **RummerLab** / **Physioshark**, James Cook University.
 All rights reserved.
+
+### Reliable submission receipts
+
+The app saves each submission on the device before sending it. Pending records are retained without a 100-record cap. Mock mode remains available without Google credentials, but its acknowledgements are displayed as pending rather than synced to Sheets. Keep the app open or reopen it online to retry; background sync while the app is closed is not promised.
+
+Each live write atomically creates a `husbandry_*` named-range receipt and appends all selected operational rows. Receipt IDs hash the submission ID and receipt names fingerprint its payload; replay with changed data is rejected. Keep these named ranges intact when maintaining the workbook. No extra operational columns or browser access to other researchers' records are introduced. Cell text is written literally, so notes cannot become formulas.
+
+Before rollout, reconcile any pending records from the old app that may already have partially reached Sheets; existing rows cannot be retrospectively deduplicated without their original IDs. Verify concurrent replay and lost-response recovery against a disposable copy of the workbook before production deployment. Unit tests model the [Sheets atomic batch contract](https://developers.google.com/workspace/sheets/api/guides/batch) and [duplicate named-range ID rejection](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/request#addnamedrangerequest); they do not call the live lab spreadsheet.

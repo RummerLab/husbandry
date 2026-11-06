@@ -9,8 +9,9 @@
 	let syncMessage = $state('');
 
 	onMount(() => {
-		deviceId = getDeviceId();
-		loadHistory();
+		try { deviceId = getDeviceId(); loadHistory(); } catch (error) { syncMessage = String(error); }
+		const timer = setInterval(() => { try { loadHistory(); } catch (error) { syncMessage = String(error); } }, 2000);
+		return () => clearInterval(timer);
 	});
 
 	function loadHistory() {
