@@ -4,7 +4,7 @@
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-blue.svg)](https://husbandry.rummerlab.com)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-v3-ff3e00.svg)](https://kit.svelte.dev)
 
-A mobile-first Progressive Web App (PWA) and automated Google Sheets sync system designed for the **Rummer Lab** (Physioshark / James Cook University), ensuring strict animal ethics compliance and frictionless daily data entry in **Room 12**.
+A mobile-first Progressive Web App (PWA) and automated Google Sheets sync system designed for **RummerLab** (Physioshark / James Cook University), ensuring strict animal ethics compliance and frictionless daily data entry in **Room 12**.
 
 Hosted at: **[husbandry.rummerlab.com](https://husbandry.rummerlab.com)**
 
@@ -150,5 +150,5 @@ npm run build
 
 ## 📄 License & Attribution
 
-Developed for **Rummer Lab** / **Physioshark**, James Cook University.
+Developed for **RummerLab** / **Physioshark**, James Cook University.
 All rights reserved.

@@ -6,7 +6,7 @@ This document provides context, conventions, and guidelines for AI coding agents
 
 ## 🏛️ Project & Domain Overview
 
-- **Organization:** Rummer Lab ([rummerlab.com](https://rummerlab.com)), lead by Dr. Jodie Rummer (Physioshark, James Cook University).
+- **Organization:** RummerLab ([rummerlab.com](https://rummerlab.com)), lead by Dr. Jodie Rummer (Physioshark, James Cook University).
 - **Domain:** Marine biology, shark physiology and husbandry research.
 - **Facility:** Room 12 (shark aquarium, nursery, Life Support Systems).
 - **Core Goal:** Eliminate skipped data entries and protect animal ethics compliance by providing a mobile PWA checklist that synchronizes with Google Sheets.
