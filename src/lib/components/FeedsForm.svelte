@@ -21,8 +21,32 @@
 		}
 	}
 
+	// Strict ethics validation: all active tanks must be logged
+	let incompleteTanks = $derived.by(() => {
+		const missing: string[] = [];
+		for (const tank of ROOM12_TANKS) {
+			const entry = data.tanks[tank.id];
+			if (!entry || !entry.amountFed?.trim()) {
+				missing.push(`${tank.name} (Fed g)`);
+				continue;
+			}
+			if (!entry.uneatenGrams?.trim()) {
+				missing.push(`${tank.name} (Uneaten g)`);
+				continue;
+			}
+			if (tank.medicationType !== 'None') {
+				for (const shark of tank.sharks) {
+					if (shark.medId && !entry.meds[shark.medId]) {
+						missing.push(`${tank.name} (${shark.label} ${tank.medicationType})`);
+					}
+				}
+			}
+		}
+		return missing;
+	});
+
 	let isValid = $derived(
-		Boolean(data.initials?.trim())
+		Boolean(data.initials?.trim()) && incompleteTanks.length === 0
 	);
 
 	$effect(() => {
@@ -33,11 +57,11 @@
 		for (const tank of ROOM12_TANKS) {
 			const entry = data.tanks[tank.id] || { amountFed: '', meds: {}, uneatenGrams: '0' };
 			if (tank.targetAmt) {
-				// Strip 'g' for number or keep as entered
 				entry.amountFed = tank.targetAmt.replace('g', '');
+			} else {
+				entry.amountFed = '50';
 			}
 			entry.uneatenGrams = '0';
-			// Set all animal medications to Yes (if applicable) or N (if not scheduled)
 			for (const shark of tank.sharks) {
 				if (shark.medId) {
 					entry.meds[shark.medId] = 'N'; // default routine is N unless prescribed
@@ -59,6 +83,13 @@
 		</button>
 	</div>
 
+	{#if incompleteTanks.length > 0}
+		<div class="ethics-warning-banner">
+			<strong>⚠️ Animal Ethics Compliance Guard:</strong>
+			<span>All tanks and medication checkboxes must be explicitly filled to proceed ({incompleteTanks.length} items remaining).</span>
+		</div>
+	{/if}
+
 	<!-- Initials -->
 	<div class="section-card">
 		<h4>1. Feeding Personnel</h4>
@@ -79,7 +110,9 @@
 	<!-- Tanks Feeding List -->
 	<div class="tanks-grid">
 		{#each ROOM12_TANKS as tank}
-			<div class="tank-card">
+			{@const entry = data.tanks[tank.id]}
+			{@const isTankComplete = entry && entry.amountFed?.trim() && entry.uneatenGrams?.trim()}
+			<div class="tank-card" class:incomplete={!isTankComplete}>
 				<div class="tank-header">
 					<div class="tank-title">
 						<h5>{tank.name}</h5>
@@ -97,29 +130,35 @@
 				<div class="tank-body">
 					<div class="input-row">
 						<div class="input-field mini">
-							<label for="feed-amt-{tank.id}">Fed (g)</label>
+							<label for="feed-amt-{tank.id}">
+								Fed (g) <span class="required-star">*</span>
+							</label>
 							<input
 								id="feed-amt-{tank.id}"
 								type="text"
 								placeholder={tank.targetAmt ? tank.targetAmt.replace('g', '') : 'e.g. 50'}
 								bind:value={data.tanks[tank.id].amountFed}
+								required
 							/>
 						</div>
 
 						<div class="input-field mini">
-							<label for="feed-uneaten-{tank.id}">Uneaten (g)</label>
+							<label for="feed-uneaten-{tank.id}">
+								Uneaten (g) <span class="required-star">*</span>
+							</label>
 							<input
 								id="feed-uneaten-{tank.id}"
 								type="text"
 								placeholder="0"
 								bind:value={data.tanks[tank.id].uneatenGrams}
+								required
 							/>
 						</div>
 					</div>
 
 					{#if tank.medicationType !== 'None' && tank.sharks.some((s: { medId?: string }) => Boolean(s.medId))}
 						<div class="meds-section">
-							<span class="meds-title">{tank.medicationType} Administered:</span>
+							<span class="meds-title">{tank.medicationType} Administered (Mandatory):</span>
 							<div class="meds-options">
 								{#each tank.sharks as shark}
 									{#if shark.medId}
@@ -217,6 +256,18 @@
 		background: #86198f;
 	}
 
+	.ethics-warning-banner {
+		padding: 0.75rem 1rem;
+		background: #fff1f2;
+		border: 1.5px solid #fecdd3;
+		border-radius: 8px;
+		color: #be123c;
+		font-size: 0.86rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
 	.section-card {
 		background: #ffffff;
 		border: 1px solid #e2e8f0;
@@ -241,13 +292,19 @@
 
 	.tank-card {
 		background: #ffffff;
-		border: 1px solid #e2e8f0;
+		border: 1.5px solid #e2e8f0;
 		border-radius: 8px;
 		padding: 0.85rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.7rem;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+		transition: border-color 0.15s;
+	}
+
+	.tank-card.incomplete {
+		border-color: #fca5a5;
+		background: #fffdfd;
 	}
 
 	.tank-header {

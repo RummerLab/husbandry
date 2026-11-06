@@ -8,15 +8,37 @@
 
 	let { data = $bindable(), onValidChange }: Props = $props();
 
-	let isValid = $derived(
-		Boolean(
+	let isValid = $derived.by(() => {
+		const routineFilled = Boolean(
 			data.initials?.trim() &&
 			data.tempA?.trim() &&
 			data.tempB?.trim() &&
+			data.pHA?.trim() &&
+			data.pHB?.trim() &&
 			data.salinityA?.trim() &&
 			data.salinityB?.trim()
-		)
-	);
+		);
+
+		if (!routineFilled) return false;
+
+		if (data.isWeeklyCheck) {
+			const weeklyFilled = Boolean(
+				data.alkA?.trim() &&
+				data.alkB?.trim() &&
+				data.nh3A?.trim() &&
+				data.nh3B?.trim() &&
+				data.no2A?.trim() &&
+				data.no2B?.trim() &&
+				data.no3A?.trim() &&
+				data.no3B?.trim() &&
+				data.po4A?.trim() &&
+				data.po4B?.trim()
+			);
+			return weeklyFilled;
+		}
+
+		return true;
+	});
 
 	$effect(() => {
 		if (onValidChange) onValidChange(isValid);
