@@ -1,0 +1,298 @@
+import { google } from 'googleapis';
+import type { FullHusbandrySubmission, LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../types';
+import { ROOM12_TANKS } from '../tanksConfig';
+
+// Environment variables can come from process.env (Vercel)
+function getEnv(name: string): string {
+	return process.env[name] || '';
+}
+
+export function isGoogleSheetsConfigured(): boolean {
+	const email = getEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+	const key = getEnv('GOOGLE_PRIVATE_KEY');
+	const sheetId = getEnv('GOOGLE_SHEET_ID');
+	return Boolean(email && key && sheetId);
+}
+
+function getSheetsClient() {
+	const clientEmail = getEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+	let privateKey = getEnv('GOOGLE_PRIVATE_KEY');
+
+	if (!clientEmail || !privateKey) {
+		throw new Error('Google Service Account credentials missing.');
+	}
+
+	// Format private key if escaped newlines were provided in env
+	if (privateKey.includes('\\n')) {
+		privateKey = privateKey.replace(/\\n/g, '\n');
+	}
+
+	const auth = new google.auth.JWT({
+		email: clientEmail,
+		key: privateKey,
+		scopes: ['https://www.googleapis.com/auth/spreadsheets']
+	});
+
+	return google.sheets({ version: 'v4', auth });
+}
+
+export async function appendSubmissionToSheets(submission: FullHusbandrySubmission): Promise<{
+	synced: boolean;
+	mode: 'live' | 'mock';
+	message: string;
+	tabsUpdated: string[];
+}> {
+	if (!isGoogleSheetsConfigured()) {
+		console.warn('Google Sheets not configured. Mocking append operation.');
+		return {
+			synced: true,
+			mode: 'mock',
+			message: 'Mock sync successful. Configure GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, and GOOGLE_SHEET_ID for live Google Sheets sync.',
+			tabsUpdated: submission.modulesSubmitted
+		};
+	}
+
+	const sheets = getSheetsClient();
+	const spreadsheetId = getEnv('GOOGLE_SHEET_ID');
+	const tabsUpdated: string[] = [];
+
+	// 1. LSS Checks
+	if (submission.lss && submission.modulesSubmitted.includes('lss')) {
+		const row = formatLSSRow(submission.lss);
+		await sheets.spreadsheets.values.append({
+			spreadsheetId,
+			range: "'LSS Checks'!A:U",
+			valueInputOption: 'USER_ENTERED',
+			requestBody: { values: [row] }
+		});
+		tabsUpdated.push('LSS Checks');
+	}
+
+	// 2. Tanks + Eggs
+	if (submission.tanksEggs && submission.modulesSubmitted.includes('tanksEggs')) {
+		const row = formatTanksEggsRow(submission.tanksEggs);
+		await sheets.spreadsheets.values.append({
+			spreadsheetId,
+			range: "'Tanks + Eggs'!A:U",
+			valueInputOption: 'USER_ENTERED',
+			requestBody: { values: [row] }
+		});
+		tabsUpdated.push('Tanks + Eggs');
+	}
+
+	// 3. Feeds
+	if (submission.feeds && submission.modulesSubmitted.includes('feeds')) {
+		const row = formatFeedsRow(submission.feeds);
+		await sheets.spreadsheets.values.append({
+			spreadsheetId,
+			range: "'Feeds'!A:CF",
+			valueInputOption: 'USER_ENTERED',
+			requestBody: { values: [row] }
+		});
+		tabsUpdated.push('Feeds');
+	}
+
+	// 4. Water Quality
+	if (submission.waterQuality && submission.modulesSubmitted.includes('waterQuality')) {
+		const row = formatWaterQualityRow(submission.waterQuality);
+		await sheets.spreadsheets.values.append({
+			spreadsheetId,
+			range: "'Water Quality'!A:W",
+			valueInputOption: 'USER_ENTERED',
+			requestBody: { values: [row] }
+		});
+		tabsUpdated.push('Water Quality');
+	}
+
+	return {
+		synced: true,
+		mode: 'live',
+		message: `Successfully appended to Google Sheets (${tabsUpdated.join(', ')})`,
+		tabsUpdated
+	};
+}
+
+function formatLSSRow(data: LSSData): (string | number)[] {
+	return [
+		data.date,                          // Col 1: Date
+		data.amInitials || '',              // Col 2: AM Initials
+		data.pmInitials || '',              // Col 3: PM Initials
+		data.skimmerVenturi || '/',         // Col 4: Protein Skimmer Venturi
+		data.skimmerSprayDown || '/',       // Col 5: Protein Skimmer Spray down
+		data.filterCleaned || 'N',          // Col 6: Filter canister Cleaned
+		data.filterReplaced || '/',         // Col 7: Filter canister Replaced
+		data.waterLevelsAM || 'Y',          // Col 8: Water levels sufficient AM
+		data.waterLevelsPM || 'Y',          // Col 9: Water levels sufficient PM
+		data.waterFlowAM || 'Y',            // Col 10: Water flow AM
+		data.waterFlowPM || 'Y',            // Col 11: Water flow PM
+		data.airstonesAM || 'Y',            // Col 12: Airstones AM
+		data.airstonesPM || 'Y',            // Col 13: Airstones PM
+		data.vacNetTanks || 'Y',            // Col 14: Vac + net tanks
+		data.tanksScrubbed || '/',          // Col 15: Tanks scrubbed
+		data.overflowCleaned || 'Y',        // Col 16: O/F cleaned
+		data.hoseFloorLadder || 'Y',        // Col 17: Hose -> floor, ladder & tools
+		data.footTubLidsSqueegee || 'Y',    // Col 18: Foot tub refilled, lids on, squeegeed
+		data.equipmentDisinfected || 'Y',   // Col 19: Equipment disinfected
+		data.concerns || '',                // Col 20: Concerns (new)
+		data.notes || ''                    // Col 21: Notes
+	];
+}
+
+function formatTanksEggsRow(data: TanksEggsData): (string | number)[] {
+	return [
+		data.date,                          // Col 1: Date
+		data.initials || '',                // Col 2: Initials
+		data.palpationHO103 || '0',         // Col 3: HO103
+		data.palpationHO102 || '0',         // Col 4: HO102
+		data.palpationHO116 || '0',         // Col 5: HO116
+		data.palpationHO105 || '0',         // Col 6: HO105
+		data.palpationHO117 || '0',         // Col 7: HO117
+		data.windEggs || '0',               // Col 8: Wind Eggs?
+		data.newEggs || '0',                // Col 9: New Eggs
+		data.newEggTag || '0',              // Col 10: New Egg Tag?
+		data.newEmbryos || 'N',             // Col 11: New Embryos?
+		data.candling || 'N',               // Col 12: Candling
+		data.deadEggTag || '0',             // Col 13: Dead Egg Tag?
+		data.foodRecordsEnteredPM || 'Y',   // Col 14: Food records entered? PM
+		data.whatsappUpdateAM || 'Y',       // Col 15: Whatsapp update AM
+		data.whatsappUpdatePM || 'Y',       // Col 16: Whatsapp update PM
+		data.observationsNotes || '',       // Col 17: Observations/Notes
+		data.moveDescription || '',         // Col 18: Description
+		data.moveFrom || '',                // Col 19: From
+		data.moveTo || '',                  // Col 20: To
+		data.moveQty || ''                  // Col 21: QTY
+	];
+}
+
+function formatFeedsRow(data: FeedsData): (string | number)[] {
+	// Total 84 columns matching Feeds sheet
+	const row: (string | number)[] = [
+		data.date,
+		data.initials
+	];
+
+	for (const tank of ROOM12_TANKS) {
+		const tankEntry = data.tanks[tank.id] || { amountFed: '', meds: {}, uneatenGrams: '' };
+
+		// Fed amount for tank
+		row.push(tankEntry.amountFed || '');
+
+		// Animal columns & medications
+		// If multiple animals in tank, the structure in the sheet has columns for each animal and medication flags
+		if (tank.id === 'tank1') {
+			row.push(''); // HO103 (F) placeholder in header
+			row.push(tankEntry.meds['103'] || 'N'); // Elasmotab 103
+			row.push(tankEntry.meds['107'] || 'N'); // Elasmotab 107
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank2_far_right') {
+			row.push(''); // AM085 placeholder
+			row.push(tankEntry.meds['84'] || 'N');
+			row.push(tankEntry.meds['85'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank2_mid_right') {
+			row.push(''); // AM081 placeholder
+			row.push(tankEntry.meds['73'] || 'N');
+			row.push(tankEntry.meds['81'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank2_mid_left') {
+			row.push(''); // AM010 (F) placeholder
+			row.push(tankEntry.meds['6'] || 'N');
+			row.push(tankEntry.meds['10'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank2_far_left') {
+			row.push(tankEntry.meds['76'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank3') {
+			row.push('');
+			row.push(tankEntry.meds['106'] || 'N');
+			row.push(tankEntry.meds['116'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank4') {
+			row.push('');
+			row.push(tankEntry.meds['105'] || 'N');
+			row.push(tankEntry.meds['110'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank5_green_lid') {
+			row.push('');
+			row.push(tankEntry.meds['123'] || 'N');
+			row.push(tankEntry.meds['126'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank5_big_tub') {
+			row.push('');
+			row.push(tankEntry.meds['134'] || 'N');
+			row.push(tankEntry.meds['135'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank5_egg_crate') {
+			row.push('');
+			row.push(tankEntry.meds['59'] || 'N');
+			row.push(tankEntry.meds['77'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank6_big_tub_middle') {
+			row.push('');
+			row.push(tankEntry.meds['125'] || 'N');
+			row.push(tankEntry.meds['147'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank6_green_lid') {
+			row.push(tankEntry.meds['99'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'historic_tank6_green_lid') {
+			row.push(tankEntry.meds['81'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank6_big_tub_right') {
+			row.push('');
+			row.push(tankEntry.meds["082'"] || 'N');
+			row.push(tankEntry.meds['57'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank7_historic_tank2') {
+			row.push('');
+			row.push(tankEntry.meds['102'] || 'N');
+			row.push(tankEntry.meds['109'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'historic_tank7') {
+			row.push(tankEntry.meds['117'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		} else if (tank.id === 'tank8') {
+			row.push('');
+			row.push('');
+			row.push('');
+			row.push(tankEntry.meds['117'] || 'N');
+			row.push(tankEntry.meds['119'] || 'N');
+			row.push(tankEntry.meds['120'] || 'N');
+			row.push(tankEntry.meds['121'] || 'N');
+			row.push(tankEntry.uneatenGrams || '0');
+		}
+	}
+
+	// Final Col 84: Notes/Observations
+	row.push(data.notes || '');
+
+	return row;
+}
+
+function formatWaterQualityRow(data: WaterQualityData): (string | number)[] {
+	return [
+		data.date,                          // Col 1: DATE
+		data.initials || '',                // Col 2: INITIALS
+		data.tempA || '',                   // Col 3: Temp A
+		data.tempB || '',                   // Col 4: Temp B
+		data.pHA || '',                     // Col 5: pH A
+		data.pHB || '',                     // Col 6: pH B
+		data.salinityA || '',               // Col 7: Salinity A
+		data.salinityB || '',               // Col 8: Salinity B
+		data.doA || '/',                    // Col 9: DO % A
+		data.doB || '/',                    // Col 10: DO % B
+		data.alkA || '/',                   // Col 11: Alk A
+		data.alkB || '/',                   // Col 12: Alk B
+		data.weeklypHA || '/',              // Col 13: pH A (weekly)
+		data.weeklypHB || '/',              // Col 14: pH B (weekly)
+		data.nh3A || '0',                   // Col 15: Nh3 A
+		data.nh3B || '0',                   // Col 16: Nh3 B
+		data.no2A || '0',                   // Col 17: No2 A
+		data.no2B || '0',                   // Col 18: No2 B
+		data.no3A || '',                    // Col 19: No3 A
+		data.no3B || '',                    // Col 20: No3 B
+		data.po4A || '/',                   // Col 21: Po4 A
+		data.po4B || '/',                   // Col 22: Po4 B
+		data.notes || ''                    // Col 23: Notes
+	];
+}
