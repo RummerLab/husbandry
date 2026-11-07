@@ -3,6 +3,8 @@
 	import type { LocalHistoryItem } from '../types';
 	import { getLocalHistory, syncPendingSubmissions, getDeviceId } from '../storage';
 
+	let { masterSpreadsheetUrl }: { masterSpreadsheetUrl: string | null } = $props();
+
 	let history = $state<LocalHistoryItem[]>([]);
 	let deviceId = $state('');
 	let isSyncing = $state(false);
@@ -117,14 +119,18 @@
 			<h4>Master Research Spreadsheet</h4>
 			<p>Full team data across all devices is consolidated in Dr. Jodie Rummer's master Google Sheet.</p>
 		</div>
-		<a
-			href="https://docs.google.com"
-			target="_blank"
-			rel="noreferrer"
-			class="sheet-link-btn"
-		>
-			Open Master Spreadsheet (Read-Only) ↗
-		</a>
+		{#if masterSpreadsheetUrl}
+			<a
+				href={masterSpreadsheetUrl}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="sheet-link-btn"
+			>
+				Open Master Spreadsheet (Read-Only) ↗
+			</a>
+		{:else}
+			<p>Master spreadsheet link unavailable. Please contact the lab administrator.</p>
+		{/if}
 	</div>
 </div>
 

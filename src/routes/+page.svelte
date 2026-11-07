@@ -17,6 +17,10 @@
 	import WaterQualityForm from '../lib/components/WaterQualityForm.svelte';
 	import LocalHistoryView from '../lib/components/LocalHistoryView.svelte';
 
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
 	// Today's date YYYY-MM-DD
 	const todayStr = room12Date();
 
@@ -304,7 +308,7 @@
 		{/if}
 
 		{#if activeTab === 'history'}
-			<LocalHistoryView />
+			<LocalHistoryView masterSpreadsheetUrl={data.masterSpreadsheetUrl} />
 		{:else}
 			<!-- Quick Session Settings -->
 			<div class="session-bar">
