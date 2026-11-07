@@ -99,6 +99,8 @@ PUBLIC_GOOGLE_SHEET_VIEW_URL="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA
 PUBLIC_APP_DOMAIN="husbandry.rummerlab.com"
 ```
 
+The master spreadsheet button uses `PUBLIC_GOOGLE_SHEET_VIEW_URL` when it is a valid HTTPS Google Sheets document URL. Otherwise it opens a preview of `GOOGLE_SHEET_ID`, the same workbook used for submissions. If neither is configured, the history view shows an unavailable message. Only the resolved URL is sent to the browser; service account credentials stay on the server. Google Sheets sharing permissions control who can view or edit the workbook; grant lab members Viewer access for read-only access.
+
 > **Note:** If `GOOGLE_SERVICE_ACCOUNT_EMAIL` or `GOOGLE_PRIVATE_KEY` are omitted, the application runs in **Mock/Demo Mode**, safely storing entries locally on the device and logging operations without crashing.
 
 ---
