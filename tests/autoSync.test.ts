@@ -1,6 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { resumeSyncAfterAuthorization } from '../src/lib/authSync';
 import { startAutoSync } from '../src/lib/autoSync';
 import { syncPendingSubmissions } from '../src/lib/storage';
+vi.mock('../src/lib/authSync', () => ({ resumeSyncAfterAuthorization: vi.fn(async () => {}) }));
 vi.mock('../src/lib/storage', () => ({ syncPendingSubmissions: vi.fn() }));
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 it('drains on startup and reconnect, backs off, and stops on teardown', async () => {
@@ -15,4 +17,13 @@ it('drains on startup and reconnect, backs off, and stops on teardown', async ()
 	network.onLine = false; events.dispatchEvent(new Event('offline')); expect(status).toHaveBeenLastCalledWith(false);
 	network.onLine = true; events.dispatchEvent(new Event('online')); await vi.advanceTimersByTimeAsync(0); expect(syncPendingSubmissions).toHaveBeenCalledTimes(3);
 	stop(); await vi.advanceTimersByTimeAsync(120000); events.dispatchEvent(new Event('online')); expect(syncPendingSubmissions).toHaveBeenCalledTimes(3);
+});
+
+it('keeps automatic retries running if checking authentication throws', async () => {
+ vi.useFakeTimers(); vi.stubGlobal('window', new EventTarget()); vi.stubGlobal('navigator', { onLine: true });
+ vi.mocked(resumeSyncAfterAuthorization).mockRejectedValueOnce(new Error('Storage unavailable'));
+ const onError = vi.fn(); const stop = startAutoSync(vi.fn(), onError);
+ await vi.advanceTimersByTimeAsync(0);
+ expect(onError).toHaveBeenCalled();
+ stop();
 });

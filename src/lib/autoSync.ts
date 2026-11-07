@@ -1,3 +1,4 @@
+import { resumeSyncAfterAuthorization } from './authSync';
 import { syncPendingSubmissions } from './storage';
 
 /** Runs only while the page is mounted; the device queue survives closing it. */
@@ -19,11 +20,16 @@ export function startAutoSync(onStatus: (online: boolean) => void, onError: (err
 		running = false;
 		if (!stopped) { onStatus(navigator.onLine); timer = setTimeout(retry, delay); }
 	};
-	const online = () => { onStatus(true); void retry(); };
+	const resume = async () => {
+		try { if (navigator.onLine) await resumeSyncAfterAuthorization(); }
+		catch (error) { onError(error); }
+		if (!stopped) await retry();
+	};
+	const online = () => { onStatus(true); void resume(); };
 	const offline = () => onStatus(false);
 	window.addEventListener('online', online);
 	window.addEventListener('offline', offline);
 	onStatus(navigator.onLine);
-	void retry();
+	void resume();
 	return () => { stopped = true; clearTimeout(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); };
 }
