@@ -1,3 +1,4 @@
+import { enforceRateLimit } from '../../../lib/server/rateLimit';
 import { randomUUID } from 'node:crypto';
 import { readSubmissionBody, RequestBodyError } from '../../../lib/server/requestBody';
 import { json } from '@sveltejs/kit';
@@ -7,6 +8,8 @@ import type { FullHusbandrySubmission } from '../../../lib/types';
 import { validateSubmission } from '../../../lib/validation';
 
 export const POST: RequestHandler = async ({ request }) => {
+	const limited = await enforceRateLimit(request, 'submit');
+	if (limited) return limited;
 	try {
 		let payload: FullHusbandrySubmission;
 		payload = await readSubmissionBody(request) as FullHusbandrySubmission;

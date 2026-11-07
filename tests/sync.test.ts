@@ -48,6 +48,24 @@ describe('durable device queue', () => {
 		expect(getLocalHistory().find(x => x.id === 'sub_invalid')).toMatchObject({ synced: false, syncBlocked: true });
 		expect(getLocalHistory().find(x => x.id === 'sub_valid')?.synced).toBe(true);
 	});
+	it('stops on HTML throttling and honors cooldown across manual drains', async () => {
+		vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-07T00:00:00Z'));
+		try {
+			await queueSubmission(payload('sub_a'), false); await queueSubmission(payload('sub_b'), false);
+			vi.mocked(fetch).mockResolvedValue(new Response('<html>Limited</html>', { status: 429, headers: { 'Retry-After': '120' } }));
+			await syncPendingSubmissions(); await syncPendingSubmissions(); expect(fetch).toHaveBeenCalledTimes(1);
+			expect(getLocalHistory().every(x => !x.synced)).toBe(true);
+			vi.advanceTimersByTime(119999); await syncPendingSubmissions(); expect(fetch).toHaveBeenCalledTimes(1);
+			vi.advanceTimersByTime(4000); vi.mocked(fetch).mockImplementation(async () => new Response(JSON.stringify({ success: true, mode: 'live' })));
+			await syncPendingSubmissions(); expect(getLocalHistory().every(x => x.synced)).toBe(true);
+		} finally { vi.useRealTimers(); }
+	});
+	it('pauses unauthorized HTML responses without deleting or mutating queued payloads', async () => {
+		const original = payload(); await queueSubmission(original, false);
+		vi.mocked(fetch).mockResolvedValue(new Response('Login', { status: 401 }));
+		await syncPendingSubmissions(); await syncPendingSubmissions();
+		expect(fetch).toHaveBeenCalledTimes(1); expect(getLocalHistory()[0].payload).toEqual(original);
+	});
 	it('migrates old history without losing records and keeps corrupt data', () => {
 		const item = { id: 'old', payload: payload('old'), synced: false, submittedAt: '2026-11-07T00:00:00Z' } as LocalHistoryItem;
 		localStorage.setItem('rummerlab_husbandry_local_history', JSON.stringify([item]));

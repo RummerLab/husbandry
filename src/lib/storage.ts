@@ -1,3 +1,4 @@
+import { getSyncPause, pauseSync } from './syncPause';
 import type { FullHusbandrySubmission, LocalHistoryItem } from './types';
 const LEGACY = 'rummerlab_husbandry_local_history';
 const PREFIX = 'rummerlab_submission_';
@@ -57,11 +58,23 @@ export function syncPendingSubmissions(): Promise<{ syncedCount: number; errors:
  return inFlight;
 }
 async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
+ const pause = getSyncPause();
+ if (pause) return { syncedCount: 0, errors: [pause.message] };
  let syncedCount = 0;
  const errors: string[] = [];
  for (const item of getLocalHistory().filter(h => !h.synced && !h.syncBlocked)) {
+  const sharedPause = getSyncPause();
+  if (sharedPause) { errors.push(sharedPause.message); break; }
   try {
    const res = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.payload), signal: AbortSignal.timeout(30000) });
+   if ([401, 403, 429, 503].includes(res.status)) {
+    const auth = res.status === 401 || res.status === 403;
+    const message = auth ? 'Sign in again to sync. All records remain saved on this device.' : res.status === 429 ? 'Sync paused by rate limit. Records will retry automatically.' : 'Sync temporarily unavailable. Records will retry automatically.';
+    pauseSync(message, res.headers.get('retry-after'), auth);
+    updateLocalHistorySyncStatus(item.id, false, message);
+    errors.push(message);
+    break;
+   }
    if ([400, 413, 415, 422].includes(res.status)) {
     const result = await res.json().catch(() => ({}));
     const message = result.error || `Submission needs review (HTTP ${res.status}).`;
