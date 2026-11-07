@@ -10,12 +10,15 @@ const choices = ['Y', 'N', 'N/A', '/'];
 export const lssChecks = ['skimmerVenturi', 'skimmerSprayDown', 'filterCleaned', 'filterReplaced', 'waterLevelsAM', 'waterLevelsPM', 'waterFlowAM', 'waterFlowPM', 'airstonesAM', 'airstonesPM', 'vacNetTanks', 'tanksScrubbed', 'overflowCleaned', 'hoseFloorLadder', 'footTubLidsSqueegee', 'equipmentDisinfected'];
 export const weeklyFields = ['alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
 
-export function validateModule(module: Module, value: unknown): string[] {
-	if (!object(value)) return [`${module}: dataset required`];
-	const errors: string[] = [];
-	const require = (key: string, check = text) => { if (!check(value[key])) errors.push(`${module}: ${key} required or invalid`); };
+export interface ModuleIssue { field: string; message: string }
+
+export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
+	if (!object(value)) return [{ field: '', message: `${module}: dataset required` }];
+	const errors: ModuleIssue[] = [];
+	const reject = (field: string, message: string) => errors.push({ field, message });
+	const require = (key: string, check = text) => { if (!check(value[key])) reject(key, `${module}: ${key} required or invalid`); };
 	const enumField = (key: string, allowed = choices) => require(key, (v: unknown): v is string => typeof v === 'string' && allowed.includes(v));
-	if (!date(value.date)) errors.push(`${module}: valid date required`);
+	if (!date(value.date)) reject('date', `${module}: valid date required`);
 	require(module === 'lss' ? 'amInitials' : 'initials');
 	if (module === 'lss') lssChecks.forEach(key => enumField(key));
 	if (module === 'tanksEggs') {
@@ -28,19 +31,24 @@ export function validateModule(module: Module, value: unknown): string[] {
 		const tanks = object(value.tanks) ? value.tanks : {};
 		for (const tank of ROOM12_TANKS) {
 			const entry = tanks[tank.id];
-			if (!object(entry)) { errors.push(`feeds: ${tank.name} missing`); continue; }
-			for (const key of ['amountFed', 'uneatenGrams']) if (!numeric(entry[key])) errors.push(`feeds: ${tank.name} ${key} must be a nonnegative number`);
+			if (!object(entry)) { reject(`tanks.${tank.id}.amountFed`, `feeds: ${tank.name} missing`); continue; }
+			for (const key of ['amountFed', 'uneatenGrams']) if (!numeric(entry[key])) reject(`tanks.${tank.id}.${key}`, `feeds: ${tank.name} ${key} must be a nonnegative number`);
 			const meds = object(entry.meds) ? entry.meds : {};
-			for (const shark of tank.sharks) if (tank.medicationType !== 'None' && shark.medId && !choices.includes(String(meds[shark.medId]))) errors.push(`feeds: ${tank.name} ${shark.label} medication required`);
+			for (const shark of tank.sharks) if (tank.medicationType !== 'None' && shark.medId && !choices.includes(String(meds[shark.medId]))) reject(`tanks.${tank.id}.meds.${shark.medId}`, `feeds: ${tank.name} ${shark.label} medication required`);
 		}
 	}
 	if (module === 'waterQuality') {
-		if (typeof value.isWeeklyCheck !== 'boolean') errors.push('waterQuality: weekly check flag required');
+		if (typeof value.isWeeklyCheck !== 'boolean') reject('isWeeklyCheck', 'waterQuality: weekly check flag required');
 		const fields = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', ...(value.isWeeklyCheck === true ? weeklyFields : [])];
-		for (const key of fields) if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) errors.push(`waterQuality: ${key} invalid measurement`);
-		for (const key of ['doA', 'doB']) if (!numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') errors.push(`waterQuality: ${key} measurement or explicit N/A required`);
+		for (const key of fields) if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) reject(key, `waterQuality: ${key} invalid measurement`);
+		for (const key of ['doA', 'doB']) if (!numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or explicit N/A required`);
 	}
 	return errors;
+}
+
+/** Preserve the existing validation API for server and submission guards. */
+export function validateModule(module: Module, value: unknown): string[] {
+	return getModuleIssues(module, value).map(issue => issue.message);
 }
 
 export function validateSubmission(value: unknown): string[] {
