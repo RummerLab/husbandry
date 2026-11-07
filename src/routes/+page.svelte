@@ -397,7 +397,7 @@
 				<div class="step-indicator">
 					Step {currentStep} of 4
 					{#if !canAdvance}
-						<span class="step-hint" id="next-step-help">• Required answers pending — select Next to find them</span>
+						<span class="step-hint" id="next-step-help">{currentStep < 4 ? '• Required answers pending — select Next to find them' : '• Required fields pending'}</span>
 					{/if}
 				</div>
 
