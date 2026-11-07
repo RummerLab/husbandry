@@ -41,7 +41,7 @@
 				id="wq-initials"
 				type="text"
 				placeholder="e.g. TV or CD"
-				bind:value={data.initials}
+				data-field="initials" bind:value={data.initials}
 				required
 			/>
 		</div>
@@ -64,8 +64,8 @@
 					<strong>Temperature (°C)</strong>
 					<span class="required-star">*</span>
 				</div>
-				<input type="text" placeholder="e.g. 26.3" bind:value={data.tempA} />
-				<input type="text" placeholder="e.g. 26.2" bind:value={data.tempB} />
+				<input type="text" placeholder="e.g. 26.3" data-field="tempA" bind:value={data.tempA} />
+				<input type="text" placeholder="e.g. 26.2" data-field="tempB" bind:value={data.tempB} />
 			</div>
 
 			<div class="grid-row">
@@ -73,24 +73,24 @@
 					<strong>Salinity (ppt)</strong>
 					<span class="required-star">*</span>
 				</div>
-				<input type="text" placeholder="e.g. 36" bind:value={data.salinityA} />
-				<input type="text" placeholder="e.g. 36" bind:value={data.salinityB} />
+				<input type="text" placeholder="e.g. 36" data-field="salinityA" bind:value={data.salinityA} />
+				<input type="text" placeholder="e.g. 36" data-field="salinityB" bind:value={data.salinityB} />
 			</div>
 
 			<div class="grid-row">
 				<div class="param-title">
 					<strong>pH</strong>
 				</div>
-				<input type="text" placeholder="e.g. 8.20" bind:value={data.pHA} />
-				<input type="text" placeholder="e.g. 8.25" bind:value={data.pHB} />
+				<input type="text" placeholder="e.g. 8.20" data-field="pHA" bind:value={data.pHA} />
+				<input type="text" placeholder="e.g. 8.25" data-field="pHB" bind:value={data.pHB} />
 			</div>
 
 			<div class="grid-row">
 				<div class="param-title">
 					<strong>Dissolved Oxygen (%)</strong>
 				</div>
-				<input type="text" placeholder="e.g. 98% or /" bind:value={data.doA} />
-				<input type="text" placeholder="e.g. 98% or /" bind:value={data.doB} />
+				<input type="text" placeholder="e.g. 98% or /" data-field="doA" bind:value={data.doA} />
+				<input type="text" placeholder="e.g. 98% or /" data-field="doB" bind:value={data.doB} />
 			</div>
 		</div>
 	</div>
@@ -115,38 +115,38 @@
 
 				<div class="grid-row">
 					<div class="param-title">Alkalinity (dKH / ppm)</div>
-					<input type="text" placeholder="e.g. 116" bind:value={data.alkA} />
-					<input type="text" placeholder="e.g. 118" bind:value={data.alkB} />
+					<input type="text" placeholder="e.g. 116" data-field="alkA" bind:value={data.alkA} />
+					<input type="text" placeholder="e.g. 118" data-field="alkB" bind:value={data.alkB} />
 				</div>
 
 				<div class="grid-row">
 					<div class="param-title">Weekly pH</div>
-					<input type="text" placeholder="e.g. 8.2" bind:value={data.weeklypHA} />
-					<input type="text" placeholder="e.g. 8.2" bind:value={data.weeklypHB} />
+					<input type="text" placeholder="e.g. 8.2" data-field="weeklypHA" bind:value={data.weeklypHA} />
+					<input type="text" placeholder="e.g. 8.2" data-field="weeklypHB" bind:value={data.weeklypHB} />
 				</div>
 
 				<div class="grid-row">
 					<div class="param-title">Ammonia NH3 (ppm)</div>
-					<input type="text" placeholder="0" bind:value={data.nh3A} />
-					<input type="text" placeholder="0" bind:value={data.nh3B} />
+					<input type="text" placeholder="0" data-field="nh3A" bind:value={data.nh3A} />
+					<input type="text" placeholder="0" data-field="nh3B" bind:value={data.nh3B} />
 				</div>
 
 				<div class="grid-row">
 					<div class="param-title">Nitrite NO2 (ppm)</div>
-					<input type="text" placeholder="0" bind:value={data.no2A} />
-					<input type="text" placeholder="0" bind:value={data.no2B} />
+					<input type="text" placeholder="0" data-field="no2A" bind:value={data.no2A} />
+					<input type="text" placeholder="0" data-field="no2B" bind:value={data.no2B} />
 				</div>
 
 				<div class="grid-row">
 					<div class="param-title">Nitrate NO3 (ppm)</div>
-					<input type="text" placeholder="e.g. 20" bind:value={data.no3A} />
-					<input type="text" placeholder="e.g. 15" bind:value={data.no3B} />
+					<input type="text" placeholder="e.g. 20" data-field="no3A" bind:value={data.no3A} />
+					<input type="text" placeholder="e.g. 15" data-field="no3B" bind:value={data.no3B} />
 				</div>
 
 				<div class="grid-row">
 					<div class="param-title">Phosphate PO4 (ppm)</div>
-					<input type="text" placeholder="e.g. 1.5" bind:value={data.po4A} />
-					<input type="text" placeholder="e.g. 1.8" bind:value={data.po4B} />
+					<input type="text" placeholder="e.g. 1.5" data-field="po4A" bind:value={data.po4A} />
+					<input type="text" placeholder="e.g. 1.8" data-field="po4B" bind:value={data.po4B} />
 				</div>
 			</div>
 		{:else}
@@ -163,7 +163,7 @@
 				id="wq-notes"
 				rows="2"
 				placeholder="e.g. Weekly 1000L water change on side A completed, Spintouch calibrated..."
-				bind:value={data.notes}
+				data-field="notes" bind:value={data.notes}
 			></textarea>
 		</div>
 	</div>

@@ -47,8 +47,8 @@
 				id="tanks-initials"
 				type="text"
 				placeholder="e.g. SE + AC"
-				bind:value={data.initials}
-				required
+				data-field="initials" bind:value={data.initials}
+					required
 			/>
 		</div>
 	</div>
@@ -64,27 +64,27 @@
 			<OptionSelector
 				label="HO103 (Female)"
 				options={palpationOptions}
-				bind:value={data.palpationHO103}
+				data-field="palpationHO103" bind:value={data.palpationHO103}
 			/>
 			<OptionSelector
 				label="HO102 (Female)"
 				options={palpationOptions}
-				bind:value={data.palpationHO102}
+				data-field="palpationHO102" bind:value={data.palpationHO102}
 			/>
 			<OptionSelector
 				label="HO116 (Female)"
 				options={palpationOptions}
-				bind:value={data.palpationHO116}
+				data-field="palpationHO116" bind:value={data.palpationHO116}
 			/>
 			<OptionSelector
 				label="HO105 (Female)"
 				options={palpationOptions}
-				bind:value={data.palpationHO105}
+				data-field="palpationHO105" bind:value={data.palpationHO105}
 			/>
 			<OptionSelector
 				label="HO117 (Female)"
 				options={palpationOptions}
-				bind:value={data.palpationHO117}
+				data-field="palpationHO117" bind:value={data.palpationHO117}
 			/>
 		</div>
 	</div>
@@ -94,30 +94,33 @@
 		<h4>3. Egg & Embryo Checks</h4>
 		<div class="grid-2">
 			<div class="input-field">
-				<label for="wind-eggs">Wind Eggs? (Infertile/uncalcified)</label>
+				<label for="wind-eggs">Wind Eggs? (Infertile/uncalcified) <span class="required-star" aria-hidden="true">*</span></label>
 				<input
 					id="wind-eggs"
 					type="text"
 					placeholder="0 or e.g. 1x - HO116"
-					bind:value={data.windEggs}
+					data-field="windEggs" bind:value={data.windEggs}
+					required
 				/>
 			</div>
 			<div class="input-field">
-				<label for="new-eggs">New Eggs Found</label>
+				<label for="new-eggs">New Eggs Found <span class="required-star" aria-hidden="true">*</span></label>
 				<input
 					id="new-eggs"
 					type="text"
 					placeholder="0 or e.g. HO105 x1 + HO117 x1"
-					bind:value={data.newEggs}
+					data-field="newEggs" bind:value={data.newEggs}
+					required
 				/>
 			</div>
 			<div class="input-field">
-				<label for="new-egg-tag">New Egg Tag(s)</label>
+				<label for="new-egg-tag">New Egg Tag(s) <span class="required-star" aria-hidden="true">*</span></label>
 				<input
 					id="new-egg-tag"
 					type="text"
 					placeholder="0 or e.g. 105 = AM081"
-					bind:value={data.newEggTag}
+					data-field="newEggTag" bind:value={data.newEggTag}
+					required
 				/>
 			</div>
 			<OptionSelector
@@ -128,7 +131,7 @@
 					{ value: 'Y', label: 'Yes (Y)', badgeColor: 'green' },
 					{ value: 'X', label: 'Not checked (X)', badgeColor: 'amber' }
 				]}
-				bind:value={data.newEmbryos}
+				data-field="newEmbryos" bind:value={data.newEmbryos}
 			/>
 			<OptionSelector
 				label="Candling Done?"
@@ -138,15 +141,16 @@
 					{ value: 'N', label: 'No (N)', badgeColor: 'red' },
 					{ value: 'X', label: 'N/A (X)', badgeColor: 'gray' }
 				]}
-				bind:value={data.candling}
+				data-field="candling" bind:value={data.candling}
 			/>
 			<div class="input-field">
-				<label for="dead-egg-tag">Dead Egg Tag?</label>
+				<label for="dead-egg-tag">Dead Egg Tag? <span class="required-star" aria-hidden="true">*</span></label>
 				<input
 					id="dead-egg-tag"
 					type="text"
 					placeholder="0 or dead egg IDs"
-					bind:value={data.deadEggTag}
+					data-field="deadEggTag" bind:value={data.deadEggTag}
+					required
 				/>
 			</div>
 		</div>
@@ -159,17 +163,17 @@
 			<OptionSelector
 				label="Food records entered? (PM)"
 				description="Feeding spreadsheet / logs verified"
-				bind:value={data.foodRecordsEnteredPM}
+				data-field="foodRecordsEnteredPM" bind:value={data.foodRecordsEnteredPM}
 			/>
 			<OptionSelector
 				label="WhatsApp Update: AM Run"
 				description="Lab group notified of AM check"
-				bind:value={data.whatsappUpdateAM}
+				data-field="whatsappUpdateAM" bind:value={data.whatsappUpdateAM}
 			/>
 			<OptionSelector
 				label="WhatsApp Update: PM Run"
 				description="Lab group notified of PM check"
-				bind:value={data.whatsappUpdatePM}
+				data-field="whatsappUpdatePM" bind:value={data.whatsappUpdatePM}
 			/>
 		</div>
 	</div>
@@ -184,7 +188,7 @@
 					id="move-desc"
 					type="text"
 					placeholder="None or OUT - HO144 (mortality)"
-					bind:value={data.moveDescription}
+					data-field="moveDescription" bind:value={data.moveDescription}
 				/>
 			</div>
 			<div class="input-field">
@@ -193,7 +197,7 @@
 					id="move-from"
 					type="text"
 					placeholder="e.g. Tank 6 or /"
-					bind:value={data.moveFrom}
+					data-field="moveFrom" bind:value={data.moveFrom}
 				/>
 			</div>
 			<div class="input-field">
@@ -202,7 +206,7 @@
 					id="move-to"
 					type="text"
 					placeholder="e.g. Tank 2 or /"
-					bind:value={data.moveTo}
+					data-field="moveTo" bind:value={data.moveTo}
 				/>
 			</div>
 			<div class="input-field">
@@ -211,7 +215,7 @@
 					id="move-qty"
 					type="text"
 					placeholder="e.g. x1 or /"
-					bind:value={data.moveQty}
+					data-field="moveQty" bind:value={data.moveQty}
 				/>
 			</div>
 		</div>
@@ -221,7 +225,7 @@
 				id="tanks-notes"
 				rows="2"
 				placeholder="Body scores, health observations, etc."
-				bind:value={data.observationsNotes}
+				data-field="observationsNotes" bind:value={data.observationsNotes}
 			></textarea>
 		</div>
 	</div>
@@ -300,11 +304,12 @@
 
 	.grid-2 {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
 		gap: 0.85rem;
 	}
 
 	.input-field {
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
@@ -322,6 +327,8 @@
 
 	.input-field input,
 	.input-field textarea {
+		width: 100%;
+		min-width: 0;
 		padding: 0.65rem 0.85rem;
 		border: 1.5px solid #cbd5e1;
 		border-radius: 6px;

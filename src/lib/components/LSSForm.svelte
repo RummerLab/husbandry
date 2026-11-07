@@ -40,7 +40,7 @@
 					id="lss-am-initials"
 					type="text"
 					placeholder="e.g. SE + AC"
-					bind:value={data.amInitials}
+					data-field="amInitials" bind:value={data.amInitials}
 					required
 				/>
 			</div>
@@ -50,7 +50,7 @@
 					id="lss-pm-initials"
 					type="text"
 					placeholder="e.g. JR"
-					bind:value={data.pmInitials}
+					data-field="pmInitials" bind:value={data.pmInitials}
 				/>
 			</div>
 		</div>
@@ -69,7 +69,7 @@
 					{ value: 'N', label: 'Issue (No)', badgeColor: 'red' },
 					{ value: 'N/A', label: 'N/A', badgeColor: 'gray' }
 				]}
-				bind:value={data.skimmerVenturi}
+				data-field="skimmerVenturi" bind:value={data.skimmerVenturi}
 			/>
 			<OptionSelector
 				label="Protein Skimmer: Spray Down"
@@ -80,7 +80,7 @@
 					{ value: 'N', label: 'No', badgeColor: 'red' },
 					{ value: 'N/A', label: 'N/A', badgeColor: 'gray' }
 				]}
-				bind:value={data.skimmerSprayDown}
+				data-field="skimmerSprayDown" bind:value={data.skimmerSprayDown}
 			/>
 			<OptionSelector
 				label="Filter Canister: Cleaned"
@@ -90,7 +90,7 @@
 					{ value: 'N', label: 'Not Cleaned', badgeColor: 'gray' },
 					{ value: '/', label: 'Checked (/)', badgeColor: 'blue' }
 				]}
-				bind:value={data.filterCleaned}
+				data-field="filterCleaned" bind:value={data.filterCleaned}
 			/>
 			<OptionSelector
 				label="Filter Canister: Replaced"
@@ -100,7 +100,7 @@
 					{ value: 'Y', label: 'Replaced (Y)', badgeColor: 'amber' },
 					{ value: 'N', label: 'No', badgeColor: 'blue' }
 				]}
-				bind:value={data.filterReplaced}
+				data-field="filterReplaced" bind:value={data.filterReplaced}
 			/>
 		</div>
 	</div>
@@ -112,32 +112,32 @@
 			<OptionSelector
 				label="Water levels sufficient (AM)"
 				description="All tanks 1-8 adequate level"
-				bind:value={data.waterLevelsAM}
+				data-field="waterLevelsAM" bind:value={data.waterLevelsAM}
 			/>
 			<OptionSelector
 				label="Water levels sufficient (PM)"
 				description="All tanks 1-8 adequate level"
-				bind:value={data.waterLevelsPM}
+				data-field="waterLevelsPM" bind:value={data.waterLevelsPM}
 			/>
 			<OptionSelector
 				label="Water coming out of pipes (AM)"
 				description="Proper circulation confirmed"
-				bind:value={data.waterFlowAM}
+				data-field="waterFlowAM" bind:value={data.waterFlowAM}
 			/>
 			<OptionSelector
 				label="Water coming out of pipes (PM)"
 				description="Proper circulation confirmed"
-				bind:value={data.waterFlowPM}
+				data-field="waterFlowPM" bind:value={data.waterFlowPM}
 			/>
 			<OptionSelector
 				label="Airstones ON in tanks (AM)"
 				description="Aeration running properly"
-				bind:value={data.airstonesAM}
+				data-field="airstonesAM" bind:value={data.airstonesAM}
 			/>
 			<OptionSelector
 				label="Airstones ON in tanks (PM)"
 				description="Aeration running properly"
-				bind:value={data.airstonesPM}
+				data-field="airstonesPM" bind:value={data.airstonesPM}
 			/>
 		</div>
 	</div>
@@ -149,7 +149,7 @@
 			<OptionSelector
 				label="Vac + Net tanks"
 				description="Debris netted and vacuumed"
-				bind:value={data.vacNetTanks}
+				data-field="vacNetTanks" bind:value={data.vacNetTanks}
 			/>
 			<OptionSelector
 				label="Tanks scrubbed"
@@ -159,27 +159,27 @@
 					{ value: 'N', label: 'No (Routine)', badgeColor: 'gray' },
 					{ value: '/', label: 'N/A (/)', badgeColor: 'blue' }
 				]}
-				bind:value={data.tanksScrubbed}
+				data-field="tanksScrubbed" bind:value={data.tanksScrubbed}
 			/>
 			<OptionSelector
 				label="Overflow (O/F) cleaned"
 				description="Standpipes & overflows clear"
-				bind:value={data.overflowCleaned}
+				data-field="overflowCleaned" bind:value={data.overflowCleaned}
 			/>
 			<OptionSelector
 				label="Hose -> floor, ladder & tools"
 				description="Rinsed down and clean"
-				bind:value={data.hoseFloorLadder}
+				data-field="hoseFloorLadder" bind:value={data.hoseFloorLadder}
 			/>
 			<OptionSelector
 				label="Foot tub refilled, lids on, squeegeed"
 				description="Biosecurity foot tub, tank lids secured"
-				bind:value={data.footTubLidsSqueegee}
+				data-field="footTubLidsSqueegee" bind:value={data.footTubLidsSqueegee}
 			/>
 			<OptionSelector
 				label="Equipment disinfected"
 				description="Nets, buckets, tools disinfected"
-				bind:value={data.equipmentDisinfected}
+				data-field="equipmentDisinfected" bind:value={data.equipmentDisinfected}
 			/>
 		</div>
 	</div>
@@ -193,7 +193,7 @@
 				id="lss-concerns"
 				type="text"
 				placeholder="e.g. None or leak noted on pump B"
-				bind:value={data.concerns}
+				data-field="concerns" bind:value={data.concerns}
 			/>
 		</div>
 		<div class="input-field" style="margin-top: 0.75rem;">
@@ -202,7 +202,7 @@
 				id="lss-notes"
 				rows="2"
 				placeholder="Notes on water changes, calibration, etc."
-				bind:value={data.notes}
+				data-field="notes" bind:value={data.notes}
 			></textarea>
 		</div>
 	</div>
