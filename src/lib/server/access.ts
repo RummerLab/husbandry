@@ -11,11 +11,14 @@ export function isPublicRoute(path: string): boolean {
 export async function checkLabAccess(request: Request): Promise<Response | null> {
 	const url = new URL(request.url);
 	if (isPublicRoute(url.pathname)) return null; // Diagnostics has its own bearer-token gate.
+	const enabled = process.env.LAB_ACCESS_ENABLED || 'false';
+	if (enabled === 'false') return null; // Merging is separate from the administrator's rollout.
+	if (enabled !== 'true') return json({ error: 'Invalid lab access configuration.' }, { status: 503 });
 	const deployed = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
 	const username = process.env.LAB_ACCESS_USERNAME || 'lab';
 	const password = process.env.LAB_ACCESS_PASSWORD || '';
-	if (!password && !deployed) return null; // Local demo mode only.
-	if (password.length < 24 || username.includes(':') || username.length > 64 || !username) {
+	if (deployed && process.env.RATE_LIMIT_MODE !== 'enforce') return json({ error: 'Enable submission/login rate protection before activating lab access.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+	if (password.length < 24 || Buffer.byteLength(password) > 4096 || username.includes(':') || username.length > 64 || !username) {
 		return json({ error: 'Lab access is not configured. Contact the lab administrator.' }, { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '60' } });
 	}
 	if (deployed && url.protocol !== 'https:') return json({ error: 'HTTPS is required.' }, { status: 403 });

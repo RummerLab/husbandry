@@ -5,12 +5,12 @@ import { enforceRateLimit } from '../src/lib/server/rateLimit';
 import { handle } from '../src/hooks.server';
 vi.mock('../src/lib/server/rateLimit', () => ({ enforceRateLimit: vi.fn(async () => null) }));
 const password = 'test-password-only-1234567890';
-function config() { vi.stubEnv('VERCEL', '1'); vi.stubEnv('LAB_ACCESS_USERNAME', 'lab'); vi.stubEnv('LAB_ACCESS_PASSWORD', password); }
+function config() { vi.stubEnv('LAB_ACCESS_ENABLED', 'true'); vi.stubEnv('RATE_LIMIT_MODE', 'enforce'); vi.stubEnv('VERCEL', '1'); vi.stubEnv('LAB_ACCESS_USERNAME', 'lab'); vi.stubEnv('LAB_ACCESS_PASSWORD', password); }
 const request = (path = '/', pass = password, origin?: string) => new Request('https://lab.test' + path, { method: path === '/api/submit' ? 'POST' : 'GET', headers: { authorization: format({ name: 'lab', pass }), ...(origin ? { origin } : {}) } });
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
 it('requires deployed configuration and allows only local demos without it', async () => {
- vi.stubEnv('VERCEL', '1'); vi.stubEnv('LAB_ACCESS_PASSWORD', ''); expect((await checkLabAccess(new Request('https://lab.test/')))?.status).toBe(503);
- vi.stubEnv('VERCEL', ''); vi.stubEnv('NODE_ENV', 'test'); expect(await checkLabAccess(new Request('http://localhost/'))).toBeNull();
+ vi.stubEnv('LAB_ACCESS_ENABLED', 'true'); vi.stubEnv('RATE_LIMIT_MODE', 'enforce'); vi.stubEnv('VERCEL', '1'); vi.stubEnv('LAB_ACCESS_PASSWORD', ''); expect((await checkLabAccess(new Request('https://lab.test/')))?.status).toBe(503);
+ vi.stubEnv('LAB_ACCESS_ENABLED', 'false'); vi.stubEnv('VERCEL', ''); vi.stubEnv('NODE_ENV', 'test'); expect(await checkLabAccess(new Request('http://localhost/'))).toBeNull();
 });
 it('challenges page navigation while API rejection remains JSON without a redirect', async () => {
  config(); const page = (await checkLabAccess(request('/', 'wrong')))!; expect(page.status).toBe(401); expect(page.headers.get('www-authenticate')).toContain('Basic');
@@ -36,4 +36,12 @@ it('respects managed login throttling and rejects insecure deployed access', asy
  config(); vi.mocked(enforceRateLimit).mockResolvedValueOnce(new Response('limited', { status: 429 }));
  expect((await checkLabAccess(request('/', 'wrong')))?.status).toBe(429);
  expect((await checkLabAccess(new Request('http://lab.test/', { headers: { authorization: format({ name: 'lab', pass: password }) } })))?.status).toBe(403);
+});
+
+it('requires explicit rollout activation and refuses an enabled gate without login rate protection', async () => {
+ vi.stubEnv('LAB_ACCESS_ENABLED', ''); vi.stubEnv('VERCEL', '1');
+ expect(await checkLabAccess(new Request('https://lab.test/'))).toBeNull();
+ config(); vi.stubEnv('RATE_LIMIT_MODE', 'off');
+ expect((await checkLabAccess(request()))?.status).toBe(503);
+ vi.stubEnv('LAB_ACCESS_ENABLED', 'invalid'); expect((await checkLabAccess(request()))?.status).toBe(503);
 });

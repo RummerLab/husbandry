@@ -13,7 +13,6 @@ export function startAutoSync(onStatus: (online: boolean) => void, onError: (err
 		clearTimeout(timer);
 		try {
 			if (navigator.onLine) {
-				await resumeSyncAfterAuthorization();
 				const result = await syncPendingSubmissions();
 				delay = result.errors.length ? Math.min(delay * 2, 60000) : 5000;
 			}
@@ -21,11 +20,15 @@ export function startAutoSync(onStatus: (online: boolean) => void, onError: (err
 		running = false;
 		if (!stopped) { onStatus(navigator.onLine); timer = setTimeout(retry, delay); }
 	};
-	const online = () => { onStatus(true); void retry(); };
+	const resume = async () => {
+		if (navigator.onLine) await resumeSyncAfterAuthorization();
+		if (!stopped) await retry();
+	};
+	const online = () => { onStatus(true); void resume(); };
 	const offline = () => onStatus(false);
 	window.addEventListener('online', online);
 	window.addEventListener('offline', offline);
 	onStatus(navigator.onLine);
-	void retry();
+	void resume();
 	return () => { stopped = true; clearTimeout(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); };
 }
