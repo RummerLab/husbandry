@@ -184,3 +184,5 @@ Submission throttling uses the Vercel Firewall SDK and preserves offline queues.
 Optional shared lab access activates with LAB_ACCESS_ENABLED=true after setting server credentials and rate enforcement; see [setup, rotation and offline recovery](docs/lab-access.md) before deploying.
 
 New queued records capture the browser Device ID. Exporting provenance columns is opt-in and requires a reviewed workbook migration: [metadata runbook](docs/submission-metadata.md).
+
+Optional GA4 analytics uses G-S1GQ36LLDK with opt-in consent, production-host gating and sanitized page views. Review [property setup and verification](docs/analytics.md) before rollout.

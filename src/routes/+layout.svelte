@@ -1,9 +1,11 @@
 <script lang="ts">
+	import UsageAnalytics from '../lib/components/UsageAnalytics.svelte';
 	let { children } = $props();
 </script>
 
 <div class="app-root">
 	{@render children()}
+	<UsageAnalytics />
 </div>
 
 <style>
