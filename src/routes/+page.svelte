@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { createSubmissionFeedback } from '../lib/submissionFeedback';
+	import { createEmptyForms, resetSubmittedForms } from '../lib/formDefaults';
 	import { startAutoSync } from '../lib/autoSync';
 	import { room12Date, canNavigate } from '../lib/recordRules';
-	import { validateModule } from '../lib/validation';
-	import { onMount } from 'svelte';
+	import { getModuleIssues, type Module, validateModule } from '../lib/validation';
+	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
+	import { onMount, tick } from 'svelte';
 	import type {
 		LSSData,
 		TanksEggsData,
@@ -27,82 +30,25 @@
 	// Top level state
 	let activeTab = $state<'form' | 'history'>('form');
 	let currentStep = $state<number>(1);
+	let validationRoot = $state<HTMLElement>();
+	let showValidation = $state(false);
+	let feedbackBanner = $state<HTMLDivElement>();
+	const stepModules: Module[] = ['lss', 'tanksEggs', 'feeds', 'waterQuality'];
 	let selectedDate = $state<string>(todayStr);
 	let userInitials = $state<string>('');
 	let isOnline = $state<boolean>(true);
 	let isSubmitting = $state<boolean>(false);
-	let submissionFeedback = $state<{ type: 'success' | 'error'; message: string } | null>(null);
+	let submissionFeedback = $state<{ type: 'success' | 'pending' | 'error'; message: string } | null>(null);
 
 	// Form datasets
-	let lssData = $state<LSSData>({
-		date: todayStr,
-		amInitials: '',
-		pmInitials: '',
-		skimmerVenturi: '',
-		skimmerSprayDown: '',
-		filterCleaned: '',
-		filterReplaced: '',
-		waterLevelsAM: '',
-		waterLevelsPM: '',
-		waterFlowAM: '',
-		waterFlowPM: '',
-		airstonesAM: '',
-		airstonesPM: '',
-		vacNetTanks: '',
-		tanksScrubbed: '',
-		overflowCleaned: '',
-		hoseFloorLadder: '',
-		footTubLidsSqueegee: '',
-		equipmentDisinfected: '',
-		concerns: '',
-		notes: ''
-	});
+	const initialForms = createEmptyForms(todayStr);
+	let lssData = $state<LSSData>(initialForms.lss);
 
-	let tanksEggsData = $state<TanksEggsData>({
-		date: todayStr,
-		initials: '',
-		palpationHO103: '',
-		palpationHO102: '',
-		palpationHO116: '',
-		palpationHO105: '',
-		palpationHO117: '',
-		windEggs: '',
-		newEggs: '',
-		newEggTag: '',
-		newEmbryos: '',
-		candling: '',
-		deadEggTag: '',
-		foodRecordsEnteredPM: '',
-		whatsappUpdateAM: '',
-		whatsappUpdatePM: '',
-		observationsNotes: '',
-		moveDescription: '',
-		moveFrom: '',
-		moveTo: '',
-		moveQty: ''
-	});
+	let tanksEggsData = $state<TanksEggsData>(initialForms.tanksEggs);
 
-	let feedsData = $state<FeedsData>({
-		date: todayStr,
-		initials: '',
-		tanks: {},
-		notes: ''
-	});
+	let feedsData = $state<FeedsData>(initialForms.feeds);
 
-	let waterQualityData = $state<WaterQualityData>({
-		date: todayStr,
-		initials: '',
-		isWeeklyCheck: false,
-		tempA: '',
-		tempB: '',
-		pHA: '',
-		pHB: '',
-		salinityA: '',
-		salinityB: '',
-		doA: '',
-		doB: '',
-		notes: ''
-	});
+	let waterQualityData = $state<WaterQualityData>(initialForms.waterQuality);
 
 	let lssValid = $derived(validateModule('lss', lssData).length === 0);
 	let tanksEggsValid = $derived(validateModule('tanksEggs', tanksEggsData).length === 0);
@@ -150,15 +96,25 @@
 		return true;
 	});
 
-	function nextStep() {
-		if (canAdvance && currentStep < 4) {
-			jumpToStep(currentStep + 1);
-			window.scrollTo({ top: 0, behavior: 'smooth' });
+	let activeIssues = $derived(getModuleIssues(stepModules[currentStep - 1], [lssData, tanksEggsData, feedsData, waterQualityData][currentStep - 1]));
+	$effect(() => {
+		if (validationRoot) markInvalidFields(validationRoot, showValidation ? activeIssues : []);
+	});
+
+	async function nextStep() {
+		if (isSubmitting) return;
+		if (!canAdvance) {
+			showValidation = true;
+			await tick();
+			if (validationRoot) focusFirstInvalidField(validationRoot);
+			return;
 		}
+		if (currentStep < 4) jumpToStep(currentStep + 1);
 	}
 
 	function prevStep() {
 		if (currentStep > 1) {
+			showValidation = false;
 			currentStep--;
 			window.scrollTo({ top: 0, behavior: 'smooth' });
 		}
@@ -166,6 +122,7 @@
 
 	function jumpToStep(step: number) {
 		if (!canNavigate(currentStep, step, [lssValid, tanksEggsValid, feedsValid, waterQualityValid])) return;
+		showValidation = false;
 		currentStep = step;
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
@@ -224,10 +181,28 @@
 	async function persistSubmission(payload: FullHusbandrySubmission) {
 		try {
 			const record = await queueSubmission(payload, isOnline);
-			submissionFeedback = { type: record.synced ? 'success' : 'error', message: record.synced ? 'Saved and synced to Google Sheets.' : `Saved on this device; awaiting sync. ${record.syncError || 'Will retry when online.'}` };
+			if (record.syncBlocked) throw new Error(`Saved locally but needs review before sync. ${record.syncError || ''}`);
+			const submittedAll = payload.modulesSubmitted.length === 4;
+			const nextDate = submittedAll ? room12Date() : selectedDate;
+			const fresh = resetSubmittedForms({ lss: lssData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData }, payload.modulesSubmitted, nextDate, userInitials);
+			lssData = fresh.lss;
+			tanksEggsData = fresh.tanksEggs;
+			feedsData = fresh.feeds;
+			waterQualityData = fresh.waterQuality;
+			selectedDate = nextDate;
+			currentStep = 1;
+			activeTab = 'form';
+			showValidation = false;
+			submissionFeedback = createSubmissionFeedback(record, submittedAll);
 		} catch (error) {
 			submissionFeedback = { type: 'error', message: `Could not confirm saving. Keep this form open. ${error instanceof Error ? error.message : 'Storage unavailable'}` };
-		} finally { isSubmitting = false; refreshPending(); }
+		} finally {
+			isSubmitting = false;
+			refreshPending();
+			await tick();
+			feedbackBanner?.focus({ preventScroll: true });
+			window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+		}
 	}
 
 	let pendingCount = $state(0);
@@ -291,9 +266,9 @@
 		<div class="navy-bar"></div>
 	</header>
 
-	<main class="main-content">
+	<main class="main-content" bind:this={validationRoot}>
 		{#if submissionFeedback}
-			<div class="feedback-banner {submissionFeedback.type}">
+			<div class="feedback-banner {submissionFeedback.type}" role={submissionFeedback.type === 'error' ? 'alert' : 'status'} tabindex="-1" bind:this={feedbackBanner}>
 				<div class="feedback-text">{submissionFeedback.message}</div>
 				<button
 					type="button"
@@ -308,12 +283,14 @@
 		{#if activeTab === 'history'}
 			<LocalHistoryView masterSpreadsheetUrl={data.masterSpreadsheetUrl} />
 		{:else}
+			<fieldset class="entry-form" disabled={isSubmitting} aria-busy={isSubmitting}>
 			<!-- Quick Session Settings -->
 			<div class="session-bar">
 				<div class="session-input">
 					<label for="record-date">Date of Records:</label>
 					<input
 						id="record-date"
+						data-field="date"
 						type="date"
 						value={selectedDate}
 						onchange={(e) => handleDateChange(e.currentTarget.value)}
@@ -379,6 +356,12 @@
 				</button>
 			</nav>
 
+			{#if showValidation && activeIssues.length}
+				<p id="step-validation-summary" class="validation-summary" role="alert">
+					Complete the highlighted answers before continuing ({activeIssues.length} remaining).
+				</p>
+			{/if}
+
 			<!-- Active Step Content -->
 			<div class="step-content">
 				{#if currentStep === 1}
@@ -413,7 +396,7 @@
 				<div class="step-indicator">
 					Step {currentStep} of 4
 					{#if !canAdvance}
-						<span class="step-hint">• Required fields pending</span>
+						<span class="step-hint" id="next-step-help">{currentStep < 4 ? '• Required answers pending — select Next to find them' : '• Required fields pending'}</span>
 					{/if}
 				</div>
 
@@ -422,8 +405,9 @@
 						<button
 							type="button"
 							class="nav-action-btn next"
-							class:disabled={!canAdvance}
-							disabled={!canAdvance}
+							class:disabled={!canAdvance || isSubmitting}
+							disabled={isSubmitting}
+							aria-describedby={!canAdvance ? 'next-step-help' : undefined}
 							onclick={nextStep}
 						>
 							Next Step →
@@ -456,9 +440,10 @@
 						if (currentStep === 4) submitSingleModule('waterQuality');
 					}}
 				>
-					Save only Step {currentStep} to Sheets
+					{isSubmitting ? 'Saving...' : `Save only Step ${currentStep} to Sheets`}
 				</button>
 			</div>
+			</fieldset>
 		{/if}
 	</main>
 
@@ -474,6 +459,26 @@
 </div>
 
 <style>
+	.entry-form { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 1.25rem; }
+	.feedback-banner.pending { background: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
+
+	.validation-summary {
+		padding: 0.85rem 1rem;
+		border: 2px solid #dc2626;
+		border-radius: 8px;
+		background: #fff1f2;
+		color: #991b1b;
+		font-weight: 600;
+	}
+	.main-content :global([data-field][aria-invalid="true"]) {
+		outline: 2px solid #dc2626;
+		outline-offset: 3px;
+		background-color: #fff1f2;
+		scroll-margin-block: 6rem;
+	}
+	.nav-action-btn.next.disabled { cursor: pointer; }
+	.nav-action-btn.next:focus-visible { outline: 3px solid #1d5fb8; outline-offset: 3px; }
+
 	.app-layout {
 		display: flex;
 		flex-direction: column;
@@ -855,7 +860,7 @@
 		color: #ffffff;
 	}
 
-	.nav-action-btn.next:hover:not(:disabled) {
+	.nav-action-btn.next:hover:not(.disabled) {
 		background: var(--accent-ink);
 	}
 

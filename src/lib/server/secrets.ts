@@ -1,6 +1,14 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 
-/** Compare fixed-length digests without exposing credential length timing. */
+/** Fixed-size comparison of server secrets; this is not a persisted password hash. */
 export function sameSecret(actual: string, expected: string): boolean {
-	return timingSafeEqual(createHash('sha256').update(actual).digest(), createHash('sha256').update(expected).digest());
+	const actualBytes = Buffer.from(actual);
+	const expectedBytes = Buffer.from(expected);
+	const limit = 4096;
+	if (actualBytes.length > limit || expectedBytes.length > limit) return false;
+	const left = Buffer.alloc(limit + 4);
+	const right = Buffer.alloc(limit + 4);
+	left.writeUInt32BE(actualBytes.length); right.writeUInt32BE(expectedBytes.length);
+	actualBytes.copy(left, 4); expectedBytes.copy(right, 4);
+	return timingSafeEqual(left, right);
 }

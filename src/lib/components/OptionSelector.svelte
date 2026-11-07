@@ -1,5 +1,6 @@
 <script lang="ts">
 	interface Props {
+		'data-field'?: string;
 		label: string;
 		value: string;
 		options?: Array<{ value: string; label: string; badgeColor?: string }>;
@@ -9,6 +10,7 @@
 	}
 
 	let {
+		'data-field': field,
 		label,
 		value = $bindable(),
 		options = [
@@ -40,7 +42,7 @@
 		{/if}
 	</div>
 
-	<div class="options-group" role="radiogroup" aria-label={label}>
+	<div class="options-group" role="radiogroup" aria-label={label} aria-required={required} data-field={field}>
 		{#each options as opt}
 			<button
 				type="button"
