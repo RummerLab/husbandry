@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { readSubmissionBody, MAX_SUBMISSION_BYTES } from '../src/lib/server/requestBody';
-import { validateSubmission } from '../src/lib/validation';
+import { sameSecret } from '../src/lib/server/secrets';
+import { getModuleIssues, validateSubmission } from '../src/lib/validation';
 import { GET as health } from '../src/routes/api/health/+server';
 import { POST } from '../src/routes/api/submit/+server';
 import { appendSubmissionToSheets } from '../src/lib/server/sheets';
@@ -38,3 +39,15 @@ it('does not return provider exceptions to clients', async () => {
  expect(text).toContain('correlationId'); expect(text).not.toContain('private provider detail'); expect(JSON.stringify(log.mock.calls)).not.toContain('private provider detail');
 });
 it('keeps public health minimal', async () => { expect(await health().json()).toEqual({ status: 'ok', appName: 'RummerLab Room 12 Husbandry App' }); });
+
+it('compares arbitrary secrets without a fast password digest or prefix ambiguity', () => {
+ expect(sameSecret('é-secret', 'é-secret')).toBe(true);
+ expect(sameSecret('secret', 'secret\0')).toBe(false);
+ expect(sameSecret('wrong', 'right')).toBe(false);
+ expect(sameSecret('x'.repeat(4097), 'x'.repeat(4097))).toBe(false);
+});
+it('exposes the same text limits to the form guide and preserves bounded extensions', () => {
+ const water = { ...payload.waterQuality, notes: 'x'.repeat(5001) };
+ expect(getModuleIssues('waterQuality', water).some(issue => issue.field === 'notes')).toBe(true);
+ expect(validateSubmission({ ...payload, waterQuality: { ...payload.waterQuality, futureExtension: { flag: true } } })).toEqual([]);
+});

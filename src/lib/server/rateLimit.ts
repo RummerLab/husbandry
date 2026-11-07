@@ -5,8 +5,8 @@ import { createHash } from 'node:crypto';
 type Scope = 'submit' | 'login';
 /** Vercel-managed regional counters; no per-instance or client-device counters. */
 export async function enforceRateLimit(request: Request, scope: Scope, verifiedIdentity?: string): Promise<Response | null> {
-	const mode = process.env.RATE_LIMIT_MODE || (process.env.VERCEL === '1' ? 'enforce' : 'off');
-	if (mode === 'off' && process.env.VERCEL !== '1') return null;
+	const mode = process.env.RATE_LIMIT_MODE || 'off';
+	if (mode === 'off') return null; // Deliberate rollout state until managed rules exist.
 	if (!['log', 'enforce'].includes(mode)) return unavailable();
 	try {
 		const result = await checkRateLimit(`husbandry-${scope}`, {
