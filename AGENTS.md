@@ -42,7 +42,7 @@ Production URL: `https://husbandry.rummerlab.com`
 
 ## 📋 Spreadsheet Tab Mapping Rules
 
-Any modification to data structures must maintain exact column parity with `Room 12 Records 2026.xlsx`:
+The operational columns below must maintain exact parity with `Room 12 Records 2026.xlsx`. Optional provenance schema v2 appends four columns only after the explicit migration in `docs/submission-metadata.md`; it never shifts this operational prefix:
 
 1. **`LSS Checks`** (Cols 1–21):
    - Col 1: Date | Col 2: AM Initials | Col 3: PM Initials
@@ -140,3 +140,5 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - Rate protection uses Vercel SDK rules `husbandry-submit`/`husbandry-login` and regional counters. Enforce fails closed; staged Log mode is rollout-only. 429/503 persist queue cooldown; 401/403 pause until a server-authorized page resumes. Never clear cooldown from manual sync.
 
 - Shared HTTP Basic lab gate lives in `hooks.server.ts`/`server/access.ts`; production/Vercel fail closed without a 24+ character server password. APIs never redirect to login. Offline auth pause resumes only after network `/api/access` verification. Static assets/minimal health are public; diagnostics use a separate bearer gate. Never cache `/login`.
+
+- Provenance schema v2 is opt-in (`GOOGLE_SHEET_METADATA_ENABLED=true`) after the documented migration: preserve the exact operational prefix, append Submission ID/Device ID/client UTC/server UTC (new widths 25/25/88/27). Off preserves widths 21/21/84/23. New queue creation captures device ID; never enrich legacy retries. Header preflight and atomic receipts guard writes; server timestamp stays outside the payload hash.

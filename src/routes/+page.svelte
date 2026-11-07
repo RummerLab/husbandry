@@ -192,8 +192,7 @@
 			lss: $state.snapshot(lssData),
 			tanksEggs: $state.snapshot(tanksEggsData),
 			feeds: $state.snapshot(feedsData),
-			waterQuality: $state.snapshot(waterQualityData),
-			clientDeviceId: undefined
+			waterQuality: $state.snapshot(waterQualityData)
 		};
 
 		await persistSubmission(payload);
@@ -211,8 +210,7 @@
 			submittedAt: new Date().toISOString(),
 			date: selectedDate,
 			initials: userInitials || 'Lab Member',
-			modulesSubmitted: [module],
-			clientDeviceId: undefined
+			modulesSubmitted: [module]
 		};
 
 		if (module === 'lss') payload.lss = $state.snapshot(lssData);
