@@ -134,6 +134,8 @@ export interface LocalHistoryItem {
 	modules: string[];
 	synced: boolean;
 	syncError?: string;
+	/** Permanent server rejection; retained for administrator-assisted correction. */
+	syncBlocked?: boolean;
 	summary: string;
 	payload: FullHusbandrySubmission;
 }

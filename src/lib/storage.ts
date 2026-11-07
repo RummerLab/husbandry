@@ -59,9 +59,16 @@ export function syncPendingSubmissions(): Promise<{ syncedCount: number; errors:
 async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
  let syncedCount = 0;
  const errors: string[] = [];
- for (const item of getLocalHistory().filter(h => !h.synced)) {
+ for (const item of getLocalHistory().filter(h => !h.synced && !h.syncBlocked)) {
   try {
    const res = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.payload), signal: AbortSignal.timeout(30000) });
+   if ([400, 413, 415, 422].includes(res.status)) {
+    const result = await res.json().catch(() => ({}));
+    const message = result.error || `Submission needs review (HTTP ${res.status}).`;
+    saveLocalSubmission({ ...item, synced: false, syncBlocked: true, syncError: message });
+    errors.push(message);
+    continue;
+   }
    const result = await res.json();
    if (!res.ok || !result.success || result.mode !== 'live') throw new Error(result.mode === 'mock' ? 'Mock mode: not written to Google Sheets. Record remains pending.' : result.error || 'Server rejected submission');
    updateLocalHistorySyncStatus(item.id, true);

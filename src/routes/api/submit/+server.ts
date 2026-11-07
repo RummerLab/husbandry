@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { readSubmissionBody, RequestBodyError } from '../../../lib/server/requestBody';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { appendSubmissionToSheets } from '../../../lib/server/sheets';
@@ -7,7 +9,7 @@ import { validateSubmission } from '../../../lib/validation';
 export const POST: RequestHandler = async ({ request }) => {
 	try {
 		let payload: FullHusbandrySubmission;
-		try { payload = await request.json(); } catch { return json({ success: false, error: 'Invalid JSON' }, { status: 400 }); }
+		payload = await readSubmissionBody(request) as FullHusbandrySubmission;
 
 		const validationErrors = validateSubmission(payload);
 
@@ -33,8 +35,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			timestamp: new Date().toISOString()
 		});
 	} catch (err: unknown) {
-		const errorMessage = err instanceof Error ? err.message : 'Unknown server error';
-		console.error('Error submitting husbandry record:', err);
-		return json({ success: false, error: errorMessage }, { status: 500 });
+		if (err instanceof RequestBodyError) return json({ success: false, error: err.message }, { status: err.status });
+		const correlationId = randomUUID();
+		// Avoid logging provider request objects, credentials, or raw observations.
+		console.error('Submission failed', { correlationId, errorType: err instanceof Error ? err.name : 'UnknownError' });
+		return json({ success: false, code: 'SUBMISSION_FAILED', error: 'Submission could not be synced. Keep this record queued and contact the lab administrator if the problem continues.', correlationId }, { status: 503, headers: { 'Retry-After': '60' } });
 	}
 };

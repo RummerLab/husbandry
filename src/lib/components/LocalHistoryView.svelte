@@ -81,7 +81,7 @@
 								<span class="status-pill synced">✓ Synced to Sheets</span>
 							{:else}
 								<span class="status-pill pending" title={item.syncError || 'Awaiting connection'}>
-									⏳ Queued Offline
+									{item.syncBlocked ? '⚠ Needs review' : '⏳ Pending sync'}
 								</span>
 							{/if}
 						</div>
