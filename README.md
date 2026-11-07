@@ -170,3 +170,11 @@ SvelteKit builds and registers `src/service-worker/index.ts` at `/service-worker
 A new worker waits until existing tabs close, protecting active forms. After saving records, close all app tabs and reopen to activate a waiting version. `static/sw.js` is a network-only bridge for old installations; do not remove it until those devices have migrated. The cached shell's date is refreshed to Brisbane's current date when mounted.
 
 Verification: `npm test`, `npm run check` (including worker TypeScript), and `npm run build`. For device acceptance, visit a production preview online, wait for worker installation, then close/reopen offline with the HTTP cache cleared but Cache Storage preserved. Verify every form loads; repeat across two builds and verify the old worker yields after tabs close.
+
+## Submission request limits
+
+`POST /api/submit` accepts JSON up to 128 KiB of actual UTF-8 bytes (including requests without Content-Length), enough for four modules and four 5,000-character note fields plus feed entries. Text fields are limited to 5,000 characters and initials to 32; metadata IDs have bounded formats. Oversized records are rejected, never truncated. Bounded unknown extension fields are retained unchanged for legacy idempotency hashes. Optional old fields remain optional. Extra unselected datasets must be objects but are not exported.
+
+Malformed, oversized, unsupported-media and invalid records remain on the device marked **Needs review** and are skipped by automatic retry; contact the lab administrator to preserve/export the original before correcting and creating a replacement submission. Never change an already acknowledged payload or reuse its ID for changed data. Other valid pending records continue syncing.
+
+Unexpected server failures return a generic message and correlation ID. Restricted logs record that ID and error class, not raw observations or provider request objects. Public `/api/health` is minimal; configuration diagnostics moved to `/api/health/diagnostics`, requiring a random `HEALTH_DIAGNOSTICS_TOKEN` (32+ characters) in an Authorization Bearer header. Both health routes use `Cache-Control: no-store`.

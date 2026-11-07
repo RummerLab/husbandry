@@ -1,3 +1,4 @@
+import { createEmptyForms } from './formDefaults';
 import { ROOM12_TANKS } from './tanksConfig';
 
 export const modules = ['lss', 'tanksEggs', 'feeds', 'waterQuality'] as const;
@@ -16,6 +17,15 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	if (!object(value)) return [{ field: '', message: `${module}: dataset required` }];
 	const errors: ModuleIssue[] = [];
 	const reject = (field: string, message: string) => errors.push({ field, message });
+	// Validate known text fields while preserving bounded future extension fields unchanged.
+	const fields = new Set([...Object.keys(createEmptyForms('')[module]), ...(module === 'waterQuality' ? weeklyFields : [])]);
+	fields.delete('tanks'); fields.delete('isWeeklyCheck');
+	for (const key of fields) {
+		const field = value[key];
+		if (field === undefined) continue;
+		if (typeof field !== 'string') reject(key, `${module}: ${key} must be text`);
+		else if (field.length > (/initials/i.test(key) ? 32 : 5000)) reject(key, `${module}: ${key} exceeds its character limit`);
+	}
 	const require = (key: string, check = text) => { if (!check(value[key])) reject(key, `${module}: ${key} required or invalid`); };
 	const enumField = (key: string, allowed = choices) => require(key, (v: unknown): v is string => typeof v === 'string' && allowed.includes(v));
 	if (!date(value.date)) reject('date', `${module}: valid date required`);
@@ -46,6 +56,22 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	return errors;
 }
 
+/** Keep legacy extension fields intact for receipt hashes, but bound their shape. */
+export function validatePayloadBounds(value: unknown, path = 'Submission', depth = 0): string[] {
+	if (depth > 8) return [`${path}: nesting exceeds 8 levels`];
+	if (typeof value === 'string') return value.length > 5000 ? [`${path}: maximum 5000 characters`] : [];
+	if (typeof value === 'number') return Number.isFinite(value) ? [] : [`${path}: invalid number`];
+	if (Array.isArray(value)) {
+		if (value.length > 32) return [`${path}: too many entries`];
+		return value.flatMap((v, i) => validatePayloadBounds(v, `${path}[${i}]`, depth + 1));
+	}
+	if (object(value)) {
+		if (Object.keys(value).length > 200) return [`${path}: too many fields`];
+		return Object.entries(value).flatMap(([key, v]) => key.length > 100 ? [`${path}: field name too long`] : validatePayloadBounds(v, `${path}.${key}`, depth + 1));
+	}
+	return [];
+}
+
 /** Preserve the existing validation API for server and submission guards. */
 export function validateModule(module: Module, value: unknown): string[] {
 	return getModuleIssues(module, value).map(issue => issue.message);
@@ -53,7 +79,10 @@ export function validateModule(module: Module, value: unknown): string[] {
 
 export function validateSubmission(value: unknown): string[] {
 	if (!object(value)) return ['Submission must be an object'];
-	const errors: string[] = [];
+	const errors: string[] = validatePayloadBounds(value);
+	if (value.initials !== undefined && (typeof value.initials !== 'string' || value.initials.length > 32)) errors.push('Initials: maximum 32 characters');
+	if (value.clientDeviceId !== undefined && (typeof value.clientDeviceId !== 'string' || !/^device_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.clientDeviceId))) errors.push('Invalid client device ID');
+	for (const module of modules) if (value[module] !== undefined && !object(value[module])) errors.push(`${module}: dataset must be an object`);
 	if (!text(value.id) || !/^[a-zA-Z0-9_-]{1,100}$/.test(value.id)) errors.push('Valid submission ID required');
 	if (!date(value.date)) errors.push('Valid date required');
 	if (!text(value.submittedAt) || !Number.isFinite(Date.parse(value.submittedAt))) errors.push('Submission timestamp required');

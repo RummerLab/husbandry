@@ -183,6 +183,7 @@
 	async function persistSubmission(payload: FullHusbandrySubmission) {
 		try {
 			const record = await queueSubmission(payload, isOnline);
+			if (record.syncBlocked) throw new Error(`Saved locally but needs review before sync. ${record.syncError || ''}`);
 			const submittedAll = payload.modulesSubmitted.length === 4;
 			const nextDate = submittedAll ? room12Date() : selectedDate;
 			const fresh = resetSubmittedForms({ lss: lssData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData }, payload.modulesSubmitted, nextDate, userInitials);
