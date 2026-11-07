@@ -1,3 +1,4 @@
+import { resumeSyncAfterAuthorization } from './authSync';
 import { syncPendingSubmissions } from './storage';
 
 /** Runs only while the page is mounted; the device queue survives closing it. */
@@ -12,6 +13,7 @@ export function startAutoSync(onStatus: (online: boolean) => void, onError: (err
 		clearTimeout(timer);
 		try {
 			if (navigator.onLine) {
+				await resumeSyncAfterAuthorization();
 				const result = await syncPendingSubmissions();
 				delay = result.errors.length ? Math.min(delay * 2, 60000) : 5000;
 			}

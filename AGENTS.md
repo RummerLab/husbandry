@@ -138,3 +138,5 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - Request hardening: 128 KiB byte-bounded JSON, bounded extension fields preserved for receipt hashes. Permanent 400/413/415/422 queue rejections are retained with `syncBlocked` and skipped, never deleted. Health diagnostics require a server-side bearer token.
 
 - Rate protection uses Vercel SDK rules `husbandry-submit`/`husbandry-login` and regional counters. Enforce fails closed; staged Log mode is rollout-only. 429/503 persist queue cooldown; 401/403 pause until a server-authorized page resumes. Never clear cooldown from manual sync.
+
+- Shared HTTP Basic lab gate lives in `hooks.server.ts`/`server/access.ts`; production/Vercel fail closed without a 24+ character server password. APIs never redirect to login. Offline auth pause resumes only after network `/api/access` verification. Static assets/minimal health are public; diagnostics use a separate bearer gate. Never cache `/login`.

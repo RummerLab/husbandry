@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { getLocalHistory, queueSubmission, saveLocalSubmission, syncPendingSubmissions } from '../src/lib/storage';
+import { resumeSyncAfterAuthorization } from '../src/lib/authSync';
 import { writeAtomicSubmission } from '../src/lib/server/atomicSubmission';
 import type { FullHusbandrySubmission, LocalHistoryItem } from '../src/lib/types';
 import type { sheets_v4 } from 'googleapis';
@@ -65,6 +66,16 @@ describe('durable device queue', () => {
 		vi.mocked(fetch).mockResolvedValue(new Response('Login', { status: 401 }));
 		await syncPendingSubmissions(); await syncPendingSubmissions();
 		expect(fetch).toHaveBeenCalledTimes(1); expect(getLocalHistory()[0].payload).toEqual(original);
+	});
+	it('requires a successful server authorization check before replay after login', async () => {
+		await queueSubmission(payload(), false);
+		vi.mocked(fetch).mockResolvedValueOnce(new Response('Login', { status: 401 })); await syncPendingSubmissions();
+		vi.mocked(fetch).mockRejectedValueOnce(new Error('offline')); await resumeSyncAfterAuthorization(); await syncPendingSubmissions();
+		expect(fetch).toHaveBeenCalledTimes(2); // No submission request while authorization remains paused.
+		vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ authorized: true })));
+		await resumeSyncAfterAuthorization();
+		vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ success: true, mode: 'live' })));
+		await syncPendingSubmissions(); expect(getLocalHistory()[0].synced).toBe(true);
 	});
 	it('migrates old history without losing records and keeps corrupt data', () => {
 		const item = { id: 'old', payload: payload('old'), synced: false, submittedAt: '2026-11-07T00:00:00Z' } as LocalHistoryItem;

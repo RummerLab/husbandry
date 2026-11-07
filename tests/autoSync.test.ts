@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { startAutoSync } from '../src/lib/autoSync';
 import { syncPendingSubmissions } from '../src/lib/storage';
+vi.mock('../src/lib/authSync', () => ({ resumeSyncAfterAuthorization: vi.fn(async () => {}) }));
 vi.mock('../src/lib/storage', () => ({ syncPendingSubmissions: vi.fn() }));
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 it('drains on startup and reconnect, backs off, and stops on teardown', async () => {

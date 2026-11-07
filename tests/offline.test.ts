@@ -42,6 +42,7 @@ it('cleans only app caches and bypasses APIs, mutations and third parties', asyn
 	const cache = createOfflineCache(storage, fetch, origin, 'new', []); await storage.open('rummerlab-shell-new'); await cache.activate();
 	expect(await storage.keys()).toEqual(['unrelated', 'rummerlab-shell-new']);
 	expect(cache.handles(new Request(origin + '/api/health'))).toBe(false);
+	expect(cache.handles(new Request(origin + '/login'))).toBe(false);
 	expect(cache.handles(new Request(origin + '/', { method: 'POST' }))).toBe(false);
 	expect(cache.handles(new Request('https://other.test/a.js'))).toBe(false);
 	expect(cache.handles(navigation())).toBe(true);

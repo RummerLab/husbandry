@@ -180,3 +180,5 @@ Malformed, oversized, unsupported-media and invalid records remain on the device
 Unexpected server failures return a generic message and correlation ID. Restricted logs record that ID and error class, not raw observations or provider request objects. Public `/api/health` is minimal; configuration diagnostics moved to `/api/health/diagnostics`, requiring a random `HEALTH_DIAGNOSTICS_TOKEN` (32+ characters) in an Authorization Bearer header. Both health routes use `Cache-Control: no-store`.
 
 Submission throttling uses the Vercel Firewall SDK and preserves offline queues. Configure the named rules and staged rollout before enforcement: [rate limiting](docs/rate-limiting.md).
+
+Production access requires a server-side shared lab credential; see [setup, rotation and offline recovery](docs/lab-access.md) before deploying.
