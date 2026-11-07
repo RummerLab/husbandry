@@ -97,6 +97,8 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
  return { syncedCount, errors };
 }
 export async function queueSubmission(payload: FullHusbandrySubmission, online: boolean): Promise<LocalHistoryItem> {
+ // Capture only for a NEW record, before persistence. Never enrich queued replays.
+ payload = { ...payload, clientDeviceId: payload.clientDeviceId ?? getDeviceId() };
  const item: LocalHistoryItem = { id: payload.id, submittedAt: payload.submittedAt, date: payload.date, initials: payload.initials, modules: payload.modulesSubmitted, synced: false, summary: payload.modulesSubmitted.join(', '), payload };
  // Fail before any network request or success message if persistence fails.
  saveLocalSubmission(item);

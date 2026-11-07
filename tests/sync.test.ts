@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { getLocalHistory, queueSubmission, saveLocalSubmission, syncPendingSubmissions } from '../src/lib/storage';
 import { resumeSyncAfterAuthorization } from '../src/lib/authSync';
+import metadataConfig from '../src/lib/server/sheetMetadata.json';
 import { writeAtomicSubmission } from '../src/lib/server/atomicSubmission';
 import type { FullHusbandrySubmission, LocalHistoryItem } from '../src/lib/types';
 import type { sheets_v4 } from 'googleapis';
@@ -62,10 +63,10 @@ describe('durable device queue', () => {
 		} finally { vi.useRealTimers(); }
 	});
 	it('pauses unauthorized HTML responses without deleting or mutating queued payloads', async () => {
-		const original = payload(); await queueSubmission(original, false);
+		const original = payload(); await queueSubmission(original, false); const stored = structuredClone(getLocalHistory()[0].payload);
 		vi.mocked(fetch).mockResolvedValue(new Response('Login', { status: 401 }));
 		await syncPendingSubmissions(); await syncPendingSubmissions();
-		expect(fetch).toHaveBeenCalledTimes(1); expect(getLocalHistory()[0].payload).toEqual(original);
+		expect(fetch).toHaveBeenCalledTimes(1); expect(getLocalHistory()[0].payload).toEqual(stored);
 	});
 	it('requires a successful server authorization check before replay after login', async () => {
 		await queueSubmission(payload(), false);
@@ -76,6 +77,12 @@ describe('durable device queue', () => {
 		await resumeSyncAfterAuthorization();
 		vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ success: true, mode: 'live' })));
 		await syncPendingSubmissions(); expect(getLocalHistory()[0].synced).toBe(true);
+	});
+	it('captures a stable browser ID only when creating new durable queue records', async () => {
+		await queueSubmission(payload('one'), false); await queueSubmission(payload('two'), false);
+		const history = getLocalHistory();
+		expect(history[0].payload.clientDeviceId).toMatch(/^device_[0-9a-f-]{36}$/);
+		expect(history[0].payload.clientDeviceId).toBe(history[1].payload.clientDeviceId);
 	});
 	it('pauses a successful HTML login page instead of replaying the backlog', async () => {
 		await queueSubmission(payload('html_login'), false);
@@ -92,7 +99,7 @@ describe('durable device queue', () => {
 });
 
 function fakeSheets() {
-	const data: sheets_v4.Schema$Spreadsheet = { sheets: ['LSS Checks', 'Tanks + Eggs', 'Feeds', 'Water Quality'].map((title, sheetId) => ({ properties: { title, sheetId } })), namedRanges: [] };
+	const data: sheets_v4.Schema$Spreadsheet = { sheets: ['LSS Checks', 'Tanks + Eggs', 'Feeds', 'Water Quality'].map((title, sheetId) => ({ properties: { title, sheetId }, data: [{ rowData: [{ values: [...Array(metadataConfig.widths[title as keyof typeof metadataConfig.widths]).fill({ userEnteredValue: { stringValue: 'Operational header' } }), ...metadataConfig.headers.map(stringValue => ({ userEnteredValue: { stringValue } }))] }] }] })), namedRanges: [] };
 	let appended = 0; let fail = false; let lostResponse = false;
 	const batchUpdate = vi.fn(async ({ requestBody }: { requestBody: sheets_v4.Schema$BatchUpdateSpreadsheetRequest }) => {
 		const receipt = requestBody.requests![0].addNamedRange!.namedRange!;
@@ -102,7 +109,7 @@ function fakeSheets() {
 		return {};
 	});
 	const client = { spreadsheets: { get: vi.fn(async () => ({ data: structuredClone(data) })), batchUpdate } } as unknown as sheets_v4.Sheets;
-	return { client, batchUpdate, get appended() { return appended; }, set fail(v: boolean) { fail = v; }, set lostResponse(v: boolean) { lostResponse = v; } };
+	return { client, batchUpdate, removeMetadataHeaders() { data.sheets!.forEach(s => { s.data = []; }); }, get appended() { return appended; }, set fail(v: boolean) { fail = v; }, set lostResponse(v: boolean) { lostResponse = v; } };
 }
 describe('atomic Sheets writes', () => {
 	it('deduplicates retries and concurrent requests', async () => {
@@ -120,5 +127,31 @@ describe('atomic Sheets writes', () => {
 		const requests = fake.batchUpdate.mock.calls.at(-1)![0].requestBody.requests!;
 		expect(requests[1].appendCells!.rows![0].values!.at(-1)!.userEnteredValue).toEqual({ stringValue: '=1+1' });
 		expect(requests[2].appendCells!.rows![0].values![2].userEnteredValue).toEqual({ numberValue: 26 });
+	});
+});
+
+
+describe('opt-in provenance columns', () => {
+	it('writes IDs and stable ingestion time atomically while keeping notes as literal text', async () => {
+		const fake = fakeSheets(); const item = payload(); item.feeds!.notes = '123'; item.clientDeviceId = 'device_50271f5f-a2e0-4909-b61e-d6d867f7c4a7';
+		fake.lostResponse = true;
+		await writeAtomicSubmission(fake.client, 'sheet', item, { metadataColumns: true });
+		const batch = fake.batchUpdate.mock.calls[0][0].requestBody.requests!;
+		const feeds = batch[1].appendCells!.rows![0].values!.map(c => c.userEnteredValue);
+		const water = batch[2].appendCells!.rows![0].values!.map(c => c.userEnteredValue);
+		expect(feeds).toHaveLength(88); expect(water).toHaveLength(27);
+		expect(feeds[83]).toEqual({ stringValue: '123' });
+		expect(feeds.slice(-4, -1)).toEqual([item.id, item.clientDeviceId, item.submittedAt].map(stringValue => ({ stringValue })));
+		expect(feeds.at(-1)).toEqual(water.at(-1));
+		await writeAtomicSubmission(fake.client, 'sheet', item, { metadataColumns: true });
+		expect(fake.batchUpdate).toHaveBeenCalledTimes(1); expect(fake.appended).toBe(2);
+	});
+	it('blocks unmigrated headers and exports missing legacy device IDs as blank', async () => {
+		const blocked = fakeSheets(); blocked.removeMetadataHeaders();
+		await expect(writeAtomicSubmission(blocked.client, 'sheet', payload(), { metadataColumns: true })).rejects.toThrow('Metadata headers');
+		expect(blocked.batchUpdate).not.toHaveBeenCalled();
+		const legacy = fakeSheets(); await writeAtomicSubmission(legacy.client, 'sheet', payload(), { metadataColumns: true });
+		const cells = legacy.batchUpdate.mock.calls[0][0].requestBody.requests![1].appendCells!.rows![0].values!;
+		expect(cells.at(-3)?.userEnteredValue).toEqual({ stringValue: '' });
 	});
 });

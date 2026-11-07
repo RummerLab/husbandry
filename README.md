@@ -182,3 +182,5 @@ Unexpected server failures return a generic message and correlation ID. Restrict
 Submission throttling uses the Vercel Firewall SDK and preserves offline queues. Configure the named rules and staged rollout before enforcement: [rate limiting](docs/rate-limiting.md).
 
 Optional shared lab access activates with LAB_ACCESS_ENABLED=true after setting server credentials and rate enforcement; see [setup, rotation and offline recovery](docs/lab-access.md) before deploying.
+
+New queued records capture the browser Device ID. Exporting provenance columns is opt-in and requires a reviewed workbook migration: [metadata runbook](docs/submission-metadata.md).

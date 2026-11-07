@@ -42,7 +42,7 @@ Production URL: `https://husbandry.rummerlab.com`
 
 ## 📋 Spreadsheet Tab Mapping Rules
 
-Any modification to data structures must maintain exact column parity with `Room 12 Records 2026.xlsx`:
+The operational columns below must maintain exact parity with `Room 12 Records 2026.xlsx`. Optional provenance schema v2 appends four columns only after the explicit migration in `docs/submission-metadata.md`; it never shifts this operational prefix:
 
 1. **`LSS Checks`** (Cols 1–21):
    - Col 1: Date | Col 2: AM Initials | Col 3: PM Initials
@@ -144,3 +144,5 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - Form layout: use shrinkable grid tracks (`minmax(0, 1fr)`), `min-width: 0` field wrappers and width-bounded inputs so native input sizing cannot overflow feeding cards; outer grid minimums must also fit narrow screens.
 - Incomplete Next remains activatable to reveal/focus missing answers, never to advance. `getModuleIssues` is the shared rule source; `data-field` paths connect its issues to native inputs and radio groups. Error highlights clear as answers become valid; do not bypass `canAdvance`/`canNavigate`.
 - Submission completion returns to step 1 with a focused persistent receipt banner after durable queue save. Confirmed live sync is green; pending/mock/offline is amber. Clear only submitted modules, reuse saved initials, preserve unsent sections and all pending records; storage failure retains the form. Controls are disabled while saving to prevent losing edits in flight.
+
+- Provenance schema v2 is opt-in (`GOOGLE_SHEET_METADATA_ENABLED=true`) after the documented migration: preserve the exact operational prefix, append Submission ID/Device ID/client UTC/server UTC (new widths 25/25/88/27). Off preserves widths 21/21/84/23. New queue creation captures device ID; never enrich legacy retries. Header preflight and atomic receipts guard writes; server timestamp stays outside the payload hash.

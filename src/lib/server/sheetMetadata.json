@@ -1,0 +1,4 @@
+{
+  "headers": ["Submission ID", "Client Device ID", "Client Submitted At (UTC)", "Server Received At (UTC)"],
+  "widths": { "LSS Checks": 21, "Tanks + Eggs": 21, "Feeds": 84, "Water Quality": 23 }
+}

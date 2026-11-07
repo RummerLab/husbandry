@@ -1,3 +1,4 @@
+import { assertMetadataHeaders, METADATA_RANGES } from './sheetMetadata';
 import { createHash } from 'node:crypto';
 import type { sheets_v4 } from 'googleapis';
 import type { FullHusbandrySubmission } from '../types';
@@ -18,7 +19,7 @@ function canonical(value: unknown): string {
 	return JSON.stringify(value);
 }
 
-export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadsheetId: string, submission: FullHusbandrySubmission): Promise<string[]> {
+export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadsheetId: string, submission: FullHusbandrySubmission, options: { metadataColumns?: boolean } = {}): Promise<string[]> {
 	const rows: { title: string; values: (string | number)[] }[] = [];
 	if (submission.modulesSubmitted.includes('lss') && submission.lss) rows.push({ title: 'LSS Checks', values: formatLSSRow(submission.lss) });
 	if (submission.modulesSubmitted.includes('tanksEggs') && submission.tanksEggs) rows.push({ title: 'Tanks + Eggs', values: formatTanksEggsRow(submission.tanksEggs) });
@@ -36,10 +37,18 @@ export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadshee
 	};
 	const data = await metadata();
 	if (checkReceipt(data)) return rows.map(r => r.title);
+	if (options.metadataColumns) {
+		const headers = (await sheets.spreadsheets.get({ spreadsheetId, ranges: METADATA_RANGES, includeGridData: true, fields: 'sheets(properties(title),data(rowData(values(userEnteredValue))))' })).data;
+		assertMetadataHeaders(headers);
+	}
+	// Server time belongs only to the first successful atomic write, not the receipt hash.
+	const receivedAt = new Date().toISOString();
 	const requests: sheets_v4.Schema$Request[] = rows.map(row => {
 		const sheetId = data.sheets?.find(s => s.properties?.title === row.title)?.properties?.sheetId;
 		if (sheetId == null) throw new Error(`Missing operational tab: ${row.title}`);
-		return { appendCells: { sheetId, fields: 'userEnteredValue', rows: [{ values: row.values.map((value, column) => ({ userEnteredValue: cellValue(row.title, value, column, row.values.length) })) }] } };
+		const operationalWidth = row.values.length;
+		const values = options.metadataColumns ? [...row.values, submission.id, submission.clientDeviceId || '', submission.submittedAt, receivedAt] : row.values;
+		return { appendCells: { sheetId, fields: 'userEnteredValue', rows: [{ values: values.map((value, column) => ({ userEnteredValue: cellValue(row.title, value, column, operationalWidth) })) }] } };
 	});
 	requests.unshift({ addNamedRange: { namedRange: { namedRangeId: receiptId, name: receiptName, range: { sheetId: requests[0].appendCells!.sheetId!, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 } } } });
 	try {

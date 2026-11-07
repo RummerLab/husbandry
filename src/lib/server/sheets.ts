@@ -85,7 +85,7 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 
 	const sheets = getSheetsClient();
 	const spreadsheetId = getEnv('GOOGLE_SHEET_ID');
-	const tabsUpdated = await writeAtomicSubmission(sheets, spreadsheetId, submission);
+	const tabsUpdated = await writeAtomicSubmission(sheets, spreadsheetId, submission, { metadataColumns: getEnv('GOOGLE_SHEET_METADATA_ENABLED') === 'true' });
 
 	return {
 		synced: true,
