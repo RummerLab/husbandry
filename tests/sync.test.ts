@@ -66,6 +66,12 @@ describe('durable device queue', () => {
 		await syncPendingSubmissions(); await syncPendingSubmissions();
 		expect(fetch).toHaveBeenCalledTimes(1); expect(getLocalHistory()[0].payload).toEqual(original);
 	});
+	it('pauses a successful HTML login page instead of replaying the backlog', async () => {
+		await queueSubmission(payload('html_login'), false);
+		vi.mocked(fetch).mockResolvedValue(new Response('<html>Login</html>', { headers: { 'Content-Type': 'text/html' } }));
+		await syncPendingSubmissions(); await syncPendingSubmissions();
+		expect(fetch).toHaveBeenCalledTimes(1); expect(getLocalHistory()[0].synced).toBe(false);
+	});
 	it('migrates old history without losing records and keeps corrupt data', () => {
 		const item = { id: 'old', payload: payload('old'), synced: false, submittedAt: '2026-11-07T00:00:00Z' } as LocalHistoryItem;
 		localStorage.setItem('rummerlab_husbandry_local_history', JSON.stringify([item]));

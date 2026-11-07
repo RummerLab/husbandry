@@ -67,8 +67,9 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
   if (sharedPause) { errors.push(sharedPause.message); break; }
   try {
    const res = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.payload), signal: AbortSignal.timeout(30000) });
-   if ([401, 403, 429, 503].includes(res.status)) {
-    const auth = res.status === 401 || res.status === 403;
+   const loginPage = res.redirected || (res.ok && res.headers.get('content-type')?.includes('text/html'));
+   if (loginPage || [401, 403, 429, 503].includes(res.status)) {
+    const auth = loginPage || res.status === 401 || res.status === 403;
     const message = auth ? 'Sign in again to sync. All records remain saved on this device.' : res.status === 429 ? 'Sync paused by rate limit. Records will retry automatically.' : 'Sync temporarily unavailable. Records will retry automatically.';
     pauseSync(message, res.headers.get('retry-after'), auth);
     updateLocalHistorySyncStatus(item.id, false, message);
