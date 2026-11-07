@@ -42,7 +42,7 @@ Production URL: `https://husbandry.rummerlab.com`
 
 ## 📋 Spreadsheet Tab Mapping Rules
 
-Any modification to data structures must maintain exact column parity with `Room 12 Records 2026.xlsx`:
+The operational columns below must maintain exact parity with `Room 12 Records 2026.xlsx`. Optional provenance schema v2 appends four columns only after the explicit migration in `docs/submission-metadata.md`; it never shifts this operational prefix:
 
 1. **`LSS Checks`** (Cols 1–21):
    - Col 1: Date | Col 2: AM Initials | Col 3: PM Initials
@@ -134,5 +134,17 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - 2026-11: SvelteKit 3 bundles/registers `src/service-worker/index.ts` using `$app/manifest` assets and `$app/env` version. Cache the complete build and use network-first navigation with offline shell fallback. Keep `static/sw.js` as a network-only migration bridge for legacy devices. Updates wait until open tabs close; do not force reload active forms.
 
 - 2026-11: The master spreadsheet link is resolved at runtime in `+page.server.ts`: valid `PUBLIC_GOOGLE_SHEET_VIEW_URL`, then `GOOGLE_SHEET_ID` in preview mode, otherwise an unavailable message. Only the resolved URL reaches the browser; read-only access is enforced by Google sharing permissions.
+
+- Request hardening: 128 KiB byte-bounded JSON, bounded extension fields preserved for receipt hashes. Permanent 400/413/415/422 queue rejections are retained with `syncBlocked` and skipped, never deleted. Health diagnostics require a server-side bearer token.
+
+
+- Shared HTTP Basic lab gate lives in `hooks.server.ts`/`server/access.ts`; LAB_ACCESS_ENABLED defaults false for staged rollout; once true, production/Vercel fail closed without rate enforcement and a 24+ character server password. APIs never redirect to login. Offline auth pause resumes only after network `/api/access` verification. Static assets/minimal health are public; diagnostics use a separate bearer gate. Never cache `/login`.
+- Rate protection uses Vercel SDK rules `husbandry-submit`/`husbandry-login` and regional counters. RATE_LIMIT_MODE defaults to off until rules are configured; explicit enforce fails closed and Log is observation-only. 429/503 persist queue cooldown; 401/403 pause until a server-authorized page resumes. Never clear cooldown from manual sync.
+- Required-field indicators: the four egg-check text inputs (wind/new eggs, new/dead egg tags) and shared Formula/Elasmotab headings must display the existing red `required-star` marker. Egg inputs also expose native `required`; shared validation remains authoritative.
+- Form layout: use shrinkable grid tracks (`minmax(0, 1fr)`), `min-width: 0` field wrappers and width-bounded inputs so native input sizing cannot overflow feeding cards; outer grid minimums must also fit narrow screens.
+- Incomplete Next remains activatable to reveal/focus missing answers, never to advance. `getModuleIssues` is the shared rule source; `data-field` paths connect its issues to native inputs and radio groups. Error highlights clear as answers become valid; do not bypass `canAdvance`/`canNavigate`.
+- Submission completion returns to step 1 with a focused persistent receipt banner after durable queue save. Confirmed live sync is green; pending/mock/offline is amber. Clear only submitted modules, reuse saved initials, preserve unsent sections and all pending records; storage failure retains the form. Controls are disabled while saving to prevent losing edits in flight.
+
+- Provenance schema v2 is opt-in (`GOOGLE_SHEET_METADATA_ENABLED=true`) after the documented migration: preserve the exact operational prefix, append Submission ID/Device ID/client UTC/server UTC (new widths 25/25/88/27). Off preserves widths 21/21/84/23. New queue creation captures device ID; never enrich legacy retries. Header preflight and atomic receipts guard writes; server timestamp stays outside the payload hash.
 
 - Optional GA4 (G-S1GQ36LLDK) is client-only, consent-gated, DNT/GPC-aware and restricted to the production hostname. Never send device/submission IDs, initials, notes, form values, credentials or sheet URLs. Property owner must disable Enhanced Measurement before rollout; see docs/analytics.md. Analytics failures must never block forms/offline sync.

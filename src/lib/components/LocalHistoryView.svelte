@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getSyncPause } from '../syncPause';
 	import { onMount } from 'svelte';
 	import type { LocalHistoryItem } from '../types';
 	import { getLocalHistory, syncPendingSubmissions, getDeviceId } from '../storage';
@@ -9,6 +10,7 @@
 	let deviceId = $state('');
 	let isSyncing = $state(false);
 	let syncMessage = $state('');
+	let needsSignIn = $state(false);
 
 	onMount(() => {
 		try { deviceId = getDeviceId(); loadHistory(); } catch (error) { syncMessage = String(error); }
@@ -18,6 +20,7 @@
 
 	function loadHistory() {
 		history = getLocalHistory();
+		needsSignIn = Boolean(getSyncPause()?.authentication);
 	}
 
 	async function handleSync() {
@@ -53,6 +56,10 @@
 		</button>
 	</div>
 
+	{#if needsSignIn}
+		<div class="sync-banner">Your records are saved on this device. <a href="/login" rel="external">Sign in again to resume sync</a>.</div>
+	{/if}
+
 	{#if syncMessage}
 		<div class="sync-banner">
 			{syncMessage}
@@ -81,7 +88,7 @@
 								<span class="status-pill synced">✓ Synced to Sheets</span>
 							{:else}
 								<span class="status-pill pending" title={item.syncError || 'Awaiting connection'}>
-									⏳ Queued Offline
+									{item.syncBlocked ? '⚠ Needs review' : '⏳ Pending sync'}
 								</span>
 							{/if}
 						</div>

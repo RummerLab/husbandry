@@ -171,4 +171,18 @@ A new worker waits until existing tabs close, protecting active forms. After sav
 
 Verification: `npm test`, `npm run check` (including worker TypeScript), and `npm run build`. For device acceptance, visit a production preview online, wait for worker installation, then close/reopen offline with the HTTP cache cleared but Cache Storage preserved. Verify every form loads; repeat across two builds and verify the old worker yields after tabs close.
 
+## Submission request limits
+
+`POST /api/submit` accepts JSON up to 128 KiB of actual UTF-8 bytes (including requests without Content-Length), enough for four modules and four 5,000-character note fields plus feed entries. Text fields are limited to 5,000 characters and initials to 32; metadata IDs have bounded formats. Oversized records are rejected, never truncated. Bounded unknown extension fields are retained unchanged for legacy idempotency hashes. Optional old fields remain optional. Extra unselected datasets must be objects but are not exported.
+
+Malformed, oversized, unsupported-media and invalid records remain on the device marked **Needs review** and are skipped by automatic retry; contact the lab administrator to preserve/export the original before correcting and creating a replacement submission. Never change an already acknowledged payload or reuse its ID for changed data. Other valid pending records continue syncing.
+
+Unexpected server failures return a generic message and correlation ID. Restricted logs record that ID and error class, not raw observations or provider request objects. Public `/api/health` is minimal; configuration diagnostics moved to `/api/health/diagnostics`, requiring a random `HEALTH_DIAGNOSTICS_TOKEN` (32+ characters) in an Authorization Bearer header. Both health routes use `Cache-Control: no-store`.
+
+Submission throttling uses the Vercel Firewall SDK and preserves offline queues. Configure the named rules and staged rollout before enforcement: [rate limiting](docs/rate-limiting.md).
+
+Optional shared lab access activates with LAB_ACCESS_ENABLED=true after setting server credentials and rate enforcement; see [setup, rotation and offline recovery](docs/lab-access.md) before deploying.
+
+New queued records capture the browser Device ID. Exporting provenance columns is opt-in and requires a reviewed workbook migration: [metadata runbook](docs/submission-metadata.md).
+
 Optional GA4 analytics uses G-S1GQ36LLDK with opt-in consent, production-host gating and sanitized page views. Review [property setup and verification](docs/analytics.md) before rollout.

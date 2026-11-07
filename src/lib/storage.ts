@@ -1,3 +1,4 @@
+import { getSyncPause, pauseSync } from './syncPause';
 import type { FullHusbandrySubmission, LocalHistoryItem } from './types';
 const LEGACY = 'rummerlab_husbandry_local_history';
 const PREFIX = 'rummerlab_submission_';
@@ -57,11 +58,32 @@ export function syncPendingSubmissions(): Promise<{ syncedCount: number; errors:
  return inFlight;
 }
 async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
+ const pause = getSyncPause();
+ if (pause) return { syncedCount: 0, errors: [pause.message] };
  let syncedCount = 0;
  const errors: string[] = [];
- for (const item of getLocalHistory().filter(h => !h.synced)) {
+ for (const item of getLocalHistory().filter(h => !h.synced && !h.syncBlocked)) {
+  const sharedPause = getSyncPause();
+  if (sharedPause) { errors.push(sharedPause.message); break; }
   try {
    const res = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.payload), signal: AbortSignal.timeout(30000) });
+   const loginPage = res.redirected || (res.ok && res.headers.get('content-type')?.includes('text/html'));
+   if (loginPage || [401, 403, 429, 503].includes(res.status)) {
+    const auth = loginPage || res.status === 401 || res.status === 403;
+    const message = auth ? 'Sign in again to sync. All records remain saved on this device.' : res.status === 429 ? 'Sync paused by rate limit. Records will retry automatically.' : 'Sync temporarily unavailable. Records will retry automatically.';
+    pauseSync(message, res.headers.get('retry-after'), auth);
+    updateLocalHistorySyncStatus(item.id, false, message);
+    errors.push(message);
+    break;
+   }
+   if ([400, 413, 415, 422].includes(res.status)) {
+    const result = await res.json().catch(() => ({}));
+    const message = result.error || `Submission needs review (HTTP ${res.status}).`;
+    const latestRaw = localStorage.getItem(PREFIX + item.id);
+    if (latestRaw && !parse(latestRaw).synced) saveLocalSubmission({ ...parse(latestRaw), synced: false, syncBlocked: true, syncError: message });
+    errors.push(message);
+    continue;
+   }
    const result = await res.json();
    if (!res.ok || !result.success || result.mode !== 'live') throw new Error(result.mode === 'mock' ? 'Mock mode: not written to Google Sheets. Record remains pending.' : result.error || 'Server rejected submission');
    updateLocalHistorySyncStatus(item.id, true);
@@ -75,6 +97,8 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
  return { syncedCount, errors };
 }
 export async function queueSubmission(payload: FullHusbandrySubmission, online: boolean): Promise<LocalHistoryItem> {
+ // Capture only for a NEW record, before persistence. Never enrich queued replays.
+ payload = { ...payload, clientDeviceId: payload.clientDeviceId ?? getDeviceId() };
  const item: LocalHistoryItem = { id: payload.id, submittedAt: payload.submittedAt, date: payload.date, initials: payload.initials, modules: payload.modulesSubmitted, synced: false, summary: payload.modulesSubmitted.join(', '), payload };
  // Fail before any network request or success message if persistence fails.
  saveLocalSubmission(item);
