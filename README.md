@@ -170,3 +170,5 @@ SvelteKit builds and registers `src/service-worker/index.ts` at `/service-worker
 A new worker waits until existing tabs close, protecting active forms. After saving records, close all app tabs and reopen to activate a waiting version. `static/sw.js` is a network-only bridge for old installations; do not remove it until those devices have migrated. The cached shell's date is refreshed to Brisbane's current date when mounted.
 
 Verification: `npm test`, `npm run check` (including worker TypeScript), and `npm run build`. For device acceptance, visit a production preview online, wait for worker installation, then close/reopen offline with the HTTP cache cleared but Cache Storage preserved. Verify every form loads; repeat across two builds and verify the old worker yields after tabs close.
+
+Optional GA4 analytics uses G-S1GQ36LLDK with opt-in consent, production-host gating and sanitized page views. Review [property setup and verification](docs/analytics.md) before rollout.
