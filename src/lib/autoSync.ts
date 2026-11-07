@@ -21,7 +21,8 @@ export function startAutoSync(onStatus: (online: boolean) => void, onError: (err
 		if (!stopped) { onStatus(navigator.onLine); timer = setTimeout(retry, delay); }
 	};
 	const resume = async () => {
-		if (navigator.onLine) await resumeSyncAfterAuthorization();
+		try { if (navigator.onLine) await resumeSyncAfterAuthorization(); }
+		catch (error) { onError(error); }
 		if (!stopped) await retry();
 	};
 	const online = () => { onStatus(true); void resume(); };
