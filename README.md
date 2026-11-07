@@ -178,3 +178,5 @@ Verification: `npm test`, `npm run check` (including worker TypeScript), and `np
 Malformed, oversized, unsupported-media and invalid records remain on the device marked **Needs review** and are skipped by automatic retry; contact the lab administrator to preserve/export the original before correcting and creating a replacement submission. Never change an already acknowledged payload or reuse its ID for changed data. Other valid pending records continue syncing.
 
 Unexpected server failures return a generic message and correlation ID. Restricted logs record that ID and error class, not raw observations or provider request objects. Public `/api/health` is minimal; configuration diagnostics moved to `/api/health/diagnostics`, requiring a random `HEALTH_DIAGNOSTICS_TOKEN` (32+ characters) in an Authorization Bearer header. Both health routes use `Cache-Control: no-store`.
+
+Submission throttling uses the Vercel Firewall SDK and preserves offline queues. Configure the named rules and staged rollout before enforcement: [rate limiting](docs/rate-limiting.md).

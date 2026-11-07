@@ -29,6 +29,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.69.0",
+		"@vercel/firewall": "^1.2.6",
 		"googleapis": "^189.0.0"
 	}
 }
