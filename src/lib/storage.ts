@@ -78,7 +78,8 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
    if ([400, 413, 415, 422].includes(res.status)) {
     const result = await res.json().catch(() => ({}));
     const message = result.error || `Submission needs review (HTTP ${res.status}).`;
-    saveLocalSubmission({ ...item, synced: false, syncBlocked: true, syncError: message });
+    const latestRaw = localStorage.getItem(PREFIX + item.id);
+    if (latestRaw && !parse(latestRaw).synced) saveLocalSubmission({ ...parse(latestRaw), synced: false, syncBlocked: true, syncError: message });
     errors.push(message);
     continue;
    }

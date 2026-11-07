@@ -81,7 +81,7 @@
 				id="feeds-initials"
 				type="text"
 				placeholder="e.g. SE + AC"
-				bind:value={data.initials}
+				data-field="initials" bind:value={data.initials}
 				required
 			/>
 		</div>
@@ -117,7 +117,7 @@
 								id="feed-amt-{tank.id}"
 								type="text"
 								placeholder={tank.targetAmt ? tank.targetAmt.replace('g', '') : 'e.g. 50'}
-								bind:value={data.tanks[tank.id].amountFed}
+								data-field={`tanks.${tank.id}.amountFed`} bind:value={data.tanks[tank.id].amountFed}
 								required
 							/>
 						</div>
@@ -130,7 +130,7 @@
 								id="feed-uneaten-{tank.id}"
 								type="text"
 								placeholder="0"
-								bind:value={data.tanks[tank.id].uneatenGrams}
+								data-field={`tanks.${tank.id}.uneatenGrams`} bind:value={data.tanks[tank.id].uneatenGrams}
 								required
 							/>
 						</div>
@@ -138,18 +138,19 @@
 
 					{#if tank.medicationType !== 'None' && tank.sharks.some((s: { medId?: string }) => Boolean(s.medId))}
 						<div class="meds-section">
-							<span class="meds-title">{tank.medicationType} Administered (Mandatory):</span>
+							<span class="meds-title">{tank.medicationType} Administered (Mandatory): <span class="required-star" aria-hidden="true">*</span></span>
 							<div class="meds-options">
 								{#each tank.sharks as shark}
 									{#if shark.medId}
 										{@const medKey = shark.medId}
 										<div class="med-item">
 											<span class="med-label">{medKey}:</span>
-											<div class="btn-group">
+											<div class="btn-group" role="radiogroup" aria-label={`${tank.name}: ${shark.label} ${tank.medicationType} administered`} aria-required="true" data-field={`tanks.${tank.id}.meds.${medKey}`}>
 												<button
 													type="button"
 													class="med-btn"
 													class:active={data.tanks[tank.id].meds[medKey] === 'Y'}
+													role="radio" aria-checked={data.tanks[tank.id].meds[medKey] === 'Y'}
 													onclick={() => (data.tanks[tank.id].meds[medKey] = 'Y')}
 												>
 													Y
@@ -158,6 +159,7 @@
 													type="button"
 													class="med-btn"
 													class:active={data.tanks[tank.id].meds[medKey] === 'N'}
+													role="radio" aria-checked={data.tanks[tank.id].meds[medKey] === 'N'}
 													onclick={() => (data.tanks[tank.id].meds[medKey] = 'N')}
 												>
 													N
@@ -252,11 +254,12 @@
 
 	.tanks-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
 		gap: 0.9rem;
 	}
 
 	.tank-card {
+		min-width: 0;
 		background: #ffffff;
 		border: 1.5px solid #e2e8f0;
 		border-radius: 8px;
@@ -282,6 +285,8 @@
 	}
 
 	.tank-title {
+		flex-wrap: wrap;
+		gap: 0.35rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -327,11 +332,12 @@
 
 	.input-row {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.6rem;
 	}
 
 	.input-field {
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 0.3rem;
@@ -344,6 +350,8 @@
 	}
 
 	.input-field.mini input {
+		width: 100%;
+		min-width: 0;
 		padding: 0.4rem 0.6rem;
 		border: 1.5px solid #cbd5e1;
 		border-radius: 5px;
