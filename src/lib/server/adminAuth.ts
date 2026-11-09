@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
 
 /**
  * Named-administrator sign-in for the lab-wide Lab Overview (#66).
@@ -64,17 +64,41 @@ export function readSession(cookie: string | undefined, config: AdminConfig | nu
 
 export interface OAuthState { state: string; verifier: string; returnTo: string; exp: number }
 
+/**
+ * The OAuth state cookie carries the PKCE verifier, so it is ENCRYPTED (AES-256-GCM, which also
+ * authenticates it) rather than only signed. The key is derived from AUTH_SECRET with HKDF.
+ */
+const oauthKey = (secret: string) => Buffer.from(hkdfSync('sha256', secret, 'husbandry-oauth-state', 'aes-256-gcm', 32));
+function encryptState(payload: OAuthState, secret: string): string {
+	const iv = randomBytes(12);
+	const cipher = createCipheriv('aes-256-gcm', oauthKey(secret), iv);
+	const data = Buffer.concat([cipher.update(JSON.stringify(payload), 'utf8'), cipher.final()]);
+	return [iv, cipher.getAuthTag(), data].map(part => part.toString('base64url')).join('.');
+}
+function decryptState(value: string | undefined, secret: string): OAuthState | null {
+	const parts = value?.split('.');
+	if (!parts || parts.length !== 3) return null;
+	try {
+		const [iv, tag, data] = parts.map(part => Buffer.from(part, 'base64url'));
+		const decipher = createDecipheriv('aes-256-gcm', oauthKey(secret), iv);
+		decipher.setAuthTag(tag);
+		return JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8')) as OAuthState;
+	} catch {
+		return null;
+	}
+}
+
 export function createOAuthState(secret: string, returnTo: string, now = Date.now()): { cookie: string; state: string; challenge: string } {
 	const state = b64(randomBytes(24));
 	const verifier = b64(randomBytes(48));
 	const challenge = createHash('sha256').update(verifier).digest('base64url');
-	const cookie = sealed({ state, verifier, returnTo: safeReturnTo(returnTo), exp: Math.floor(now / 1000) + OAUTH_SECONDS }, secret);
+	const cookie = encryptState({ state, verifier, returnTo: safeReturnTo(returnTo), exp: Math.floor(now / 1000) + OAUTH_SECONDS }, secret);
 	return { cookie, state, challenge };
 }
 
 export function readOAuthState(cookie: string | undefined, state: string | null, secret: string, now = Date.now()): OAuthState | null {
-	const saved = unseal<OAuthState>(cookie, secret);
-	if (!saved || !state || saved.exp * 1000 <= now) return null;
+	const saved = decryptState(cookie, secret);
+	if (!saved || !state || typeof saved.state !== 'string' || saved.exp * 1000 <= now) return null;
 	const a = Buffer.from(saved.state);
 	const b = Buffer.from(state);
 	return a.length === b.length && timingSafeEqual(a, b) ? saved : null;

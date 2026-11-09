@@ -37,6 +37,12 @@ describe('administrator sign-in', () => {
 		expect(readOAuthState(cookie, state, SECRET)?.verifier).toBeTruthy();
 		expect(readOAuthState(cookie, 'other-state', SECRET)).toBeNull();
 		expect(readOAuthState(cookie, state, SECRET, Date.now() + 11 * 60 * 1000)).toBeNull();
+		// Encrypted: the PKCE verifier is not readable from the cookie, and tampering or a wrong key fails.
+		const saved = readOAuthState(cookie, state, SECRET)!;
+		expect(cookie).not.toContain(saved.verifier);
+		expect(Buffer.from(cookie.split('.')[2], 'base64url').toString('utf8')).not.toContain('verifier');
+		expect(readOAuthState(cookie.slice(0, -2) + (cookie.endsWith('A') ? 'BB' : 'AA'), state, SECRET)).toBeNull();
+		expect(readOAuthState(cookie, state, 'z'.repeat(40))).toBeNull();
 		const url = new URL(googleAuthUrl(config, 'https://husbandry.rummerlab.com/auth/google/callback', state, challenge));
 		expect(url.searchParams.get('code_challenge_method')).toBe('S256');
 		expect(url.searchParams.get('scope')).toBe('openid email profile');
