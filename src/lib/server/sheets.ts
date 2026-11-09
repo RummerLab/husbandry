@@ -33,6 +33,11 @@ export function getSheetsConfigStatus(): {
 	};
 }
 
+/** True on Vercel Preview unless PREVIEW_SHEETS_WRITES_ENABLED=true (for a disposable workbook only). */
+export function previewWritesBlocked(): boolean {
+	return getEnv('VERCEL_ENV') === 'preview' && getEnv('PREVIEW_SHEETS_WRITES_ENABLED') !== 'true';
+}
+
 export function isGoogleSheetsConfigured(): boolean {
 	const status = getSheetsConfigStatus();
 	return status.configured;
@@ -66,6 +71,18 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 	message: string;
 	tabsUpdated: string[];
 }> {
+	// Preview deployments never write to a live workbook unless explicitly allowed (#59).
+	// Use a disposable copy of the workbook for preview testing, never the production sheet.
+	if (previewWritesBlocked()) {
+		console.warn('[Google Sheets] Preview deployment: live writes disabled. Operating in mock mode.');
+		return {
+			synced: true,
+			mode: 'mock',
+			message: 'Mock sync: preview deployments do not write to Google Sheets (set PREVIEW_SHEETS_WRITES_ENABLED=true with a disposable workbook to test live writes).',
+			tabsUpdated: submission.modulesSubmitted
+		};
+	}
+
 	const status = getSheetsConfigStatus();
 	if (!status.configured) {
 		const missing: string[] = [];
