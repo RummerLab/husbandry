@@ -1,5 +1,13 @@
 import type { LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../types';
 import { ROOM12_TANKS } from '../tanksConfig';
+/** The animal welfare answer shares Col 20 so the LSS tab keeps its 21 operational columns. */
+export function formatLSSConcerns(data: LSSData): string {
+	const concerns = data.concerns?.trim() || '';
+	if (data.animalsChecked !== 'Y' && data.animalsChecked !== 'N') return concerns;
+	const check = `All animals sighted & normal: ${data.animalsChecked}`;
+	return concerns ? `${check}. ${concerns}` : check;
+}
+
 export function formatLSSRow(data: LSSData): (string | number)[] {
 	return [
 		data.date,                          // Col 1: Date
@@ -21,7 +29,7 @@ export function formatLSSRow(data: LSSData): (string | number)[] {
 		data.hoseFloorLadder || 'Y',        // Col 17: Hose -> floor, ladder & tools
 		data.footTubLidsSqueegee || 'Y',    // Col 18: Foot tub refilled, lids on, squeegeed
 		data.equipmentDisinfected || 'Y',   // Col 19: Equipment disinfected
-		data.concerns || '',                // Col 20: Concerns (new)
+		formatLSSConcerns(data),            // Col 20: Concerns (new), prefixed with the daily animal check
 		data.notes || ''                    // Col 21: Notes
 	];
 }
