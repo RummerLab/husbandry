@@ -17,6 +17,8 @@ export function createOfflineCache(storage: CacheStorage, network: typeof fetch,
 		handles(request: Request) {
 			const url = new URL(request.url);
 			return request.method === 'GET' && url.origin === origin && !url.pathname.startsWith('/api/') && url.pathname !== '/login' &&
+				// Lab-wide data and sign-in are always network-only (#66).
+				!url.pathname.startsWith('/insights') && !url.pathname.startsWith('/auth/') &&
 				(request.mode === 'navigate' || assets.has(url.href) || url.pathname.startsWith('/_app/immutable/'));
 		},
 		async respond(request: Request): Promise<Response> {

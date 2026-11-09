@@ -70,6 +70,17 @@ function getSheetsClient() {
 	return google.sheets({ version: 'v4', auth });
 }
 
+/** Read-only client and master sheet ID for the Lab Overview (#66), or null when not configured. */
+export function getReadonlyMasterSheet(): { sheets: ReturnType<typeof google.sheets>; spreadsheetId: string } | null {
+	const email = getEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+	let key = getEnv('GOOGLE_PRIVATE_KEY');
+	const spreadsheetId = getEnv('GOOGLE_SHEET_ID');
+	if (!email || !key || !spreadsheetId) return null;
+	if (key.includes('\\n')) key = key.replace(/\\n/g, '\n');
+	const auth = new google.auth.JWT({ email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+	return { sheets: google.sheets({ version: 'v4', auth }), spreadsheetId };
+}
+
 export async function appendSubmissionToSheets(submission: FullHusbandrySubmission, requestContext?: RequestContext): Promise<{
 	synced: boolean;
 	mode: 'live' | 'mock';
