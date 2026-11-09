@@ -1158,6 +1158,33 @@
 		.step-indicator {
 			font-size: 0.78rem;
 		}
+		/* Daily routine footer: status on its own line, then Back / Next or Submit side by side. */
+		.step-nav-footer:not(.wq-footer) {
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			padding: 0.75rem;
+		}
+		.step-nav-footer:not(.wq-footer) .step-indicator {
+			order: -1;
+			flex: 1 0 100%;
+			flex-wrap: wrap;
+			justify-content: center;
+			text-align: center;
+		}
+		.step-nav-footer:not(.wq-footer) .left-action:empty {
+			display: none;
+		}
+		.step-nav-footer:not(.wq-footer) .left-action,
+		.step-nav-footer:not(.wq-footer) .right-action {
+			flex: 1 1 0;
+			min-width: 0;
+		}
+		.step-nav-footer:not(.wq-footer) .nav-action-btn {
+			width: 100%;
+			min-height: 48px;
+			padding: 0.55rem 0.6rem;
+			white-space: normal;
+		}
 		.room-pill {
 			display: none;
 		}
