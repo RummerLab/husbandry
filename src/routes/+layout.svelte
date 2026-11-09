@@ -1,9 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/env';
+	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit-next';
 	import { startPageViewAnalytics } from '../lib/analytics';
+	import { sanitizeSpeedInsightsEvent, speedInsightsAllowed } from '../lib/speedInsights';
 	let { children } = $props();
 	// Cookieless page-view counts only; fire-and-forget so it can never block forms or sync.
 	onMount(() => { startPageViewAnalytics(window, document, !import.meta.env.DEV); });
+	// Core Web Vitals per route (cookieless). Must run during component init; never blocks forms or sync.
+	if (browser && speedInsightsAllowed(window.location, import.meta.env.DEV)) {
+		try { injectSpeedInsights({ beforeSend: sanitizeSpeedInsightsEvent }); } catch { /* never block the app */ }
+	}
 </script>
 
 <div class="app-root">
