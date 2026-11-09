@@ -5,6 +5,7 @@
 	import { room12Date, canNavigate, isOffDay } from '../lib/recordRules';
 	import { getModuleIssues, type Module, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
+	import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../lib/waterQualityGuide';
 	import { onMount, tick } from 'svelte';
 	import type {
 		LSSData,
@@ -97,9 +98,15 @@
 		return true;
 	});
 
-	let activeIssues = $derived(getModuleIssues(stepModules[currentStep - 1], [lssData, tanksEggsData, feedsData, waterQualityData][currentStep - 1]));
+	let activeIssues = $derived(activeTab === 'waterQuality'
+		? getModuleIssues('waterQuality', waterQualityData)
+		: getModuleIssues(stepModules[currentStep - 1], [lssData, tanksEggsData, feedsData, waterQualityData][currentStep - 1]));
+	// The Water Quality tab also flags values already typed but invalid (e.g. "98%"), before Save is tried.
+	let visibleIssues = $derived(showValidation
+		? activeIssues
+		: activeTab === 'waterQuality' ? enteredInvalidIssues(activeIssues, waterQualityData) : []);
 	$effect(() => {
-		if (validationRoot) markInvalidFields(validationRoot, showValidation ? activeIssues : []);
+		if (validationRoot) markInvalidFields(validationRoot, visibleIssues);
 	});
 
 	async function nextStep() {
@@ -119,6 +126,13 @@
 		activeTab = tab;
 	}
 
+
+	/** Save stays disabled while invalid; this reveals and focuses what is missing instead. */
+	async function revealWaterQualityIssues() {
+		showValidation = true;
+		await tick();
+		if (validationRoot) focusFirstInvalidField(validationRoot);
+	}
 
 	function prevStep() {
 		if (currentStep > 1) {
@@ -336,6 +350,17 @@
 					<span>Use this tab when routine water quality (at least every second day) or weekly chemistry is the only task you're recording. It saves a row to the <em>Water Quality</em> sheet without the daily LSS, Tanks + Eggs or Feeds sections.</span>
 				</div>
 
+				{#if visibleIssues.length}
+					<div id="step-validation-summary" class="validation-summary" role={showValidation ? 'alert' : 'status'}>
+						<p>{showValidation ? `Complete or correct the highlighted answers before saving (${visibleIssues.length} remaining):` : 'Check these values:'}</p>
+						<ul>
+							{#each sortWaterQualityIssues(visibleIssues) as issue (issue.field)}
+								<li>{describeWaterQualityIssue(issue)}</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+
 				<div class="step-content">
 					<WaterQualityForm bind:data={waterQualityData} />
 				</div>
@@ -345,7 +370,8 @@
 					<div class="step-indicator">
 						Water Quality
 						{#if !waterQualityValid}
-							<span class="step-hint" id="wq-save-help">• Required fields (marked *) pending</span>
+							<span class="step-hint" id="wq-save-help">• Save unlocks when every required field (*) is valid</span>
+							<button type="button" class="show-missing-btn" onclick={revealWaterQualityIssues}>Show what's missing</button>
 						{/if}
 					</div>
 					<div class="right-action">
@@ -967,6 +993,26 @@
 		color: #0c4a6e;
 		font-size: 0.9rem;
 	}
+
+	.validation-summary p { margin: 0; }
+	.validation-summary ul { margin: 0.4rem 0 0; padding-left: 1.2rem; font-weight: 500; }
+
+	.show-missing-btn {
+		display: block;
+		margin: 0.35rem auto 0;
+		min-height: 40px;
+		padding: 0 0.85rem;
+		border: 1.5px solid #dc2626;
+		border-radius: 6px;
+		background: #ffffff;
+		color: #991b1b;
+		font: inherit;
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.show-missing-btn:focus-visible { outline: 3px solid #1d5fb8; outline-offset: 2px; }
 
 	.lab-records-panel {
 		display: flex;
