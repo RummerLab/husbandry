@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import type { FullHusbandrySubmission } from '../types';
 import { writeAtomicSubmission } from './atomicSubmission';
+import { appendRequestLog, type RequestContext } from './requestLog';
 
 // Environment variables from runtime process.env (Vercel & Node)
 function getEnv(name: string): string {
@@ -59,7 +60,7 @@ function getSheetsClient() {
 	return google.sheets({ version: 'v4', auth });
 }
 
-export async function appendSubmissionToSheets(submission: FullHusbandrySubmission): Promise<{
+export async function appendSubmissionToSheets(submission: FullHusbandrySubmission, requestContext?: RequestContext): Promise<{
 	synced: boolean;
 	mode: 'live' | 'mock';
 	message: string;
@@ -86,6 +87,18 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 	const sheets = getSheetsClient();
 	const spreadsheetId = getEnv('GOOGLE_SHEET_ID');
 	const tabsUpdated = await writeAtomicSubmission(sheets, spreadsheetId, submission, { metadataColumns: getEnv('GOOGLE_SHEET_METADATA_ENABLED') === 'true' });
+
+	// Restricted request log (#54): separate workbook, after the records are safely written.
+	// Best effort: a log failure never fails the submission. Retries are deduplicated by Submission ID.
+	const requestLogSheetId = getEnv('GOOGLE_REQUEST_LOG_SHEET_ID');
+	if (requestLogSheetId && requestContext) {
+		try {
+			await appendRequestLog(sheets, requestLogSheetId, submission, requestContext);
+		} catch (error) {
+			// Never log IPs, user agents or payloads here.
+			console.warn('Request log write failed', { errorType: error instanceof Error ? error.name : 'UnknownError' });
+		}
+	}
 
 	return {
 		synced: true,

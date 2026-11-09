@@ -554,6 +554,9 @@
 		<p class="ethics-note">
 			Animal Ethics Compliance & Strict Husbandry Records • Production: <code>husbandry.rummerlab.com</code>
 		</p>
+		<p class="privacy-note">
+			<strong>Privacy:</strong> when records sync, the server logs your IP address, approximate location (city/region/country), browser details and this device's ID, for security and audit of husbandry records. Only lab administrators can see this log; it is not part of the shared spreadsheet.
+		</p>
 	</footer>
 </div>
 
@@ -1132,6 +1135,14 @@
 
 	.app-footer p {
 		margin: 0.3rem 0;
+	}
+
+	.privacy-note {
+		max-width: 46rem;
+		margin: 0.5rem auto 0;
+		font-size: 0.75rem;
+		line-height: 1.45;
+		color: #8d9aae;
 	}
 
 	.ethics-note {
