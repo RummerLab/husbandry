@@ -38,6 +38,11 @@ export function previewWritesBlocked(): boolean {
 	return getEnv('VERCEL_ENV') === 'preview' && getEnv('PREVIEW_SHEETS_WRITES_ENABLED') !== 'true';
 }
 
+/** True for a local `npm run dev` unless LOCAL_SHEETS_WRITES_ENABLED=true (for a disposable workbook only) (#68). */
+export function localDevWritesBlocked(): boolean {
+	return getEnv('NODE_ENV') === 'development' && getEnv('LOCAL_SHEETS_WRITES_ENABLED') !== 'true';
+}
+
 export function isGoogleSheetsConfigured(): boolean {
 	const status = getSheetsConfigStatus();
 	return status.configured;
@@ -79,6 +84,17 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 			synced: true,
 			mode: 'mock',
 			message: 'Mock sync: preview deployments do not write to Google Sheets (set PREVIEW_SHEETS_WRITES_ENABLED=true with a disposable workbook to test live writes).',
+			tabsUpdated: submission.modulesSubmitted
+		};
+	}
+
+	// A local dev server with the real .env must never sync queued test records into production (#68).
+	if (localDevWritesBlocked()) {
+		console.warn('[Google Sheets] Local development: live writes disabled. Operating in mock mode.');
+		return {
+			synced: true,
+			mode: 'mock',
+			message: 'Mock sync: local development does not write to Google Sheets (set LOCAL_SHEETS_WRITES_ENABLED=true with a disposable workbook to test live writes).',
 			tabsUpdated: submission.modulesSubmitted
 		};
 	}
