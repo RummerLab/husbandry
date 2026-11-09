@@ -1,21 +1,23 @@
-# Optional GA4 usage analytics
+# Page-view analytics (Vercel Web Analytics)
 
-Production measurement ID: **G-S1GQ36LLDK**. The Google tag loads only on HTTPS `husbandry.rummerlab.com` after the user enables **Allow optional usage analytics** in the footer. No Google request is initiated by the integration before opt-in; consent is stored under `rummerlab_usage_analytics`. Declining does not affect forms or submission sync. Do Not Track and Global Privacy Control override opt-in. Localhost and preview hosts do not collect production analytics.
+The app counts page loads/views only, with [Vercel Web Analytics](https://vercel.com/docs/analytics). It sets no cookies, uses no device identifier and asks no consent question. Vercel groups visitors by a hash of the request that resets daily and is never stored on the device. The earlier consent-gated GA4 integration (`G-S1GQ36LLDK`) and its footer toggle have been removed.
 
-The app queues one sanitized page_view per page lifecycle: constant production root URL, generic app title, empty referrer, measurement ID. It never accepts or sends form fields, initials, device IDs, submission IDs, account credentials or spreadsheet links. Form/history tabs are not separately tracked. GA itself uses its normal analytics cookies and processes network/browser metadata after opt-in; this is not anonymous or identifier-free collection. Google signals, advertising storage and advertising personalization are disabled. The script request uses no-referrer. Withdrawing consent sets Google's documented ga-disable property immediately and removes the property's first-party GA cookies; already loaded script code stays in memory, but the property is disabled. Reloads do not load it without consent. Requests already sent cannot be recalled.
+## How it works
 
-## Property-owner setup before rollout
+- `src/routes/+layout.svelte` calls `startPageViewAnalytics` (`src/lib/analytics.ts`) on mount. It appends a deferred, same-origin `/_vercel/insights/script.js` using Vercel's plain-HTML integration. The `@vercel/analytics` package is not used because it does not list SvelteKit 3 as a supported peer.
+- A `beforeSend` filter sends only `pageview` events, reduced to origin + path (no query string or fragment), and drops `/login` and `/api/*`. No custom events are sent. Never add form values, initials, notes, device/submission IDs, credentials or spreadsheet links.
+- Dev builds, `localhost`/`127.0.0.1`/`[::1]` and plain HTTP are skipped. The script only exists on Vercel deployments; preview and production are reported separately in the dashboard.
+- On every load the helper also removes the retired GA4 preference key (`rummerlab_usage_analytics`) and any `_ga`/`_ga_*` cookies from users who had opted in. It never touches submission storage.
+- Analytics is fire-and-forget: never awaited, wrapped so it cannot throw, and outside the service worker's cache scope (`/_vercel/insights/*` is not in the build manifest and not a navigation). An ad blocker or offline network only loses that count; forms and queue replay are unaffected.
 
-In GA Admin → Data streams → this web stream, verify the ID and **turn off Enhanced Measurement**, especially form interactions, outbound links, downloads and browser-history page changes. Review other Google-tag destinations, data collection/retention and advertising links; the app cannot override remote property settings or guarantee another configured tag will not collect extra data. Do not add User-ID/custom identifier mapping or automatic field capture. Publish the lab's appropriate privacy information with the selected consent/retention policy. No service-account credentials are used.
+## Setup
+
+In the Vercel project dashboard → **Analytics** → **Enable** Web Analytics, then redeploy. Until it is enabled, the script request returns 404 harmlessly.
 
 ## Verification
 
-1. On a preview/localhost, verify forms work, the footer changes preference, and no GA script loads even after opt-in (production host only).
-2. On the production host after deployment, use browser Network/Tag Assistant: before consent or after declining there must be no gtag script/collect request from this integration; DNT/GPC must suppress it.
-3. After opting in, check one sanitized page view in GA Realtime/DebugView. Confirm the event URL has no query/fragment, referrer is blank and no research/application IDs appear. This manual check requires property access and is not performed by unit tests.
-4. Withdraw consent, reload, block Google with an ad blocker and test offline entry/queue replay. Analytics must never gate the lab app. Its script is not awaited, is not in the build manifest and is outside the service worker's same-origin cache scope.
-5. Verify alongside lab access control. Never put credentials in a URL or configure analytics on the browser password challenge/login pages.
+1. After deploying, open the production site with the browser Network panel: one `script.js` and one `/_vercel/insights/view` request per page load, no cookies set, and a URL without query/fragment.
+2. Block `/_vercel/insights` (ad blocker or offline), then complete an entry and replay the offline queue. Both must work.
+3. Check counts in the Vercel dashboard Analytics tab.
 
-To disable globally, remove the UsageAnalytics component from the root layout and redeploy; do not repurpose the measurement ID. Existing users can turn it off in the footer or clear only the analytics preference/cookies (never their submission storage).
-
-References: [GA4 configuration](https://developers.google.com/analytics/devguides/collection/ga4/reference/config), [Google tag privacy controls](https://developers.google.com/tag-platform/security/guides/privacy).
+To disable, remove the `startPageViewAnalytics` call from the root layout (or disable Web Analytics in Vercel) and redeploy.
