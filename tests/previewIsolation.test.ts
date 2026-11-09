@@ -23,3 +23,20 @@ it('returns a mock acknowledgement on Preview even with full credentials, so not
 	expect(result.mode).toBe('mock');
 	expect(result.message).toContain('preview deployments do not write');
 });
+
+it('blocks live Sheets writes from a local dev server unless explicitly enabled (#68)', async () => {
+	const { localDevWritesBlocked } = await import('../src/lib/server/sheets');
+	vi.stubEnv('VERCEL_ENV', '');
+	vi.stubEnv('NODE_ENV', 'development'); vi.stubEnv('LOCAL_SHEETS_WRITES_ENABLED', '');
+	expect(localDevWritesBlocked()).toBe(true);
+	vi.stubEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL', 'bot@example.iam.gserviceaccount.com');
+	vi.stubEnv('GOOGLE_PRIVATE_KEY', 'not-a-real-key');
+	vi.stubEnv('GOOGLE_SHEET_ID', 'production-sheet-id');
+	const result = await appendSubmissionToSheets(submission);
+	expect(result.mode).toBe('mock');
+	expect(result.message).toContain('local development does not write');
+	vi.stubEnv('LOCAL_SHEETS_WRITES_ENABLED', 'true');
+	expect(localDevWritesBlocked()).toBe(false);
+	vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('LOCAL_SHEETS_WRITES_ENABLED', '');
+	expect(localDevWritesBlocked()).toBe(false);
+});
