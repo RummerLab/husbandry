@@ -50,7 +50,7 @@
 	<!-- Routine checks: at least every second day, including weekends -->
 	<div class="section-card">
 		<h4>2. Routine Checks (at least every second day, including weekends)</h4>
-		<p class="section-hint">Mandatory parameters for daily marine life support</p>
+		<p class="section-hint">All routine fields are required. Enter numbers only, without units or % signs (pH must be 0–14). If the DO meter is unavailable, enter N/A.</p>
 
 		<div class="table-grid">
 			<div class="grid-header">
@@ -64,8 +64,8 @@
 					<strong>Temperature (°C)</strong>
 					<span class="required-star">*</span>
 				</div>
-				<input type="text" placeholder="e.g. 26.3" data-field="tempA" bind:value={data.tempA} />
-				<input type="text" placeholder="e.g. 26.2" data-field="tempB" bind:value={data.tempB} />
+				<input type="text" placeholder="e.g. 26.3" inputmode="decimal" aria-label="Temperature (°C) Side A" data-field="tempA" bind:value={data.tempA} />
+				<input type="text" placeholder="e.g. 26.2" inputmode="decimal" aria-label="Temperature (°C) Side B" data-field="tempB" bind:value={data.tempB} />
 			</div>
 
 			<div class="grid-row">
@@ -73,24 +73,26 @@
 					<strong>Salinity (ppt)</strong>
 					<span class="required-star">*</span>
 				</div>
-				<input type="text" placeholder="e.g. 36" data-field="salinityA" bind:value={data.salinityA} />
-				<input type="text" placeholder="e.g. 36" data-field="salinityB" bind:value={data.salinityB} />
+				<input type="text" placeholder="e.g. 36" inputmode="decimal" aria-label="Salinity (ppt) Side A" data-field="salinityA" bind:value={data.salinityA} />
+				<input type="text" placeholder="e.g. 36" inputmode="decimal" aria-label="Salinity (ppt) Side B" data-field="salinityB" bind:value={data.salinityB} />
 			</div>
 
 			<div class="grid-row">
 				<div class="param-title">
 					<strong>pH</strong>
+					<span class="required-star">*</span>
 				</div>
-				<input type="text" placeholder="e.g. 8.20" data-field="pHA" bind:value={data.pHA} />
-				<input type="text" placeholder="e.g. 8.25" data-field="pHB" bind:value={data.pHB} />
+				<input type="text" placeholder="e.g. 8.20" inputmode="decimal" aria-label="pH Side A" data-field="pHA" bind:value={data.pHA} />
+				<input type="text" placeholder="e.g. 8.25" inputmode="decimal" aria-label="pH Side B" data-field="pHB" bind:value={data.pHB} />
 			</div>
 
 			<div class="grid-row">
 				<div class="param-title">
 					<strong>Dissolved Oxygen (%)</strong>
+					<span class="required-star">*</span>
 				</div>
-				<input type="text" placeholder="e.g. 98% or /" data-field="doA" bind:value={data.doA} />
-				<input type="text" placeholder="e.g. 98% or /" data-field="doB" bind:value={data.doB} />
+				<input type="text" placeholder="e.g. 98 or N/A" aria-label="Dissolved Oxygen (%) Side A" data-field="doA" bind:value={data.doA} />
+				<input type="text" placeholder="e.g. 98 or N/A" aria-label="Dissolved Oxygen (%) Side B" data-field="doB" bind:value={data.doB} />
 			</div>
 		</div>
 	</div>
@@ -106,7 +108,8 @@
 		</div>
 
 		{#if data.isWeeklyCheck}
-			<div class="table-grid" style="margin-top: 0.8rem;">
+			<p class="section-hint weekly-hint">With weekly data included, every weekly field is required. Enter numbers only; 0 is a valid reading.</p>
+			<div class="table-grid">
 				<div class="grid-header">
 					<span>Parameter</span>
 					<span>Side A</span>
@@ -114,39 +117,39 @@
 				</div>
 
 				<div class="grid-row">
-					<div class="param-title">Alkalinity (dKH / ppm)</div>
-					<input type="text" placeholder="e.g. 116" data-field="alkA" bind:value={data.alkA} />
-					<input type="text" placeholder="e.g. 118" data-field="alkB" bind:value={data.alkB} />
+					<div class="param-title">Alkalinity (dKH / ppm) <span class="required-star">*</span></div>
+					<input type="text" placeholder="e.g. 116" inputmode="decimal" aria-label="Alkalinity Side A" data-field="alkA" bind:value={data.alkA} />
+					<input type="text" placeholder="e.g. 118" inputmode="decimal" aria-label="Alkalinity Side B" data-field="alkB" bind:value={data.alkB} />
 				</div>
 
 				<div class="grid-row">
-					<div class="param-title">Weekly pH</div>
-					<input type="text" placeholder="e.g. 8.2" data-field="weeklypHA" bind:value={data.weeklypHA} />
-					<input type="text" placeholder="e.g. 8.2" data-field="weeklypHB" bind:value={data.weeklypHB} />
+					<div class="param-title">Weekly pH <span class="required-star">*</span></div>
+					<input type="text" placeholder="e.g. 8.2" inputmode="decimal" aria-label="Weekly pH Side A" data-field="weeklypHA" bind:value={data.weeklypHA} />
+					<input type="text" placeholder="e.g. 8.2" inputmode="decimal" aria-label="Weekly pH Side B" data-field="weeklypHB" bind:value={data.weeklypHB} />
 				</div>
 
 				<div class="grid-row">
-					<div class="param-title">Ammonia NH3 (ppm)</div>
-					<input type="text" placeholder="0" data-field="nh3A" bind:value={data.nh3A} />
-					<input type="text" placeholder="0" data-field="nh3B" bind:value={data.nh3B} />
+					<div class="param-title">Ammonia NH3 (ppm) <span class="required-star">*</span></div>
+					<input type="text" placeholder="0" inputmode="decimal" aria-label="Ammonia NH3 (ppm) Side A" data-field="nh3A" bind:value={data.nh3A} />
+					<input type="text" placeholder="0" inputmode="decimal" aria-label="Ammonia NH3 (ppm) Side B" data-field="nh3B" bind:value={data.nh3B} />
 				</div>
 
 				<div class="grid-row">
-					<div class="param-title">Nitrite NO2 (ppm)</div>
-					<input type="text" placeholder="0" data-field="no2A" bind:value={data.no2A} />
-					<input type="text" placeholder="0" data-field="no2B" bind:value={data.no2B} />
+					<div class="param-title">Nitrite NO2 (ppm) <span class="required-star">*</span></div>
+					<input type="text" placeholder="0" inputmode="decimal" aria-label="Nitrite NO2 (ppm) Side A" data-field="no2A" bind:value={data.no2A} />
+					<input type="text" placeholder="0" inputmode="decimal" aria-label="Nitrite NO2 (ppm) Side B" data-field="no2B" bind:value={data.no2B} />
 				</div>
 
 				<div class="grid-row">
-					<div class="param-title">Nitrate NO3 (ppm)</div>
-					<input type="text" placeholder="e.g. 20" data-field="no3A" bind:value={data.no3A} />
-					<input type="text" placeholder="e.g. 15" data-field="no3B" bind:value={data.no3B} />
+					<div class="param-title">Nitrate NO3 (ppm) <span class="required-star">*</span></div>
+					<input type="text" placeholder="e.g. 20" inputmode="decimal" aria-label="Nitrate NO3 (ppm) Side A" data-field="no3A" bind:value={data.no3A} />
+					<input type="text" placeholder="e.g. 15" inputmode="decimal" aria-label="Nitrate NO3 (ppm) Side B" data-field="no3B" bind:value={data.no3B} />
 				</div>
 
 				<div class="grid-row">
-					<div class="param-title">Phosphate PO4 (ppm)</div>
-					<input type="text" placeholder="e.g. 1.5" data-field="po4A" bind:value={data.po4A} />
-					<input type="text" placeholder="e.g. 1.8" data-field="po4B" bind:value={data.po4B} />
+					<div class="param-title">Phosphate PO4 (ppm) <span class="required-star">*</span></div>
+					<input type="text" placeholder="e.g. 1.5" inputmode="decimal" aria-label="Phosphate PO4 (ppm) Side A" data-field="po4A" bind:value={data.po4A} />
+					<input type="text" placeholder="e.g. 1.8" inputmode="decimal" aria-label="Phosphate PO4 (ppm) Side B" data-field="po4B" bind:value={data.po4B} />
 				</div>
 			</div>
 		{:else}
@@ -243,6 +246,10 @@
 		font-size: 0.8rem;
 		color: #64748b;
 		margin: -0.4rem 0 0.8rem;
+	}
+
+	.weekly-hint {
+		margin: 0.8rem 0 0.6rem;
 	}
 
 	.toggle-label {

@@ -5,6 +5,7 @@
 	import { room12Date, canNavigate, isOffDay } from '../lib/recordRules';
 	import { getModuleIssues, type Module, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
+	import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../lib/waterQualityGuide';
 	import { onMount, tick } from 'svelte';
 	import type {
 		LSSData,
@@ -28,7 +29,7 @@
 	const todayStr = room12Date();
 
 	// Top level state
-	let activeTab = $state<'form' | 'history'>('form');
+	let activeTab = $state<'form' | 'waterQuality' | 'history'>('form');
 	let currentStep = $state<number>(1);
 	let validationRoot = $state<HTMLElement>();
 	let showValidation = $state(false);
@@ -97,9 +98,15 @@
 		return true;
 	});
 
-	let activeIssues = $derived(getModuleIssues(stepModules[currentStep - 1], [lssData, tanksEggsData, feedsData, waterQualityData][currentStep - 1]));
+	let activeIssues = $derived(activeTab === 'waterQuality'
+		? getModuleIssues('waterQuality', waterQualityData)
+		: getModuleIssues(stepModules[currentStep - 1], [lssData, tanksEggsData, feedsData, waterQualityData][currentStep - 1]));
+	// The Water Quality tab also flags values already typed but invalid (e.g. "98%"), before Save is tried.
+	let visibleIssues = $derived(showValidation
+		? activeIssues
+		: activeTab === 'waterQuality' ? enteredInvalidIssues(activeIssues, waterQualityData) : []);
 	$effect(() => {
-		if (validationRoot) markInvalidFields(validationRoot, showValidation ? activeIssues : []);
+		if (validationRoot) markInvalidFields(validationRoot, visibleIssues);
 	});
 
 	async function nextStep() {
@@ -111,6 +118,20 @@
 			return;
 		}
 		if (currentStep < 4) jumpToStep(currentStep + 1);
+	}
+
+	function selectTab(tab: typeof activeTab) {
+		if (isSubmitting) return;
+		showValidation = false;
+		activeTab = tab;
+	}
+
+
+	/** Save stays disabled while invalid; this reveals and focuses what is missing instead. */
+	async function revealWaterQualityIssues() {
+		showValidation = true;
+		await tick();
+		if (validationRoot) focusFirstInvalidField(validationRoot);
 	}
 
 	function prevStep() {
@@ -192,7 +213,7 @@
 			waterQualityData = fresh.waterQuality;
 			selectedDate = nextDate;
 			currentStep = 1;
-			activeTab = 'form';
+			if (activeTab !== 'waterQuality') activeTab = 'form';
 			showValidation = false;
 			submissionFeedback = createSubmissionFeedback(record, submittedAll);
 		} catch (error) {
@@ -213,6 +234,33 @@
 	}
 
 </script>
+
+{#snippet sessionBar()}
+	<!-- Quick Session Settings -->
+	<div class="session-bar">
+		<div class="session-input">
+			<label for="record-date">Date of Records:</label>
+			<input
+				id="record-date"
+				data-field="date"
+				type="date"
+				value={selectedDate}
+				onchange={(e) => handleDateChange(e.currentTarget.value)}
+			/>
+		</div>
+
+		<div class="session-input">
+			<label for="team-initials">Your Initials (Saved):</label>
+			<input
+				id="team-initials"
+				type="text"
+				placeholder="e.g. SE + AC"
+				value={userInitials}
+				oninput={(e) => handleInitialsChange(e.currentTarget.value)}
+			/>
+		</div>
+	</div>
+{/snippet}
 
 <div class="app-layout">
 	<!-- Navbar / Header with Physioshark & RummerLab branding -->
@@ -247,9 +295,19 @@
 						aria-selected={activeTab === 'form'}
 						class="nav-tab"
 						class:active={activeTab === 'form'}
-						onclick={() => (activeTab = 'form')}
+						onclick={() => selectTab('form')}
 					>
 						📝 Enter Records
+					</button>
+					<button
+						type="button"
+						role="tab"
+						aria-selected={activeTab === 'waterQuality'}
+						class="nav-tab"
+						class:active={activeTab === 'waterQuality'}
+						onclick={() => selectTab('waterQuality')}
+					>
+						💧 Water Quality
 					</button>
 					<button
 						type="button"
@@ -257,7 +315,7 @@
 						aria-selected={activeTab === 'history'}
 						class="nav-tab"
 						class:active={activeTab === 'history'}
-						onclick={() => (activeTab = 'history')}
+						onclick={() => selectTab('history')}
 					>
 						📱 My Device History
 					</button>
@@ -283,32 +341,67 @@
 
 		{#if activeTab === 'history'}
 			<LocalHistoryView masterSpreadsheetUrl={data.masterSpreadsheetUrl} />
-		{:else}
+		{:else if activeTab === 'waterQuality'}
 			<fieldset class="entry-form" disabled={isSubmitting} aria-busy={isSubmitting}>
-			<!-- Quick Session Settings -->
-			<div class="session-bar">
-				<div class="session-input">
-					<label for="record-date">Date of Records:</label>
-					<input
-						id="record-date"
-						data-field="date"
-						type="date"
-						value={selectedDate}
-						onchange={(e) => handleDateChange(e.currentTarget.value)}
-					/>
+				{@render sessionBar()}
+
+				<div class="wq-only-intro">
+					<strong>Water Quality only</strong>
+					<span>Use this tab when routine water quality (at least every second day) or weekly chemistry is the only task you're recording. It saves a row to the <em>Water Quality</em> sheet without the daily LSS, Tanks + Eggs or Feeds sections.</span>
 				</div>
 
-				<div class="session-input">
-					<label for="team-initials">Your Initials (Saved):</label>
-					<input
-						id="team-initials"
-						type="text"
-						placeholder="e.g. SE + AC"
-						value={userInitials}
-						oninput={(e) => handleInitialsChange(e.currentTarget.value)}
-					/>
+				{#if visibleIssues.length}
+					<div id="step-validation-summary" class="validation-summary" role={showValidation ? 'alert' : 'status'}>
+						<p>{showValidation ? `Complete or correct the highlighted answers before saving (${visibleIssues.length} remaining):` : 'Check these values:'}</p>
+						<ul>
+							{#each sortWaterQualityIssues(visibleIssues) as issue (issue.field)}
+								<li>{describeWaterQualityIssue(issue)}</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+
+				<div class="step-content">
+					<WaterQualityForm bind:data={waterQualityData} />
 				</div>
-			</div>
+
+				<div class="step-nav-footer">
+					<div class="left-action"></div>
+					<div class="step-indicator">
+						Water Quality
+						{#if !waterQualityValid}
+							<span class="step-hint" id="wq-save-help">• Save unlocks when every required field (*) is valid</span>
+							<button type="button" class="show-missing-btn" onclick={revealWaterQualityIssues}>Show what's missing</button>
+						{/if}
+					</div>
+					<div class="right-action">
+						<button
+							type="button"
+							class="nav-action-btn submit"
+							class:disabled={!waterQualityValid || isSubmitting}
+							disabled={!waterQualityValid || isSubmitting}
+							aria-describedby={!waterQualityValid ? 'wq-save-help' : undefined}
+							onclick={() => submitSingleModule('waterQuality')}
+						>
+							{isSubmitting ? 'Saving...' : '💧 Save Water Quality to Sheets'}
+						</button>
+					</div>
+				</div>
+
+				<div class="lab-records-panel">
+					<span>Need to compare with other days or other people's readings?</span>
+					{#if data.masterSpreadsheetUrl}
+						<a href={data.masterSpreadsheetUrl} target="_blank" rel="noopener noreferrer" class="lab-records-link">
+							View all lab records (master spreadsheet, read-only) ↗
+						</a>
+					{:else}
+						<span>Master spreadsheet link unavailable. Please contact the lab administrator.</span>
+					{/if}
+				</div>
+			</fieldset>
+		{:else}
+			<fieldset class="entry-form" disabled={isSubmitting} aria-busy={isSubmitting}>
+			{@render sessionBar()}
 
 			<!-- Stepper / Module Nav -->
 			<nav class="stepper-nav" aria-label="Husbandry Sections">
@@ -888,6 +981,64 @@
 		box-shadow: none;
 	}
 
+	.wq-only-intro {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.85rem 1rem;
+		border: 1px solid #bae6fd;
+		border-left: 4px solid #0284c7;
+		border-radius: var(--radius);
+		background: #f0f9ff;
+		color: #0c4a6e;
+		font-size: 0.9rem;
+	}
+
+	.validation-summary p { margin: 0; }
+	.validation-summary ul { margin: 0.4rem 0 0; padding-left: 1.2rem; font-weight: 500; }
+
+	.show-missing-btn {
+		display: block;
+		margin: 0.35rem auto 0;
+		min-height: 40px;
+		padding: 0 0.85rem;
+		border: 1.5px solid #dc2626;
+		border-radius: 6px;
+		background: #ffffff;
+		color: #991b1b;
+		font: inherit;
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.show-missing-btn:focus-visible { outline: 3px solid #1d5fb8; outline-offset: 2px; }
+
+	.lab-records-panel {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		font-size: 0.85rem;
+		color: var(--ink-2);
+		text-align: center;
+	}
+
+	.lab-records-link {
+		display: inline-flex;
+		align-items: center;
+		min-height: 48px;
+		padding: 0 1rem;
+		border-radius: 6px;
+		background: #334155;
+		color: #ffffff;
+		font-weight: 600;
+		text-decoration: none;
+	}
+
+	.lab-records-link:hover { background: #1e293b; }
+
 	.off-day-banner {
 		margin-bottom: 1rem;
 		padding: 0.85rem 1rem;
@@ -977,6 +1128,16 @@
 		}
 		.room-pill {
 			display: none;
+		}
+		.nav-controls,
+		.nav-tabs {
+			width: 100%;
+		}
+		.nav-tab {
+			flex: 1;
+			min-height: 48px;
+			padding: 0.4rem 0.35rem;
+			font-size: 0.78rem;
 		}
 	}
 </style>
