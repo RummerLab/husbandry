@@ -4,10 +4,11 @@ import { readSubmissionBody, RequestBodyError } from '../../../lib/server/reques
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { appendSubmissionToSheets } from '../../../lib/server/sheets';
+import { collectRequestContext } from '../../../lib/server/requestLog';
 import type { FullHusbandrySubmission } from '../../../lib/types';
 import { validateSubmission } from '../../../lib/validation';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	const limited = await enforceRateLimit(request, 'submit');
 	if (limited) return limited;
 	try {
@@ -27,7 +28,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		const result = await appendSubmissionToSheets(payload);
+		const result = await appendSubmissionToSheets(payload, collectRequestContext(request, getClientAddress));
 
 		return json({
 			success: true,
