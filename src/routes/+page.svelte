@@ -365,8 +365,7 @@
 					<WaterQualityForm bind:data={waterQualityData} />
 				</div>
 
-				<div class="step-nav-footer">
-					<div class="left-action"></div>
+				<div class="step-nav-footer wq-footer">
 					<div class="step-indicator">
 						Water Quality
 						{#if !waterQualityValid}
@@ -997,6 +996,39 @@
 	.validation-summary p { margin: 0; }
 	.validation-summary ul { margin: 0.4rem 0 0; padding-left: 1.2rem; font-weight: 500; }
 
+	.wq-footer {
+		flex-wrap: wrap;
+		gap: 0.6rem 1rem;
+	}
+
+	.wq-footer .step-indicator {
+		flex: 1 1 14rem;
+		min-width: 0;
+		flex-wrap: wrap;
+	}
+
+	.wq-footer .right-action {
+		flex: 1 1 auto;
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.wq-footer .nav-action-btn {
+		max-width: 100%;
+		white-space: normal;
+	}
+
+	@media (max-width: 480px) {
+		.wq-footer {
+			padding: 0.75rem;
+		}
+
+		.wq-footer .right-action .nav-action-btn {
+			width: 100%;
+			min-height: 48px;
+		}
+	}
+
 	.show-missing-btn {
 		display: block;
 		margin: 0.35rem auto 0;
@@ -1125,6 +1157,33 @@
 		}
 		.step-indicator {
 			font-size: 0.78rem;
+		}
+		/* Daily routine footer: status on its own line, then Back / Next or Submit side by side. */
+		.step-nav-footer:not(.wq-footer) {
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			padding: 0.75rem;
+		}
+		.step-nav-footer:not(.wq-footer) .step-indicator {
+			order: -1;
+			flex: 1 0 100%;
+			flex-wrap: wrap;
+			justify-content: center;
+			text-align: center;
+		}
+		.step-nav-footer:not(.wq-footer) .left-action:empty {
+			display: none;
+		}
+		.step-nav-footer:not(.wq-footer) .left-action,
+		.step-nav-footer:not(.wq-footer) .right-action {
+			flex: 1 1 0;
+			min-width: 0;
+		}
+		.step-nav-footer:not(.wq-footer) .nav-action-btn {
+			width: 100%;
+			min-height: 48px;
+			padding: 0.55rem 0.6rem;
+			white-space: normal;
 		}
 		.room-pill {
 			display: none;

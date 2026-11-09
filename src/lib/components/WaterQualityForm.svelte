@@ -224,6 +224,8 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.4rem 0.75rem;
 		border-bottom: 2px solid #f1f5f9;
 		padding-bottom: 0.4rem;
 	}
@@ -270,7 +272,7 @@
 
 	.grid-header {
 		display: grid;
-		grid-template-columns: 2fr 1.2fr 1.2fr;
+		grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr);
 		gap: 0.6rem;
 		font-size: 0.78rem;
 		font-weight: 700;
@@ -281,7 +283,7 @@
 
 	.grid-row {
 		display: grid;
-		grid-template-columns: 2fr 1.2fr 1.2fr;
+		grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1.2fr);
 		gap: 0.6rem;
 		align-items: center;
 		background: #f8fafc;
@@ -294,11 +296,17 @@
 		font-size: 0.88rem;
 		color: #1e293b;
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.25rem;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.grid-row input {
+		box-sizing: border-box;
+		width: 100%;
+		min-width: 0;
 		padding: 0.45rem 0.6rem;
 		border: 1.5px solid #cbd5e1;
 		border-radius: 5px;
@@ -344,5 +352,35 @@
 	.input-field textarea:focus {
 		border-color: #1d5fb8;
 		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.15);
+	}
+
+	/* Narrow phones: keep Side A and Side B on screen (320–375px). */
+	@media (max-width: 480px) {
+		.section-card {
+			padding: 0.85rem 0.7rem;
+		}
+
+		.grid-header,
+		.grid-row {
+			grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+			gap: 0.4rem;
+		}
+
+		.grid-header {
+			padding: 0 0.3rem;
+		}
+
+		.grid-row {
+			padding: 0.45rem 0.4rem;
+		}
+
+		.param-title {
+			font-size: 0.8rem;
+		}
+
+		.grid-row input {
+			padding: 0.45rem 0.4rem;
+			font-size: 16px; /* also stops iOS zooming on focus */
+		}
 	}
 </style>
