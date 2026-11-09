@@ -20,6 +20,7 @@
 	import FeedsForm from '../lib/components/FeedsForm.svelte';
 	import WaterQualityForm from '../lib/components/WaterQualityForm.svelte';
 	import LocalHistoryView from '../lib/components/LocalHistoryView.svelte';
+	import IosInstallHint from '../lib/components/IosInstallHint.svelte';
 
 	import type { PageData } from './$types';
 
@@ -343,6 +344,7 @@
 	</header>
 
 	<main class="main-content" bind:this={validationRoot}>
+		<IosInstallHint />
 		{#if submissionFeedback}
 			<div class="feedback-banner {submissionFeedback.type}" role={submissionFeedback.type === 'error' ? 'alert' : 'status'} tabindex="-1" bind:this={feedbackBanner}>
 				<div class="feedback-text">{submissionFeedback.message}</div>
