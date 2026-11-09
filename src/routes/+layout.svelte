@@ -1,11 +1,13 @@
 <script lang="ts">
-	import UsageAnalytics from '../lib/components/UsageAnalytics.svelte';
+	import { onMount } from 'svelte';
+	import { startPageViewAnalytics } from '../lib/analytics';
 	let { children } = $props();
+	// Cookieless page-view counts only; fire-and-forget so it can never block forms or sync.
+	onMount(() => { startPageViewAnalytics(window, document, !import.meta.env.DEV); });
 </script>
 
 <div class="app-root">
 	{@render children()}
-	<UsageAnalytics />
 </div>
 
 <style>

@@ -185,4 +185,4 @@ Optional shared lab access activates with LAB_ACCESS_ENABLED=true after setting 
 
 New queued records capture the browser Device ID. Exporting provenance columns is opt-in and requires a reviewed workbook migration: [metadata runbook](docs/submission-metadata.md).
 
-Optional GA4 analytics uses G-S1GQ36LLDK with opt-in consent, production-host gating and sanitized page views. Review [property setup and verification](docs/analytics.md) before rollout.
+Page loads/views are counted with cookieless Vercel Web Analytics (no consent prompt, no form data or identifiers). Enable Web Analytics in the Vercel project dashboard; see [setup and verification](docs/analytics.md).

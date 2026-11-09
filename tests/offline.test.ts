@@ -45,5 +45,8 @@ it('cleans only app caches and bypasses APIs, mutations and third parties', asyn
 	expect(cache.handles(new Request(origin + '/login'))).toBe(false);
 	expect(cache.handles(new Request(origin + '/', { method: 'POST' }))).toBe(false);
 	expect(cache.handles(new Request('https://other.test/a.js'))).toBe(false);
+	// Vercel Web Analytics script and beacons go straight to the network, never the app cache.
+	expect(cache.handles(new Request(origin + '/_vercel/insights/script.js'))).toBe(false);
+	expect(cache.handles(new Request(origin + '/_vercel/insights/view', { method: 'POST', body: '{}' }))).toBe(false);
 	expect(cache.handles(navigation())).toBe(true);
 });
