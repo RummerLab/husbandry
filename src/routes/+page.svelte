@@ -28,7 +28,7 @@
 	const todayStr = room12Date();
 
 	// Top level state
-	let activeTab = $state<'form' | 'history'>('form');
+	let activeTab = $state<'form' | 'waterQuality' | 'history'>('form');
 	let currentStep = $state<number>(1);
 	let validationRoot = $state<HTMLElement>();
 	let showValidation = $state(false);
@@ -112,6 +112,13 @@
 		if (currentStep < 4) jumpToStep(currentStep + 1);
 	}
 
+	function selectTab(tab: typeof activeTab) {
+		if (isSubmitting) return;
+		showValidation = false;
+		activeTab = tab;
+	}
+
+
 	function prevStep() {
 		if (currentStep > 1) {
 			showValidation = false;
@@ -191,7 +198,7 @@
 			waterQualityData = fresh.waterQuality;
 			selectedDate = nextDate;
 			currentStep = 1;
-			activeTab = 'form';
+			if (activeTab !== 'waterQuality') activeTab = 'form';
 			showValidation = false;
 			submissionFeedback = createSubmissionFeedback(record, submittedAll);
 		} catch (error) {
@@ -212,6 +219,33 @@
 	}
 
 </script>
+
+{#snippet sessionBar()}
+	<!-- Quick Session Settings -->
+	<div class="session-bar">
+		<div class="session-input">
+			<label for="record-date">Date of Records:</label>
+			<input
+				id="record-date"
+				data-field="date"
+				type="date"
+				value={selectedDate}
+				onchange={(e) => handleDateChange(e.currentTarget.value)}
+			/>
+		</div>
+
+		<div class="session-input">
+			<label for="team-initials">Your Initials (Saved):</label>
+			<input
+				id="team-initials"
+				type="text"
+				placeholder="e.g. SE + AC"
+				value={userInitials}
+				oninput={(e) => handleInitialsChange(e.currentTarget.value)}
+			/>
+		</div>
+	</div>
+{/snippet}
 
 <div class="app-layout">
 	<!-- Navbar / Header with Physioshark & RummerLab branding -->
@@ -246,9 +280,19 @@
 						aria-selected={activeTab === 'form'}
 						class="nav-tab"
 						class:active={activeTab === 'form'}
-						onclick={() => (activeTab = 'form')}
+						onclick={() => selectTab('form')}
 					>
 						📝 Enter Records
+					</button>
+					<button
+						type="button"
+						role="tab"
+						aria-selected={activeTab === 'waterQuality'}
+						class="nav-tab"
+						class:active={activeTab === 'waterQuality'}
+						onclick={() => selectTab('waterQuality')}
+					>
+						💧 Water Quality
 					</button>
 					<button
 						type="button"
@@ -256,7 +300,7 @@
 						aria-selected={activeTab === 'history'}
 						class="nav-tab"
 						class:active={activeTab === 'history'}
-						onclick={() => (activeTab = 'history')}
+						onclick={() => selectTab('history')}
 					>
 						📱 My Device History
 					</button>
@@ -282,32 +326,55 @@
 
 		{#if activeTab === 'history'}
 			<LocalHistoryView masterSpreadsheetUrl={data.masterSpreadsheetUrl} />
-		{:else}
+		{:else if activeTab === 'waterQuality'}
 			<fieldset class="entry-form" disabled={isSubmitting} aria-busy={isSubmitting}>
-			<!-- Quick Session Settings -->
-			<div class="session-bar">
-				<div class="session-input">
-					<label for="record-date">Date of Records:</label>
-					<input
-						id="record-date"
-						data-field="date"
-						type="date"
-						value={selectedDate}
-						onchange={(e) => handleDateChange(e.currentTarget.value)}
-					/>
+				{@render sessionBar()}
+
+				<div class="wq-only-intro">
+					<strong>Water Quality only</strong>
+					<span>Use this tab for Mon/Wed/Fri and weekly chemistry tests on their own. It saves a row to the <em>Water Quality</em> sheet without the daily LSS, Tanks + Eggs or Feeds sections.</span>
 				</div>
 
-				<div class="session-input">
-					<label for="team-initials">Your Initials (Saved):</label>
-					<input
-						id="team-initials"
-						type="text"
-						placeholder="e.g. SE + AC"
-						value={userInitials}
-						oninput={(e) => handleInitialsChange(e.currentTarget.value)}
-					/>
+				<div class="step-content">
+					<WaterQualityForm bind:data={waterQualityData} />
 				</div>
-			</div>
+
+				<div class="step-nav-footer">
+					<div class="left-action"></div>
+					<div class="step-indicator">
+						Water Quality
+						{#if !waterQualityValid}
+							<span class="step-hint" id="wq-save-help">• Required fields (marked *) pending</span>
+						{/if}
+					</div>
+					<div class="right-action">
+						<button
+							type="button"
+							class="nav-action-btn submit"
+							class:disabled={!waterQualityValid || isSubmitting}
+							disabled={!waterQualityValid || isSubmitting}
+							aria-describedby={!waterQualityValid ? 'wq-save-help' : undefined}
+							onclick={() => submitSingleModule('waterQuality')}
+						>
+							{isSubmitting ? 'Saving...' : '💧 Save Water Quality to Sheets'}
+						</button>
+					</div>
+				</div>
+
+				<div class="lab-records-panel">
+					<span>Need to compare with other days or other people's readings?</span>
+					{#if data.masterSpreadsheetUrl}
+						<a href={data.masterSpreadsheetUrl} target="_blank" rel="noopener noreferrer" class="lab-records-link">
+							View all lab records (master spreadsheet, read-only) ↗
+						</a>
+					{:else}
+						<span>Master spreadsheet link unavailable. Please contact the lab administrator.</span>
+					{/if}
+				</div>
+			</fieldset>
+		{:else}
+			<fieldset class="entry-form" disabled={isSubmitting} aria-busy={isSubmitting}>
+			{@render sessionBar()}
 
 			<!-- Stepper / Module Nav -->
 			<nav class="stepper-nav" aria-label="Husbandry Sections">
@@ -881,6 +948,44 @@
 		box-shadow: none;
 	}
 
+	.wq-only-intro {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.85rem 1rem;
+		border: 1px solid #bae6fd;
+		border-left: 4px solid #0284c7;
+		border-radius: var(--radius);
+		background: #f0f9ff;
+		color: #0c4a6e;
+		font-size: 0.9rem;
+	}
+
+	.lab-records-panel {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		font-size: 0.85rem;
+		color: var(--ink-2);
+		text-align: center;
+	}
+
+	.lab-records-link {
+		display: inline-flex;
+		align-items: center;
+		min-height: 48px;
+		padding: 0 1rem;
+		border-radius: 6px;
+		background: #334155;
+		color: #ffffff;
+		font-weight: 600;
+		text-decoration: none;
+	}
+
+	.lab-records-link:hover { background: #1e293b; }
+
 	.single-module-panel {
 		display: flex;
 		justify-content: center;
@@ -954,6 +1059,16 @@
 		}
 		.room-pill {
 			display: none;
+		}
+		.nav-controls,
+		.nav-tabs {
+			width: 100%;
+		}
+		.nav-tab {
+			flex: 1;
+			min-height: 48px;
+			padding: 0.4rem 0.35rem;
+			font-size: 0.78rem;
 		}
 	}
 </style>
