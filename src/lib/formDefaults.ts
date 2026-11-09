@@ -10,6 +10,7 @@ export function createEmptyForms(date: string, initials = ''): HusbandryForms {
 			date,
 			amInitials: initials,
 			pmInitials: '',
+			animalsChecked: '',
 			skimmerVenturi: '',
 			skimmerSprayDown: '',
 			filterCleaned: '',

@@ -22,7 +22,7 @@
 	<div class="header-box">
 		<div class="header-text">
 			<h3>Room 12 Water Quality Log</h3>
-			<p class="subtitle">Side A & Side B system testing (Routine M/W/F + Weekly Chemistry)</p>
+			<p class="subtitle">Side A & Side B system testing (Routine at least every second day + Weekly Chemistry)</p>
 		</div>
 		<div class="btn-group-header">
 
@@ -47,9 +47,9 @@
 		</div>
 	</div>
 
-	<!-- Routine M/W/F Checks -->
+	<!-- Routine checks: at least every second day, including weekends -->
 	<div class="section-card">
-		<h4>2. Routine Checks (Mon, Wed, Fri)</h4>
+		<h4>2. Routine Checks (at least every second day, including weekends)</h4>
 		<p class="section-hint">Mandatory parameters for daily marine life support</p>
 
 		<div class="table-grid">

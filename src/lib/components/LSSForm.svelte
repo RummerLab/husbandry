@@ -23,7 +23,7 @@
 	<div class="header-box">
 		<div class="header-text">
 			<h3>Life Support Systems (LSS) Checks</h3>
-			<p class="subtitle">Room 12 Daily Maintenance & Checks (Mon, Wed & Fri focus)</p>
+			<p class="subtitle">Room 12 Maintenance & Checks (Daily, including weekends & public holidays)</p>
 		</div>
 
 	</div>
@@ -56,9 +56,28 @@
 		</div>
 	</div>
 
+	<!-- Daily animal welfare check (required every day, including off days) -->
+	<div class="section-card welfare-card">
+		<h4>2. Animal Welfare Check (all tanks)</h4>
+		<p class="section-hint">Required every day, including weekends and public holidays. Sight every animal and egg tank before answering.</p>
+		<OptionSelector
+			data-field="animalsChecked"
+			label="All animals sighted, with normal appearance & behaviour"
+			description="No redness, wounds, lethargy, abnormal breathing, escapes or deaths"
+			options={[
+				{ value: 'Y', label: 'Yes, all normal', badgeColor: 'green' },
+				{ value: 'N', label: 'No, concern found', badgeColor: 'red' }
+			]}
+			bind:value={data.animalsChecked}
+		/>
+		{#if data.animalsChecked === 'N'}
+			<p class="escalation-note" role="alert">Describe the animal, tank and signs under <strong>New Concerns</strong> below, and escalate to a listed investigator now. Do not wait for the next scheduled check.</p>
+		{/if}
+	</div>
+
 	<!-- Protein Skimmer & Filter Canister -->
 	<div class="section-card">
-		<h4>2. Protein Skimmer & Filtration</h4>
+		<h4>3. Protein Skimmer & Filtration</h4>
 		<div class="grid-2">
 			<OptionSelector
 				label="Protein Skimmer: Venturi"
@@ -107,7 +126,7 @@
 
 	<!-- Tanks 1-8 Checks -->
 	<div class="section-card">
-		<h4>3. Tanks 1–8 Daily Checks</h4>
+		<h4>4. Tanks 1–8 Daily Checks</h4>
 		<div class="grid-2">
 			<OptionSelector
 				label="Water levels sufficient (AM)"
@@ -144,7 +163,7 @@
 
 	<!-- Maintenance & Hygiene -->
 	<div class="section-card">
-		<h4>4. Maintenance & Room Hygiene</h4>
+		<h4>5. Maintenance & Room Hygiene</h4>
 		<div class="grid-2">
 			<OptionSelector
 				label="Vac + Net tanks"
@@ -186,14 +205,18 @@
 
 	<!-- Notes & Concerns -->
 	<div class="section-card">
-		<h4>5. Observations & Ethics Concerns</h4>
+		<h4>6. Observations & Ethics Concerns</h4>
 		<div class="input-field">
-			<label for="lss-concerns">New Concerns (Ethics / Animal Welfare / Equipment)</label>
+			<label for="lss-concerns">
+				New Concerns (Ethics / Animal Welfare / Equipment)
+				{#if data.animalsChecked === 'N'}<span class="required-star">*</span>{/if}
+			</label>
 			<input
 				id="lss-concerns"
 				type="text"
 				placeholder="e.g. None or leak noted on pump B"
 				data-field="concerns" bind:value={data.concerns}
+				required={data.animalsChecked === 'N'}
 			/>
 		</div>
 		<div class="input-field" style="margin-top: 0.75rem;">
@@ -295,5 +318,24 @@
 	.input-field textarea:focus {
 		border-color: #1d5fb8;
 		box-shadow: 0 0 0 3px rgba(29, 95, 184, 0.15);
+	}
+	.section-hint {
+		margin: -0.25rem 0 0.75rem;
+		font-size: 0.82rem;
+		color: #475569;
+	}
+
+	.welfare-card {
+		border-left: 4px solid #16a34a;
+	}
+
+	.escalation-note {
+		margin: 0.75rem 0 0;
+		padding: 0.6rem 0.8rem;
+		background: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 8px;
+		color: #991b1b;
+		font-size: 0.85rem;
 	}
 </style>
