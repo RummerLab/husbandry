@@ -365,8 +365,7 @@
 					<WaterQualityForm bind:data={waterQualityData} />
 				</div>
 
-				<div class="step-nav-footer">
-					<div class="left-action"></div>
+				<div class="step-nav-footer wq-footer">
 					<div class="step-indicator">
 						Water Quality
 						{#if !waterQualityValid}
@@ -996,6 +995,39 @@
 
 	.validation-summary p { margin: 0; }
 	.validation-summary ul { margin: 0.4rem 0 0; padding-left: 1.2rem; font-weight: 500; }
+
+	.wq-footer {
+		flex-wrap: wrap;
+		gap: 0.6rem 1rem;
+	}
+
+	.wq-footer .step-indicator {
+		flex: 1 1 14rem;
+		min-width: 0;
+		flex-wrap: wrap;
+	}
+
+	.wq-footer .right-action {
+		flex: 1 1 auto;
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.wq-footer .nav-action-btn {
+		max-width: 100%;
+		white-space: normal;
+	}
+
+	@media (max-width: 480px) {
+		.wq-footer {
+			padding: 0.75rem;
+		}
+
+		.wq-footer .right-action .nav-action-btn {
+			width: 100%;
+			min-height: 48px;
+		}
+	}
 
 	.show-missing-btn {
 		display: block;
