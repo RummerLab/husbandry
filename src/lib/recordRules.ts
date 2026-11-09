@@ -18,3 +18,18 @@ export function isOffDay(date: string): boolean {
 	const day = new Date(`${date}T00:00:00Z`).getUTCDay();
 	return Number.isFinite(day) && ![1, 3, 5].includes(day);
 }
+
+/**
+ * Most recent Water Quality record saved on THIS device for the record date (#58).
+ * Device-local only: other researchers' submissions are never sent to the browser.
+ */
+export function waterQualitySavedOn<T extends { submittedAt: string; payload: { date: string; modulesSubmitted: string[] } }>(history: T[], date: string): T | undefined {
+	return history
+		.filter(item => item.payload?.date === date && item.payload.modulesSubmitted?.includes('waterQuality'))
+		.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0];
+}
+
+export function brisbaneTime(iso: string): string {
+	const d = new Date(iso);
+	return isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: 'numeric', minute: '2-digit' }).format(d);
+}

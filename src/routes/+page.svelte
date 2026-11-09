@@ -2,7 +2,7 @@
 	import { createSubmissionFeedback } from '../lib/submissionFeedback';
 	import { createEmptyForms, resetSubmittedForms } from '../lib/formDefaults';
 	import { startAutoSync } from '../lib/autoSync';
-	import { room12Date, canNavigate, isOffDay } from '../lib/recordRules';
+	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, brisbaneTime } from '../lib/recordRules';
 	import { getModuleIssues, type Module, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../lib/waterQualityGuide';
@@ -228,12 +228,29 @@
 	}
 
 	let pendingCount = $state(0);
+	let deviceHistory = $state<ReturnType<typeof getLocalHistory>>([]);
+	// #58: warn (never block) when this device already saved Water Quality for the record date.
+	let earlierWaterQuality = $derived(waterQualitySavedOn(deviceHistory, selectedDate));
+	let earlierWaterQualityBy = $derived(earlierWaterQuality?.payload.waterQuality?.initials || '');
 	function refreshPending() {
-		try { pendingCount = getLocalHistory().filter(h => !h.synced).length; }
+		try { deviceHistory = getLocalHistory(); pendingCount = deviceHistory.filter(h => !h.synced).length; }
 		catch (error) { submissionFeedback = { type: 'error', message: String(error) }; }
 	}
 
 </script>
+
+{#snippet duplicateWaterQualityNotice(inRoutine: boolean)}
+	{#if earlierWaterQuality}
+		<aside class="duplicate-wq-notice" role="note" aria-label="Water Quality already saved for this date">
+			<strong>Water Quality already saved for this date</strong>
+			<p>
+				This device saved Water Quality for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
+				Saving again adds a second Water Quality row for {selectedDate}. Only continue if this is a new set of readings.
+				{#if inRoutine}To send the rest of today's routine without repeating it, save Steps 1–3 with <em>Save only Step N to Sheets</em>.{/if}
+			</p>
+		</aside>
+	{/if}
+{/snippet}
 
 {#snippet sessionBar()}
 	<!-- Quick Session Settings -->
@@ -361,6 +378,8 @@
 					</div>
 				{/if}
 
+				{@render duplicateWaterQualityNotice(false)}
+
 				<div class="step-content">
 					<WaterQualityForm bind:data={waterQualityData} />
 				</div>
@@ -476,6 +495,7 @@
 						bind:data={feedsData}
 					/>
 				{:else if currentStep === 4}
+					{@render duplicateWaterQualityNotice(true)}
 					<WaterQualityForm
 						bind:data={waterQualityData}
 					/>
@@ -1073,6 +1093,22 @@
 	}
 
 	.lab-records-link:hover { background: #1e293b; }
+
+	.duplicate-wq-notice {
+		margin-bottom: 1rem;
+		padding: 0.85rem 1rem;
+		background: #fffbeb;
+		border: 1px solid #fcd34d;
+		border-left: 4px solid #d97706;
+		border-radius: 10px;
+		color: #78350f;
+		font-size: 0.88rem;
+	}
+
+	.duplicate-wq-notice p {
+		margin: 0.3rem 0 0;
+		line-height: 1.45;
+	}
 
 	.off-day-banner {
 		margin-bottom: 1rem;
