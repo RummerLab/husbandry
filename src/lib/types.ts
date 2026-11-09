@@ -5,6 +5,8 @@ export interface LSSData {
 	date: string;
 	amInitials: string;
 	pmInitials: string;
+	/** Daily animal welfare check. Pre-upgrade queued records may lack it at runtime; validation tolerates that. */
+	animalsChecked: '' | 'Y' | 'N';
 	// Protein skimmer
 	skimmerVenturi: YesNoNA;
 	skimmerSprayDown: YesNoNA;
@@ -88,7 +90,7 @@ export interface WaterQualityData {
 	date: string;
 	initials: string;
 	isWeeklyCheck: boolean;
-	// Routine Mon/Wed/Fri
+	// Routine checks (at least every second day, including weekends)
 	tempA: string;
 	tempB: string;
 	pHA: string;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { room12Date, canNavigate } from '../src/lib/recordRules';
+import { room12Date, canNavigate, isOffDay } from '../src/lib/recordRules';
 import { validateModule, validateSubmission, lssChecks, weeklyFields } from '../src/lib/validation';
-import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow } from '../src/lib/server/rows';
+import { formatLSSConcerns, formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow } from '../src/lib/server/rows';
 import { ROOM12_TANKS } from '../src/lib/tanksConfig';
 import type { LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../src/lib/types';
 
@@ -50,4 +50,22 @@ describe('spreadsheet contracts', () => {
 		const weekly = { ...water, isWeeklyCheck: true, ...Object.fromEntries(weeklyFields.map(f => [f, '0'])) } as WaterQualityData;
 		expect(formatWaterQualityRow(weekly).slice(10, 22)).toEqual(Array(12).fill('0'));
 	});
+});
+describe('daily animal welfare check', () => {
+	const lss = { date: water.date, amInitials: 'AB', pmInitials: '', concerns: '', notes: '', ...Object.fromEntries(lssChecks.map(f => [f, 'N/A'])) } as unknown as LSSData;
+	it('requires the animal check on new forms and concerns when it fails', () => {
+		expect(validateModule('lss', { ...lss, animalsChecked: '' })).not.toEqual([]);
+		expect(validateModule('lss', { ...lss, animalsChecked: 'Y' })).toEqual([]);
+		expect(validateModule('lss', { ...lss, animalsChecked: 'N' })).not.toEqual([]);
+		expect(validateModule('lss', { ...lss, animalsChecked: 'N', concerns: 'Redness on a shark in tank 3' })).toEqual([]);
+		expect(validateModule('lss', { ...lss, animalsChecked: 'N/A' })).not.toEqual([]);
+	});
+	it('still accepts pre-upgrade queued records without the field', () => expect(validateModule('lss', lss)).toEqual([]));
+	it('records the answer in the existing concerns column', () => {
+		expect(formatLSSConcerns({ ...lss, animalsChecked: 'Y' })).toBe('All animals sighted & normal: Y');
+		expect(formatLSSConcerns({ ...lss, animalsChecked: 'N', concerns: 'Redness in tank 3' })).toBe('All animals sighted & normal: N. Redness in tank 3');
+		expect(formatLSSConcerns({ ...lss, concerns: 'legacy' })).toBe('legacy');
+		expect(formatLSSRow({ ...lss, animalsChecked: 'Y' })).toHaveLength(21);
+	});
+	it.each([['2026-11-09', false], ['2026-11-10', true], ['2026-11-11', false], ['2026-11-13', false], ['2026-11-14', true], ['2026-11-15', true], ['bad', false]] as const)('treats %s as off day: %s', (date, expected) => expect(isOffDay(date)).toBe(expected));
 });

@@ -2,7 +2,7 @@
 	import { createSubmissionFeedback } from '../lib/submissionFeedback';
 	import { createEmptyForms, resetSubmittedForms } from '../lib/formDefaults';
 	import { startAutoSync } from '../lib/autoSync';
-	import { room12Date, canNavigate } from '../lib/recordRules';
+	import { room12Date, canNavigate, isOffDay } from '../lib/recordRules';
 	import { getModuleIssues, type Module, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { onMount, tick } from 'svelte';
@@ -35,6 +35,7 @@
 	let feedbackBanner = $state<HTMLDivElement>();
 	const stepModules: Module[] = ['lss', 'tanksEggs', 'feeds', 'waterQuality'];
 	let selectedDate = $state<string>(todayStr);
+	let offDay = $derived(isOffDay(selectedDate));
 	let userInitials = $state<string>('');
 	let isOnline = $state<boolean>(true);
 	let isSubmitting = $state<boolean>(false);
@@ -332,7 +333,7 @@
 
 				<div class="wq-only-intro">
 					<strong>Water Quality only</strong>
-					<span>Use this tab for Mon/Wed/Fri and weekly chemistry tests on their own. It saves a row to the <em>Water Quality</em> sheet without the daily LSS, Tanks + Eggs or Feeds sections.</span>
+					<span>Use this tab when routine water quality (at least every second day) or weekly chemistry is the only task you're recording. It saves a row to the <em>Water Quality</em> sheet without the daily LSS, Tanks + Eggs or Feeds sections.</span>
 				</div>
 
 				<div class="step-content">
@@ -432,6 +433,12 @@
 			<!-- Active Step Content -->
 			<div class="step-content">
 				{#if currentStep === 1}
+					{#if offDay}
+						<aside class="off-day-banner" aria-label="Off-day minimum check">
+							<strong>Off-day check</strong>
+							<p>Animals must be checked and recorded every day, including weekends and public holidays. On days without the full routine, complete this step (the animal welfare check and the LSS checks), answering any task not done today as <em>No</em> or <em>N/A</em>, then tap <strong>Save off-day check</strong>. Record water quality in Step 4 if it is due (at least every second day). Record feeds in Step 3 if animals were fed.</p>
+						</aside>
+					{/if}
 					<LSSForm
 						bind:data={lssData}
 					/>
@@ -507,7 +514,7 @@
 						if (currentStep === 4) submitSingleModule('waterQuality');
 					}}
 				>
-					{isSubmitting ? 'Saving...' : `Save only Step ${currentStep} to Sheets`}
+					{isSubmitting ? 'Saving...' : currentStep === 1 && offDay ? 'Save off-day check (Step 1)' : `Save only Step ${currentStep} to Sheets`}
 				</button>
 			</div>
 			</fieldset>
@@ -985,6 +992,22 @@
 	}
 
 	.lab-records-link:hover { background: #1e293b; }
+
+	.off-day-banner {
+		margin-bottom: 1rem;
+		padding: 0.85rem 1rem;
+		background: #fffbeb;
+		border: 1px solid #fcd34d;
+		border-left: 4px solid #d97706;
+		border-radius: 10px;
+		color: #78350f;
+		font-size: 0.88rem;
+	}
+
+	.off-day-banner p {
+		margin: 0.3rem 0 0;
+		line-height: 1.45;
+	}
 
 	.single-module-panel {
 		display: flex;

@@ -30,7 +30,12 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	const enumField = (key: string, allowed = choices) => require(key, (v: unknown): v is string => typeof v === 'string' && allowed.includes(v));
 	if (!date(value.date)) reject('date', `${module}: valid date required`);
 	require(module === 'lss' ? 'amInitials' : 'initials');
-	if (module === 'lss') lssChecks.forEach(key => enumField(key));
+	if (module === 'lss') {
+		lssChecks.forEach(key => enumField(key));
+		// New forms always carry animalsChecked; only pre-upgrade queued records omit it.
+		if (value.animalsChecked !== undefined) enumField('animalsChecked', ['Y', 'N']);
+		if (value.animalsChecked === 'N') require('concerns');
+	}
 	if (module === 'tanksEggs') {
 		['103', '102', '116', '105', '117'].forEach(id => enumField(`palpationHO${id}`, ['0', 'L', 'R', 'B', 'N/A']));
 		['windEggs', 'newEggs', 'newEggTag', 'deadEggTag'].forEach(key => require(key));
