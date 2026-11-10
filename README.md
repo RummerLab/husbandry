@@ -27,6 +27,8 @@ This web app transforms the spreadsheet into a fast, stepped, mobile-friendly ch
 
 ## 📋 The 4 Husbandry Modules
 
+Entries are grouped by shift: **LSS + WQ** for the morning team (daily welfare/LSS, then water quality when due), and **Eggs + Feeds** for the noon team (Tanks + Eggs, then Feeds). Each pair validates independently, so noon staff do not need to enter the morning team's checks. Save the pair together, or save only the current section; use LSS alone when water quality is not due. Standalone **Water Quality** remains available for testing alone. Switching tabs preserves unsaved answers while the page stays open; saving clears only the sections submitted.
+
 | Section | Description | Frequency | Key Checks |
 | :--- | :--- | :--- | :--- |
 | **1. LSS Checks** | Life Support Systems | Daily (AM/PM) | Protein skimmer venturi & spray down, canister filters, water flow & levels (Tanks 1–8), aeration, tank netting/vac, hygiene & ethics concerns |
