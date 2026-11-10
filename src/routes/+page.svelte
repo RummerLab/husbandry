@@ -162,7 +162,7 @@
 			submissionFeedback = null;
 			await persistSubmission(payload);
 		} catch (error) {
-			submissionFeedback = { type: 'error', message: String(error) };
+			submissionFeedback = { type: 'error', message: error instanceof Error ? error.message : String(error) };
 		}
 	}
 
@@ -179,10 +179,14 @@
 			tanksEggsData = fresh.tanksEggs;
 			feedsData = fresh.feeds;
 			waterQualityData = fresh.waterQuality;
+			// A completed shift pair rolls the date forward to today (as the old full routine did), so a
+			// shared tablet left open overnight cannot keep saving under yesterday's date.
+			const submittedPair = payload.modulesSubmitted.length > 1;
+			if (submittedPair) handleDateChange(room12Date());
 			currentStep = 1;
 			// Stay in the selected workflow; unsent sections retain their answers.
 			showValidation = false;
-			submissionFeedback = createSubmissionFeedback(record, payload.modulesSubmitted.length > 1);
+			submissionFeedback = createSubmissionFeedback(record, submittedPair);
 		} catch (error) {
 			submissionFeedback = { type: 'error', message: `Could not confirm saving. Keep this form open. ${error instanceof Error ? error.message : 'Storage unavailable'}` };
 		} finally {
