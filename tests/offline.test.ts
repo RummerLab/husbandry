@@ -24,7 +24,7 @@ const navigation = () => { const request = new Request(origin + '/'); Object.def
 it('installs all dependencies and boots offline without HTTP cache', async () => {
 	const { storage, network } = harness();
 	const cache = createOfflineCache(storage, network, origin, 'a', ['/_app/immutable/start.js', '/app.css', '/sw.js']);
-	await cache.install(); expect(network).toHaveBeenCalledTimes(3);
+	await cache.install(); expect(network).toHaveBeenCalledTimes(4); // 2 assets (sw.js excluded) + shell + /help
 	network.mockRejectedValue(new Error('offline'));
 	expect(await (await cache.respond(navigation())).text()).toContain('network:https://lab.test/');
 	expect(await (await cache.respond(new Request(origin + '/_app/immutable/start.js'))).text()).toContain('start.js');
