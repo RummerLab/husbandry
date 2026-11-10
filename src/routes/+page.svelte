@@ -338,6 +338,7 @@
 						📱 My Device History
 					</button>
 				</div>
+				<a class="nav-tab help-link" href="/help">📘 Escalation Guide</a>
 			</div>
 		</div>
 		<div class="navy-bar"></div>
@@ -576,6 +577,7 @@
 		<p class="ethics-note">
 			Animal Ethics Compliance & Strict Husbandry Records • Production: <code>husbandry.rummerlab.com</code>
 		</p>
+		<p><a href="/help">Animal welfare escalation guide &amp; vet video</a></p>
 		<p class="privacy-note">
 			<strong>Privacy:</strong> when records sync, the server logs your IP address, approximate location (city/region/country), browser details and this device's ID, for security and audit of husbandry records. Only lab administrators can see this log; it is not part of the shared spreadsheet. Named lab administrators who sign in with Google can also view all submitted records in the Lab Overview.
 		</p>
@@ -739,6 +741,16 @@
 		padding: 0.25rem;
 		border-radius: 8px;
 		border: 1px solid var(--hairline);
+	}
+
+	.nav-tab.help-link {
+		border: 1px solid var(--hairline);
+		background: var(--surface);
+		min-height: 40px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
 	}
 
 	.nav-tab {

@@ -71,7 +71,7 @@
 			bind:value={data.animalsChecked}
 		/>
 		{#if data.animalsChecked === 'N'}
-			<p class="escalation-note" role="alert">Describe the animal, tank and signs under <strong>New Concerns</strong> below, and escalate to a listed investigator now. Do not wait for the next scheduled check.</p>
+			<p class="escalation-note" role="alert">Describe the animal, tank and signs under <strong>New Concerns</strong> below, and escalate to a listed investigator now. Do not wait for the next scheduled check. <a href="/help#pathway">Escalation guide</a></p>
 		{/if}
 	</div>
 
