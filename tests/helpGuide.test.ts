@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { aquiSVolumeMl, reviewStatus, LAST_REVIEWED, NEXT_REVIEW_DUE, ESCALATION_VIDEO } from '../src/lib/help/escalationGuide';
+import { VET_CONTACTS, aquiSVolumeMl, reviewStatus, LAST_REVIEWED, NEXT_REVIEW_DUE, ESCALATION_VIDEO } from '../src/lib/help/escalationGuide';
 import { ESCALATION_TRANSCRIPT } from '../src/lib/help/escalationTranscript';
 import { createOfflineCache } from '../src/lib/offlineCache';
 
@@ -45,4 +45,12 @@ it('serves the escalation guide offline once installed', async () => {
 	const nav = (path: string) => { const r = new Request(origin + path); Object.defineProperty(r, 'mode', { value: 'navigate' }); return r; };
 	expect(await (await cache.respond(nav('/help'))).text()).toBe('network:https://lab.test/help');
 	expect(await (await cache.respond(nav('/elsewhere'))).text()).toBe('network:https://lab.test/');
+});
+
+it('gives each escalation contact a dialable Australian mobile matching its displayed number', () => {
+	expect(VET_CONTACTS.length).toBeGreaterThanOrEqual(2);
+	for (const c of VET_CONTACTS) {
+		expect(c.tel).toMatch(/^\+614\d{8}$/);
+		expect('+61' + c.phone.replace(/\s/g, '').slice(1)).toBe(c.tel);
+	}
 });

@@ -14,6 +14,12 @@ export const ESCALATION_VIDEO = {
 	url: 'https://www.dropbox.com/scl/fi/63mw9v19ypz2tio44ugst/Epaulette-shark-animal-welfare-escalation-video-by-Dr-Leo-Foyle-10Nov.2026.mp4?rlkey=qa66nh3rmjhbxesjci5sv9c27&st=oajqdpr5&dl=0'
 };
 
+/** Escalation contacts from the Escalation Pathway (10 Nov 2026). `tel` is E.164 for tap-to-call. */
+export const VET_CONTACTS = [
+	{ role: 'Usual veterinarian', name: 'Dr Leo Foyle', phone: '0459 936 773', tel: '+61459936773' },
+	{ role: 'After-hours alternative', name: 'Prof Jodie Rummer (PI)', phone: '0439 166 171', tel: '+61439166171' }
+];
+
 export const SOURCE_FOLDER_URL = 'https://www.dropbox.com/scl/fo/88e415v2p3dzxwdt12u15/AF08-8qWzlw-sByI0Lpf2BI?rlkey=xwwen0j79ocbx5qnsxrwohr20&st=op9p5ilu&e=1&dl=0';
 
 /** Documents this guide summarises, with the version each summary was checked against. */

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { room12Date } from '../../lib/recordRules';
 	import {
-		ESCALATION_VIDEO, SOURCE_FOLDER_URL, SOURCE_DOCUMENTS, TEMPERATURE_SETPOINTS,
+		ESCALATION_VIDEO, VET_CONTACTS, SOURCE_FOLDER_URL, SOURCE_DOCUMENTS, TEMPERATURE_SETPOINTS,
 		LAST_REVIEWED, NEXT_REVIEW_DUE, aquiSVolumeMl, reviewStatus, longDate
 	} from '../../lib/help/escalationGuide';
 	import { ESCALATION_TRANSCRIPT } from '../../lib/help/escalationTranscript';
@@ -33,12 +33,17 @@
 	<section class="card urgent" aria-labelledby="first">
 		<h2 id="first">If in doubt, tell someone now</h2>
 		<p>Don't wait for the next check or for signs to get worse. It is far better to raise something early and be wrong than to wait. Disease in fish and sharks can escalate within 24 to 48 hours.</p>
-		<ul class="contacts">
-			<li><span class="role">Usual veterinarian</span> Dr Leo Foyle</li>
-			<li><span class="role">After-hours alternative</span> Prof Jodie Rummer (PI)</li>
-			<li><span class="role">Lab manager</span> Emily Parrish. When Emily is away: Jodie Rummer or Terese Vella.</li>
-		</ul>
-		<p class="small"><strong>Urgent:</strong> phone. <strong>Not urgent:</strong> RummerLab Husbandry WhatsApp channel. Phone numbers are on the Escalation Pathway flowchart.</p>
+		<div class="call-grid">
+			{#each VET_CONTACTS as c}
+				<a class="call" href="tel:{c.tel}">
+					<span class="role">{c.role}</span>
+					<span class="name">{c.name}</span>
+					<span class="phone">📞 {c.phone}</span>
+				</a>
+			{/each}
+		</div>
+		<p><span class="role">Lab manager</span> Emily Parrish. When Emily is away: Jodie Rummer or Terese Vella.</p>
+		<p class="small"><strong>Urgent:</strong> phone. <strong>Not urgent:</strong> RummerLab Husbandry WhatsApp channel.</p>
 	</section>
 
 	<section class="card video" aria-labelledby="video">
@@ -289,8 +294,13 @@
 	.muted { color: var(--muted); }
 	.urgent { border: 2px solid var(--bad-border); background: var(--bad-bg); }
 	.urgent h2 { color: var(--bad); }
-	.contacts { list-style: none; padding: 0; }
 	.role { display: inline-block; min-width: 11rem; font-weight: 700; }
+	.call-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 0.6rem; margin: 0.6rem 0; }
+	.call { display: flex; flex-direction: column; gap: 0.15rem; min-height: 48px; padding: 0.7rem 0.9rem; border-radius: 8px; background: var(--bad); color: #fff; text-decoration: none; }
+	.call .role { min-width: 0; font-size: 0.8rem; font-weight: 600; opacity: 0.9; }
+	.call .name { font-weight: 700; }
+	.call .phone { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.call:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 	.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.6rem 0; }
 	.btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0 1rem; border-radius: 8px; border: 1px solid var(--hairline); background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600; }
 	.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
