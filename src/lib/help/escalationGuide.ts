@@ -26,12 +26,12 @@ export const SOURCE_FOLDER_URL = 'https://www.dropbox.com/scl/fo/88e415v2p3dzxwd
 export const SOURCE_DOCUMENTS = [
 	{ title: 'Epaulette Shark Escalation Pathway (written pathway and flowchart)', version: '10 Nov 2026' },
 	{ title: 'Euthanising epaulette sharks with AQUI-S (SOP, adapted from SOP-75B001)', version: '10 Nov 2026' },
-	{ title: 'Rummer Lab Water Quality Chart, Room 12', version: '10 Nov 2026' },
+	{ title: 'Rummer Lab Water Quality Chart, Room 6 and Room 12', version: '10 Nov 2026' },
 	{ title: 'Rummer Lab Mortality Procedure', version: 'Aug 2026' },
 	{ title: 'Escalation video, Dr Leo Foyle', version: '10 Nov 2026' }
 ];
 
-/** Room 12 seasonal temperature setpoints (acceptable ±1 °C). Months are 1-12. */
+/** Seasonal temperature setpoints, the same in Room 6 and Room 12 (acceptable ±1 °C). Months are 1-12. */
 export const TEMPERATURE_SETPOINTS = [
 	{ months: 'Jan–Mar', from: 1, to: 3, celsius: 26 },
 	{ months: 'Apr–May', from: 4, to: 5, celsius: 24 },
@@ -57,3 +57,63 @@ export function reviewStatus(today: string, due = NEXT_REVIEW_DUE): ReviewStatus
 export function longDate(iso: string): string {
 	return new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 }
+
+export type RoomId = 'room12' | 'room6';
+
+/** Acceptable ranges are the same in both rooms; the actions and pH dosing are not. */
+export const WATER_QUALITY_LIMITS = [
+	{ key: 'salinity', parameter: 'Salinity', acceptable: '35 ppt (33–37)' },
+	{ key: 'temp', parameter: 'Temperature', acceptable: 'Seasonal setpoint ±1 °C' },
+	{ key: 'pH', parameter: 'pH', acceptable: '8.0–8.3' },
+	{ key: 'ammonia', parameter: 'Ammonia', acceptable: '< 0.02 mg/L' },
+	{ key: 'nitrite', parameter: 'Nitrite', acceptable: '< 0.1 mg/L' },
+	{ key: 'nitrate', parameter: 'Nitrate', acceptable: '< 40 mg/L' }
+] as const;
+
+type LimitKey = typeof WATER_QUALITY_LIMITS[number]['key'];
+
+export interface RoomWaterQuality {
+	id: RoomId;
+	name: string;
+	description: string;
+	retestHours: number;
+	actions: Record<LimitKey, string>;
+	ph: { gramsPerTenth: number; at7_6: number; at7_8: number };
+}
+
+const temperature = 'Advise the lab manager, who will have MARFU adjust. Retest after the adjustment period MARFU gives; repeat if still out.';
+const phRetest = (h: number) => `Calibrate the pH pen and retest, then retest in the Biochem Lab. If the Biochem test is out of range, follow the pH adjustment chart below. Retest after more than ${h} h; repeat if still out.`;
+
+/** Room 12 and Room 6 action steps from the Rummer Lab Water Quality Chart (10 Nov 2026). */
+export const WATER_QUALITY_ROOMS: RoomWaterQuality[] = [
+	{
+		id: 'room12',
+		name: 'Room 12',
+		description: 'Breeding colony',
+		retestHours: 3,
+		actions: {
+			salinity: 'Calibrate the refractometer and retest. If still out, advise the lab manager, who will have MARFU adjust salinity. Retest after more than 3 h; repeat if still out.',
+			temp: temperature,
+			pH: phRetest(3),
+			ammonia: 'Repeat the analysis, clean tanks thoroughly, retest after more than 3 h, then advise the lab manager, who will coordinate a water change with MARFU.',
+			nitrite: 'Repeat the analysis, clean tanks thoroughly, retest after more than 3 h, then advise the lab manager, who will coordinate a water change with MARFU.',
+			nitrate: 'Repeat the analysis, do a 50% dilution test, clean tanks thoroughly, retest after more than 3 h, then advise the lab manager, who will coordinate a water change with MARFU.'
+		},
+		ph: { gramsPerTenth: 150, at7_6: 900, at7_8: 600 }
+	},
+	{
+		id: 'room6',
+		name: 'Room 6',
+		description: 'Egg room',
+		retestHours: 2,
+		actions: {
+			salinity: 'Calibrate the refractometer and retest. If still out, do a 50% water change, replacing with a mix of dechlorinated and salt water to the desired salinity. Retest after more than 2 h; repeat if still out.',
+			temp: temperature,
+			pH: phRetest(2),
+			ammonia: 'Repeat the analysis, clean tanks thoroughly, retest after more than 2 h, then do a 75% water change.',
+			nitrite: 'Repeat the analysis, clean tanks thoroughly, retest after more than 2 h, then do a 75% water change.',
+			nitrate: 'Repeat the analysis, do a 50% dilution test, clean tanks thoroughly, retest after more than 2 h, then do a 75% water change.'
+		},
+		ph: { gramsPerTenth: 20, at7_6: 120, at7_8: 80 }
+	}
+];

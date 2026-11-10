@@ -54,3 +54,22 @@ it('gives each escalation contact a dialable Australian mobile matching its disp
 		expect('+61' + c.phone.replace(/\s/g, '').slice(1)).toBe(c.tel);
 	}
 });
+
+import { WATER_QUALITY_LIMITS, WATER_QUALITY_ROOMS } from '../src/lib/help/escalationGuide';
+
+it('gives Room 12 and Room 6 their own water-quality actions for every limit', () => {
+	expect(WATER_QUALITY_ROOMS.map(r => r.name)).toEqual(['Room 12', 'Room 6']);
+	for (const room of WATER_QUALITY_ROOMS) {
+		for (const l of WATER_QUALITY_LIMITS) expect(room.actions[l.key]).toBeTruthy();
+		// Every retest wait in a room's steps matches that room's chart (Room 12: >3 h, Room 6: >2 h).
+		const waits = Object.values(room.actions).join(' ').match(/more than (\d+) h/g) ?? [];
+		expect(waits.length).toBeGreaterThan(0);
+		expect(new Set(waits)).toEqual(new Set([`more than ${room.retestHours} h`]));
+		// Chart doses bring pH to 8.2: 7.8 is +0.4, 7.6 is +0.6.
+		expect(room.ph.at7_8).toBe(room.ph.gramsPerTenth * 4);
+		expect(room.ph.at7_6).toBe(room.ph.gramsPerTenth * 6);
+	}
+	const [room12, room6] = WATER_QUALITY_ROOMS;
+	expect(room12.actions.ammonia).toContain('coordinate a water change with MARFU');
+	expect(room6.actions.ammonia).toContain('75% water change');
+});

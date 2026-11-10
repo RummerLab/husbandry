@@ -2,13 +2,15 @@
 	import { room12Date } from '../../lib/recordRules';
 	import {
 		ESCALATION_VIDEO, VET_CONTACTS, SOURCE_FOLDER_URL, SOURCE_DOCUMENTS, TEMPERATURE_SETPOINTS,
-		LAST_REVIEWED, NEXT_REVIEW_DUE, aquiSVolumeMl, reviewStatus, longDate
+		LAST_REVIEWED, NEXT_REVIEW_DUE, WATER_QUALITY_LIMITS, WATER_QUALITY_ROOMS, aquiSVolumeMl, reviewStatus, longDate, type RoomId
 	} from '../../lib/help/escalationGuide';
 	import { ESCALATION_TRANSCRIPT } from '../../lib/help/escalationTranscript';
 
 	const today = room12Date();
 	const review = reviewStatus(today);
 	const month = Number(today.slice(5, 7));
+	let roomId = $state<RoomId>('room12');
+	let room = $derived(WATER_QUALITY_ROOMS.find(r => r.id === roomId)!);
 </script>
 
 <svelte:head>
@@ -20,7 +22,7 @@
 	<header class="top">
 		<a class="back" href="/">← Husbandry records</a>
 		<h1>Animal Welfare Escalation Guide</h1>
-		<p class="sub">Epaulette sharks (<em>Hemiscyllium ocellatum</em>) · Room 12 · What to look for, who to tell and what to do.</p>
+		<p class="sub">Epaulette sharks (<em>Hemiscyllium ocellatum</em>) · Room 12 (breeding colony) and Room 6 (egg room) · What to look for, who to tell and what to do.</p>
 		<p class="reviewed">
 			<strong>Last reviewed:</strong> <time datetime={LAST_REVIEWED}>{longDate(LAST_REVIEWED)}</time>
 			· <strong>Next review due:</strong> <time datetime={NEXT_REVIEW_DUE}>{longDate(NEXT_REVIEW_DUE)}</time>
@@ -67,8 +69,8 @@
 			<li><a href="#protect">Protect tank mates and record</a></li>
 			<li><a href="#mortality">Finding a dead animal</a></li>
 			<li><a href="#euthanasia">Euthanasia (vet-directed only)</a></li>
-			<li><a href="#water">Water quality limits and actions</a></li>
-			<li><a href="#app">Recording it in this app</a></li>
+			<li><a href="#water">Water quality limits and actions (Room 12 / Room 6)</a></li>
+			<li><a href="#app">Recording it in this app (Room 12)</a></li>
 			<li><a href="#transcript">Video transcript</a></li>
 		</ol>
 	</nav>
@@ -193,31 +195,37 @@
 	</section>
 
 	<section class="card" aria-labelledby="water">
-		<h2 id="water">8. Water quality limits and actions (Room 12)</h2>
-		<p><strong>Test every second day, before feeding, at the same time of day.</strong> Tell the lab manager about any reading outside these limits.</p>
+		<h2 id="water">8. Water quality limits and actions</h2>
+		<p><strong>Test every second day, before feeding, at the same time of day.</strong> Tell the lab manager about any reading outside these limits. The limits are the same in both rooms, but <strong>the actions and pH dosing are different</strong>: choose the room you are testing.</p>
+		<div class="room-switch" role="group" aria-label="Room">
+			{#each WATER_QUALITY_ROOMS as r}
+				<button type="button" aria-pressed={roomId === r.id} class:active={roomId === r.id} onclick={() => (roomId = r.id)}>
+					<strong>{r.name}</strong> <span>{r.description}</span>
+				</button>
+			{/each}
+		</div>
+		<h3 class="room-title">{room.name} · {room.description}</h3>
 		<div class="scroll">
 			<table class="limits">
-				<thead><tr><th>Parameter</th><th>Acceptable</th><th>If outside the range</th></tr></thead>
+				<thead><tr><th>Parameter</th><th>Acceptable</th><th>If outside the range ({room.name})</th></tr></thead>
 				<tbody>
-					<tr><td>Salinity</td><td>35 ppt (33–37)</td><td>Calibrate the refractometer and retest. If still out, advise the lab manager, who will have MARFU adjust salinity. Retest after more than 3 h; repeat if still out.</td></tr>
-					<tr><td>Temperature</td><td>Seasonal setpoint ±1 °C</td><td>Advise the lab manager, who will have MARFU adjust. Retest after the adjustment period MARFU gives; repeat if still out.</td></tr>
-					<tr><td>pH</td><td>8.0–8.3</td><td>Calibrate the pH pen and retest, then retest in the Biochem Lab. If the Biochem test is out of range, follow the pH adjustment chart below. Retest after more than 3 h; repeat if still out.</td></tr>
-					<tr><td>Ammonia</td><td>&lt; 0.02 mg/L</td><td>Repeat the analysis, clean tanks thoroughly, retest after more than 3 h, then advise the lab manager, who will coordinate a water change with MARFU.</td></tr>
-					<tr><td>Nitrite</td><td>&lt; 0.1 mg/L</td><td>Repeat the analysis, clean tanks thoroughly, retest after more than 3 h, then advise the lab manager, who will coordinate a water change with MARFU.</td></tr>
-					<tr><td>Nitrate</td><td>&lt; 40 mg/L</td><td>Repeat the analysis, do a 50% dilution test, clean tanks thoroughly, retest after more than 3 h, then advise the lab manager, who will coordinate a water change with MARFU.</td></tr>
+					{#each WATER_QUALITY_LIMITS as l}
+						<tr><td>{l.parameter}</td><td>{l.acceptable}</td><td>{room.actions[l.key]}</td></tr>
+					{/each}
 				</tbody>
 			</table>
 		</div>
 
 		<div class="grid">
-			<div>
-				<h3>pH adjustment (Room 12)</h3>
-				<p class="small">Only if pH is below 8.0. About 150 g bicarbonate per +0.1 pH.</p>
+			<div class="ph-card">
+				<h3>pH adjustment ({room.name})</h3>
+				<p class="small">Only if pH is below 8.0. About {room.ph.gramsPerTenth} g bicarbonate per +0.1 pH.</p>
 				<ul>
-					<li>pH 7.6 → 900 g bicarb to the sump</li>
-					<li>pH 7.8 → 600 g bicarb to the sump</li>
+					<li>pH 7.6 → {room.ph.at7_6} g bicarb to the sump</li>
+					<li>pH 7.8 → {room.ph.at7_8} g bicarb to the sump</li>
 					<li>pH above 8.6 → advise the lab manager, who asks MARFU to add acid</li>
 				</ul>
+				<p class="small"><strong>Check the room:</strong> Room 12 and Room 6 doses are very different.</p>
 			</div>
 			<div>
 				<h3>Temperature setpoints (±1 °C)</h3>
@@ -245,7 +253,7 @@
 	</section>
 
 	<section class="card" aria-labelledby="app">
-		<h2 id="app">9. Recording it in this app</h2>
+		<h2 id="app">9. Recording it in this app (Room 12)</h2>
 		<ul>
 			<li><strong>Daily welfare check (Step 1, LSS):</strong> answer <em>"All animals sighted, with normal appearance &amp; behaviour"</em> with <strong>No</strong> if anything is wrong, then describe the animal, tank and signs under <em>New Concerns</em>. Saving the record does not notify anyone: tell your supervisor (or call the vet) as well.</li>
 			<li><strong>Mortalities and moves (Step 2, Tanks + Eggs):</strong> use <em>Animal &amp; Egg Transfers / Mortalities</em>: description (e.g. "Mortality: HO105, found 8:10 am"), from tank, to tank and quantity. Add detail in <em>Observations / Notes</em>.</li>
@@ -324,6 +332,12 @@
 	table.compact td { padding: 0.3rem 0.5rem; }
 	tr.current { background: var(--accent-wash); }
 	.tag { font-size: 0.75rem; background: var(--accent); color: #fff; border-radius: 999px; padding: 0.05rem 0.45rem; margin-left: 0.3rem; }
+	.room-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin: 0.75rem 0; }
+	.room-switch button { min-height: 48px; border: 2px solid var(--hairline); border-radius: 8px; background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem; }
+	.room-switch button span { font-size: 0.8rem; color: var(--ink-2); }
+	.room-switch button.active { border-color: var(--accent); background: var(--accent-wash); }
+	.room-title { margin-top: 0.5rem; }
+	.ph-card { border: 2px solid var(--warn-border); background: var(--warn-bg); border-radius: 8px; padding: 0.6rem 0.8rem; }
 	.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem; margin-top: 1rem; }
 	details { border-top: 1px solid var(--grid); padding: 0.5rem 0; }
 	summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 0.5rem; }
