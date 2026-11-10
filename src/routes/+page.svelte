@@ -304,6 +304,7 @@
 					</button>
 				</div>
 				<a class="nav-tab help-link" href="/help">📘 Escalation Guide</a>
+				<a class="nav-tab help-link" href="/insights">📊 Lab Overview</a>
 			</div>
 		</div>
 		<div class="navy-bar"></div>
@@ -504,6 +505,7 @@
 			Animal Ethics Compliance & Strict Husbandry Records • Production: <code>husbandry.rummerlab.com</code>
 		</p>
 		<p><a href="/help">Animal welfare escalation guide &amp; vet video</a></p>
+		<p><a href="/insights">Lab Overview (lab administrators, Google sign-in)</a></p>
 		<p class="privacy-note">
 			<strong>Privacy:</strong> when records sync, the server logs your IP address, approximate location (city/region/country), browser details and this device's ID, for security and audit of husbandry records. Only lab administrators can see this log; it is not part of the shared spreadsheet. Named lab administrators who sign in with Google can also view all submitted records in the Lab Overview.
 		</p>
