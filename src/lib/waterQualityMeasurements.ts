@@ -14,6 +14,11 @@ export function toggleExplicitNotMeasured(value: string): string {
 	return value === NOT_MEASURED ? '' : NOT_MEASURED;
 }
 
+/** Excluding weekly chemistry hides it and blanks exports, but retains the draft answers. */
+export function includeWeeklyMeasurements(data: WaterQualityData, included: boolean): WaterQualityData {
+	return { ...data, isWeeklyCheck: included };
+}
+
 /** Display-only value for measurement inputs (does not change the stored answer). */
 export function measurementInputValue(value: string | undefined): string {
 	const answer = measurementAnswer(value);

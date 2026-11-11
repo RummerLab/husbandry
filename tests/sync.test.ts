@@ -112,6 +112,18 @@ function fakeSheets() {
 	return { client, batchUpdate, removeMetadataHeaders() { data.sheets!.forEach(s => { s.data = []; }); }, get appended() { return appended; }, set fail(v: boolean) { fail = v; }, set lostResponse(v: boolean) { lostResponse = v; } };
 }
 describe('atomic Sheets writes', () => {
+	it('keeps an unknown acknowledgement retryable until a later matching receipt is read', async () => {
+		const fake = fakeSheets(); fake.lostResponse = true;
+		const get = vi.mocked(fake.client.spreadsheets.get);
+		const normalRead = get.getMockImplementation()!;
+		get.mockImplementationOnce(normalRead).mockRejectedValueOnce(new Error('Reconciliation unavailable'));
+		await expect(writeAtomicSubmission(fake.client, 'sheet', payload())).rejects.toThrow('Reconciliation unavailable');
+		expect(fake.appended).toBe(2);
+		fake.lostResponse = false;
+		await writeAtomicSubmission(fake.client, 'sheet', payload());
+		expect(fake.appended).toBe(2);
+		expect(fake.batchUpdate).toHaveBeenCalledTimes(1);
+	});
 	it('deduplicates retries and concurrent requests', async () => {
 		const fake = fakeSheets(); await Promise.all([writeAtomicSubmission(fake.client, 'sheet', payload()), writeAtomicSubmission(fake.client, 'sheet', payload())]);
 		await writeAtomicSubmission(fake.client, 'sheet', payload()); expect(fake.appended).toBe(2);

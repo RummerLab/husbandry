@@ -1,6 +1,6 @@
 import { getSyncPause, pauseSync } from './syncPause';
 import { notifyDeviceQueueChanged } from './deviceEvents';
-import { deliveryState, PERMANENT_SUBMISSION_STATUSES } from './submissionOutcome';
+import { deliveryState, submissionOutcome } from './submissionOutcome';
 import type { FullHusbandrySubmission, LocalHistoryItem } from './types';
 const LEGACY = 'rummerlab_husbandry_local_history';
 const PREFIX = 'rummerlab_submission_';
@@ -14,16 +14,22 @@ export function getDeviceId(): string {
 }
 export function getSavedInitials(): string { return typeof window === 'undefined' ? '' : localStorage.getItem(INITIALS) || ''; }
 export function setSavedInitials(initials: string): void { localStorage.setItem(INITIALS, initials); }
+class DamagedLocalRecordError extends Error {}
+function storedJSON(raw: string): unknown {
+ try { return JSON.parse(raw); } catch { throw new DamagedLocalRecordError('Stored record is damaged. Keep this device data and contact the lab administrator.'); }
+}
 function parse(raw: string): LocalHistoryItem {
- const item = JSON.parse(raw);
- if (!item || typeof item.id !== 'string' || !item.payload || typeof item.synced !== 'boolean' || typeof item.submittedAt !== 'string') throw new Error('Stored record is damaged. Keep this device data and contact the lab administrator.');
+ const item = storedJSON(raw) as LocalHistoryItem;
+ if (!item || typeof item.id !== 'string' || !item.payload || typeof item.payload !== 'object' || Array.isArray(item.payload) || typeof item.synced !== 'boolean' || typeof item.submittedAt !== 'string') throw new DamagedLocalRecordError('Stored record is damaged. Keep this device data and contact the lab administrator.');
+ const modules = item.modules ?? item.payload.modulesSubmitted;
+ if (!Array.isArray(modules) || !modules.every(module => typeof module === 'string')) throw new DamagedLocalRecordError('Stored record is damaged. Keep this device data and contact the lab administrator.');
  return item;
 }
 export function migrateLocalHistory(): 'notNeeded' | 'complete' {
  const raw = localStorage.getItem(LEGACY);
  if (!raw) return 'notNeeded';
- const items = JSON.parse(raw);
- if (!Array.isArray(items)) throw new Error('Stored history is damaged. Keep this device data and contact the lab administrator.');
+ const items = storedJSON(raw);
+ if (!Array.isArray(items)) throw new DamagedLocalRecordError('Stored history is damaged. Keep this device data and contact the lab administrator.');
  for (const value of items) {
   const item = parse(JSON.stringify(value));
   if (!localStorage.getItem(PREFIX + item.id)) localStorage.setItem(PREFIX + item.id, JSON.stringify(item));
@@ -32,15 +38,42 @@ export function migrateLocalHistory(): 'notNeeded' | 'complete' {
  localStorage.removeItem(LEGACY);
  return 'complete';
 }
-export function getLocalHistory(): LocalHistoryItem[] {
- if (typeof window === 'undefined') return [];
- migrateLocalHistory();
- const result: LocalHistoryItem[] = [];
- for (let i = 0; i < localStorage.length; i++) {
-  const key = localStorage.key(i);
-  if (key?.startsWith(PREFIX)) { const raw = localStorage.getItem(key); if (raw) result.push(parse(raw)); }
+export type LocalHistoryInspection =
+ | { state: 'readable'; records: LocalHistoryItem[] }
+ | { state: 'damaged'; records: LocalHistoryItem[]; damagedCount: number; message: string }
+ | { state: 'unavailable'; records: LocalHistoryItem[]; message: string };
+
+/** Recovery inspection retains legacy migration, but never repairs/deletes damaged values or authorises sync. */
+export function inspectLocalHistory(): LocalHistoryInspection {
+ if (typeof window === 'undefined') return { state: 'readable', records: [] };
+ try {
+  let damagedCount = 0;
+  try { migrateLocalHistory(); } catch (error) {
+   if (!(error instanceof DamagedLocalRecordError)) throw error;
+   damagedCount++; // The untouched legacy copy is one damaged storage entry.
+  }
+  const records: LocalHistoryItem[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+   const key = localStorage.key(i);
+   if (!key?.startsWith(PREFIX)) continue;
+   const raw = localStorage.getItem(key);
+   if (raw === null) continue;
+   try { records.push(parse(raw)); } catch (error) {
+    if (!(error instanceof DamagedLocalRecordError)) throw error;
+    damagedCount++;
+   }
+  }
+  records.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  return damagedCount ? { state: 'damaged', records, damagedCount,
+   message: `${damagedCount} stored ${damagedCount === 1 ? 'entry needs' : 'entries need'} administrator recovery. ${records.length} ${records.length === 1 ? 'record remains' : 'records remain'} readable in My Device History. Sync is paused; keep all device data.` } : { state: 'readable', records };
+ } catch {
+  return { state: 'unavailable', records: [], message: 'Device storage is unavailable. Keep this device data and contact the lab administrator. Sync status is unknown.' };
  }
- return result.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+}
+export function getLocalHistory(): LocalHistoryItem[] {
+ const inspection = inspectLocalHistory();
+ if (inspection.state !== 'readable') throw new Error(inspection.message);
+ return inspection.records;
 }
 export function saveLocalSubmission(item: LocalHistoryItem): void {
  migrateLocalHistory();
@@ -73,25 +106,24 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
   if (sharedPause) { errors.push(sharedPause.message); break; }
   try {
    const res = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.payload), signal: AbortSignal.timeout(30000) });
-   const loginPage = res.redirected || (res.ok && res.headers.get('content-type')?.includes('text/html'));
-   if (loginPage || [401, 403, 429, 503].includes(res.status)) {
-    const auth = loginPage || res.status === 401 || res.status === 403;
-    const message = auth ? 'Sign in again to sync. All records remain saved on this device.' : res.status === 429 ? 'Sync paused by rate limit. Records will retry automatically.' : 'Sync temporarily unavailable. Records will retry automatically.';
-    pauseSync(message, res.headers.get('retry-after'), auth);
-    updateLocalHistorySyncStatus(item.id, false, message);
-    errors.push(message);
+   const info = { status: res.status, ok: res.ok, redirected: res.redirected, contentType: res.headers.get('content-type'), retryAfter: res.headers.get('retry-after') };
+   // Transport holds do not need to consume an untrusted login/throttling body.
+   const preliminary = submissionOutcome(info, null);
+   const outcome = preliminary.kind === 'authentication' || preliminary.kind === 'cooldown'
+    ? preliminary : submissionOutcome(info, await res.json().catch(() => null));
+   if (outcome.kind === 'authentication' || outcome.kind === 'cooldown') {
+    pauseSync(outcome.message, outcome.kind === 'cooldown' ? outcome.retryAfter : null, outcome.kind === 'authentication');
+    updateLocalHistorySyncStatus(item.id, false, outcome.message);
+    errors.push(outcome.message);
     break;
    }
-   if ((PERMANENT_SUBMISSION_STATUSES as readonly number[]).includes(res.status)) {
-    const result = await res.json().catch(() => ({}));
-    const message = result.error || `Submission needs review (HTTP ${res.status}).`;
+   if (outcome.kind === 'needsReview') {
     const latestRaw = localStorage.getItem(PREFIX + item.id);
-    if (latestRaw && !parse(latestRaw).synced) saveLocalSubmission({ ...parse(latestRaw), synced: false, syncBlocked: true, syncError: message });
-    errors.push(message);
+    if (latestRaw && !parse(latestRaw).synced) saveLocalSubmission({ ...parse(latestRaw), synced: false, syncBlocked: true, syncError: outcome.message });
+    errors.push(outcome.message);
     continue;
    }
-   const result = await res.json();
-   if (!res.ok || !result.success || result.mode !== 'live') throw new Error(result.mode === 'mock' ? 'Mock mode: not written to Google Sheets. Record remains pending.' : result.error || 'Server rejected submission');
+   if (outcome.kind === 'retry') throw new Error(outcome.message);
    updateLocalHistorySyncStatus(item.id, true);
    syncedCount++;
   } catch (error) {

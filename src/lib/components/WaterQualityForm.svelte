@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { validateModule, NOT_MEASURED } from "../validation";
-	import { measurementInputValue, toggleNotMeasured } from '../waterQualityMeasurements';
+	import { measurementInputValue, toggleNotMeasured, includeWeeklyMeasurements } from '../waterQualityMeasurements';
 	import type { WaterQualityData } from '../types';
 
 	type MeasurableField = Exclude<keyof WaterQualityData, 'date' | 'initials' | 'isWeeklyCheck' | 'notes'>;
@@ -135,7 +135,7 @@
 		<div class="card-header-flex">
 			<h4>3. Weekly Water Chemistry (API / Spintouch)</h4>
 			<label class="toggle-label">
-				<input type="checkbox" bind:checked={data.isWeeklyCheck} />
+				<input type="checkbox" checked={data.isWeeklyCheck} onchange={(event) => data = includeWeeklyMeasurements(data, event.currentTarget.checked)} />
 				<span>Include Weekly Data</span>
 			</label>
 		</div>

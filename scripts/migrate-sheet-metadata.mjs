@@ -44,6 +44,36 @@ export function assertMetadataColumnsEmpty(valueRanges) {
 	}
 }
 
+/** Inspect and verify the opt-in metadata migration without ever setting the runtime flag.
+ * @returns {Promise<{state: 'dryRun'|'complete', operations: number} | {state: 'refused'|'reinspectionRequired', operations: number, message: string}>}
+ */
+export async function migrateMetadataWorkbook(sheets, spreadsheetId, apply = false) {
+	let phase = 'inspect';
+	let operations = 0;
+	const read = async () => (await sheets.spreadsheets.get({ spreadsheetId, ranges: Object.keys(config.widths).map(title => `'${title}'!1:1`), includeGridData: true, fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
+	try {
+		const data = await read();
+		const requests = planMetadataMigration(data);
+		operations = requests.length;
+		const collisionRanges = metadataCollisionRanges(data);
+		if (collisionRanges.length) {
+			const existing = (await sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges: collisionRanges, valueRenderOption: 'FORMULA' })).data;
+			// Missing range responses are unknown, not proof that the target columns are empty.
+			if (existing.valueRanges?.length !== collisionRanges.length) throw new Error('Incomplete collision inspection');
+			assertMetadataColumnsEmpty(existing.valueRanges);
+		}
+		if (!apply) return { state: 'dryRun', operations };
+		if (!operations) return { state: 'complete', operations };
+		phase = 'apply';
+		await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
+		if (planMetadataMigration(await read()).length) throw new Error('Migration incomplete');
+		return { state: 'complete', operations };
+	} catch {
+		return { state: phase === 'inspect' ? 'refused' : 'reinspectionRequired', operations,
+			message: phase === 'inspect' ? 'Could not prove metadata headers and target columns are safe. No writes attempted; inspect the workbook before rerunning.' : 'Migration outcome is uncertain. Keep the runtime metadata flag unchanged; inspect the workbook and rerun dry-run.' };
+	}
+}
+
 async function main() {
 	const apply = process.argv.includes('--apply');
 	if (process.argv.slice(2).some(arg => arg !== '--apply')) throw new Error('Usage: node --env-file=.env scripts/migrate-sheet-metadata.mjs [--apply]');
@@ -53,15 +83,9 @@ async function main() {
 	if (!email || !key || !spreadsheetId) throw new Error('Google Sheets credentials and workbook ID are required');
 	const auth = new google.auth.JWT({ email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
 	const sheets = google.sheets({ version: 'v4', auth });
-	const data = (await sheets.spreadsheets.get({ spreadsheetId, ranges: Object.keys(config.widths).map(title => `'${title}'!1:1`), includeGridData: true, fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
-	const requests = planMetadataMigration(data);
-	const collisionRanges = metadataCollisionRanges(data);
-	if (collisionRanges.length) {
-		const existing = (await sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges: collisionRanges, valueRenderOption: 'FORMULA' })).data;
-		assertMetadataColumnsEmpty(existing.valueRanges || []);
-	}
-	console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', operations: requests.length, widths: Object.fromEntries(Object.entries(config.widths).map(([title, width]) => [title, width + 4])) }, null, 2));
-	if (apply && requests.length) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
-	if (!apply) console.log('No writes performed. Back up the workbook, verify downstream consumers, then use --apply against a disposable copy first.');
+	const result = await migrateMetadataWorkbook(sheets, spreadsheetId, apply);
+	console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', ...result, widths: Object.fromEntries(Object.entries(config.widths).map(([title, width]) => [title, width + 4])) }, null, 2));
+	if (['refused', 'reinspectionRequired'].includes(result.state)) process.exitCode = 1;
+	else if (!apply) console.log('No writes performed. Back up the workbook, verify downstream consumers, then use --apply against a disposable copy first.');
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(error => { console.error(error.message); process.exitCode = 1; });

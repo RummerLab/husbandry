@@ -177,7 +177,7 @@ describe('Room 6 setup script', () => {
 	it('reads header rows only for tabs that exist', async () => {
 		const get = vi.fn()
 			.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6', sheetId: 9 } }, { properties: { title: 'Room 6 LSS', sheetId: 10 } }] } })
-			.mockResolvedValueOnce({ data: { sheets: [] } });
+			.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6', sheetId: 9 }, data: [{}] }, { properties: { title: 'Room 6 LSS', sheetId: 10 }, data: [{}] }] } });
 		await readTabsSetup({ spreadsheets: { get } }, 'sheet');
 		expect(get.mock.calls[1][0].ranges).toEqual(["'Room 6'!1:1", "'Room 6 LSS'!1:1"]);
 	});

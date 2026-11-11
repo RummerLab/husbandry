@@ -24,6 +24,7 @@ export const ALL_TABS = [{ tab: TAB, headers: HEADERS }, ...WORKBOOK_TABS];
 
 /** Plan one tab: create it if missing, write headers only into an empty or matching header row. */
 export function planTabSetup(data, tab, headers) {
+	if (!Array.isArray(data.sheets)) throw new Error('Tab metadata was not read; refusing to plan changes');
 	const sheet = data.sheets?.find(s => s.properties?.title === tab);
 	if (!sheet) {
 		return [{ addSheet: { properties: { title: tab, gridProperties: { frozenRowCount: 1, columnCount: headers.length } } } }];
@@ -56,9 +57,12 @@ export function planAllRoom6Setup(data, tabs = ALL_TABS) {
  */
 export async function readTabsSetup(sheets, spreadsheetId, tabs = ALL_TABS.map(t => t.tab)) {
 	const metadata = (await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets(properties)' })).data;
+	if (!Array.isArray(metadata.sheets)) throw new Error('Tab metadata was not read; refusing to assume absence');
 	const existing = tabs.filter(tab => metadata.sheets?.some(sheet => sheet.properties?.title === tab));
 	if (!existing.length) return metadata;
-	return (await sheets.spreadsheets.get({ spreadsheetId, includeGridData: true, ranges: existing.map(tab => `'${tab}'!1:1`), fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
+	const headers = (await sheets.spreadsheets.get({ spreadsheetId, includeGridData: true, ranges: existing.map(tab => `'${tab}'!1:1`), fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
+	if (!existing.every(tab => headers.sheets?.some(sheet => sheet.properties?.title === tab && Array.isArray(sheet.data)))) throw new Error('Header inspection was incomplete; refusing to assume absence');
+	return headers;
 }
 
 /** Read only the legacy Room 6 tab. */
