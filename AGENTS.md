@@ -110,6 +110,7 @@ Whenever you notice:
   ```
 - Keep pull request diffs focused. Do not mix unrelated refactors with bug fixes.
 - Reference related issue numbers in the PR description (e.g. `Fixes #12` or `Closes #4`).
+- **Check the PR is still open before pushing to its branch, commenting on it or editing its description**, e.g. `gh pr view <n> --json state,mergedAt`. PRs here are often merged quickly, and commits pushed to a merged PR's branch never reach `main` (this happened with #74, and the work had to move to #80). If the PR is merged or closed, branch from the latest `origin/main`, cherry-pick the commits and open a new PR. Never rewrite a merged PR's description to cover work that is not in it.
 
 ---
 
