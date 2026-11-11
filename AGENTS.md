@@ -174,3 +174,4 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - Room 6 setup (#88): check tab existence before fetching headers; header-read errors must abort, never fall back to metadata and assume an empty row. Dead-egg counts (#89) must be digit strings that convert to safe integers.
 
 - Room 6 initial field list and a separate tab in the existing master workbook were authorised by the repository owner on 2026-11-11. Refine fields later with matching validation, formatter and header changes; no new workbook is required.
+- Header nav (#86): utilities (status, My Device History, Escalation Guide, Lab Overview) sit above the recording tablist (AM, PM, Water Quality, Room 6). Keep recording tabs as the dedicated `role="tablist"`; utility destinations stay out of that strip. Touch targets remain ≥48px.
