@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, stepValid, type Shift, type Step, type StepForms, type Room6Section, ROOM6_SECTIONS } from '../lib/shiftWorkflow';
+	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, rollPristineDrafts, stepValid, type Shift, type Step, type StepForms, type Room6Section, ROOM6_SECTIONS } from '../lib/shiftWorkflow';
 	import { createSubmissionFeedback } from '../lib/submissionFeedback';
 	import { prepareSave, type SaveState } from '../lib/saveState';
 	import { destinationForTab, destinationTab, shiftDestination, type EntryDestination } from '../lib/entryDestination';
@@ -107,7 +107,8 @@
 	let room6Valid = $derived(stepValid(room6Section, forms));
 
 	onMount(() => {
-		handleDateChange(room12Date());
+		// Every draft is still empty at mount, so all workflows start on today's Brisbane date.
+		for (const step of Object.keys(forms) as Step[]) forms[step].date = room12Date();
 		// Off-days open on the Off-day tab so volunteers see only the daily minimum,
 		// unless a deep link (/?tab=…) asked for a specific tab.
 		if (isOffDay(selectedDate) && !parseHomeTab(tabUrl.search)) selectTab('offDay');
@@ -227,6 +228,8 @@
 			receipt = null;
 			await persistSubmission(saveState.payload, steps);
 		} catch (error) {
+			// Drop any earlier receipt so a queue refresh cannot replace this error with an old success.
+			receipt = null;
 			submissionFeedback = { type: 'error', message: error instanceof Error ? error.message : String(error) };
 		}
 	}
@@ -237,7 +240,9 @@
 			saveState = { kind: 'durable', id: record.id };
 			const submittedPair = steps.length > 1;
 			// Only the newly empty submitted drafts roll forward. Other dates/answers stay intact.
-			const fresh = resetSubmittedSteps(forms, steps, submittedPair ? room12Date() : selectedDate, userInitials);
+			let fresh = resetSubmittedSteps(forms, steps, submittedPair ? room12Date() : selectedDate, userInitials);
+			// Untouched drafts in other workflows also follow a pair save's rollover (shared tablets left open overnight).
+			if (submittedPair) fresh = rollPristineDrafts(fresh, room12Date(), userInitials);
 			lssAmData = fresh.lssAM;
 			lssPmData = fresh.lssPM;
 			tanksEggsData = fresh.tanksEggs;

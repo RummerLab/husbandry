@@ -52,6 +52,17 @@ export function resetSubmittedSteps(current: StepForms, submitted: Step[], date:
 	return Object.fromEntries((Object.keys(current) as Step[]).map(step => [step, submitted.includes(step) ? fresh[step] : current[step]])) as StepForms;
 }
 
+/**
+ * Untouched drafts (identical to an empty form apart from the date) follow a completed shift's
+ * rollover, so a tablet left open overnight cannot save the other shift under yesterday's date.
+ * Drafts with any answer keep their own date.
+ */
+export function rollPristineDrafts(current: StepForms, date: string, initials: string): StepForms {
+	const empty = createEmptyStepForms(date, initials);
+	const same = (a: object, b: object) => JSON.stringify({ ...a, date }) === JSON.stringify({ ...b, date });
+	return Object.fromEntries((Object.keys(current) as Step[]).map(step => [step, same(current[step], empty[step]) ? empty[step] : current[step]])) as StepForms;
+}
+
 export function stepValid(step: Step, forms: StepForms): boolean {
 	return validateModule(stepModule[step], forms[step]).length === 0;
 }

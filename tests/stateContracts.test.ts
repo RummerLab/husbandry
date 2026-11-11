@@ -4,7 +4,7 @@ import { readQueueSnapshot, observeDeviceQueue } from '../src/lib/queueSnapshot'
 import { pauseSync, getSyncPause, resumeAuthenticatedSync } from '../src/lib/syncPause';
 import { prepareSave } from '../src/lib/saveState';
 import { destinationForTab, destinationTab, shiftDestination } from '../src/lib/entryDestination';
-import { createEmptyStepForms, createEntryPayload, resetSubmittedSteps } from '../src/lib/shiftWorkflow';
+import { createEmptyStepForms, createEntryPayload, resetSubmittedSteps, rollPristineDrafts } from '../src/lib/shiftWorkflow';
 import { getModuleIssues, NOT_MEASURED } from '../src/lib/validation';
 import { visibleModuleIssues } from '../src/lib/validationFeedback';
 import { measurementAnswer, toggleNotMeasured } from '../src/lib/waterQualityMeasurements';
@@ -77,6 +77,18 @@ it('does not replace unrelated draft dates or answers during post-save rollover'
 	expect(next.lssPM.date).toBe(yesterday);
 	const mixed = { ...forms, waterQuality: payload().waterQuality! };
 	expect(() => createEntryPayload(['waterQuality'], mixed, yesterday, 'AB')).toThrow('different record dates');
+});
+
+it('rolls only untouched drafts forward after a pair save, keeping drafts with answers on their date', () => {
+	const yesterday = '2026-11-10';
+	const forms = createEmptyStepForms(yesterday, 'AB');
+	forms.lssPM.notes = 'Unsent evening notes';
+	const next = rollPristineDrafts(forms, '2026-11-11', 'AB');
+	expect(next.tanksEggs.date).toBe('2026-11-11');
+	expect(next.feeds.date).toBe('2026-11-11');
+	expect(next.room6Eggs.date).toBe('2026-11-11');
+	expect(next.lssPM).toBe(forms.lssPM);
+	expect(next.lssPM.date).toBe(yesterday);
 });
 
 it('maps tabs to bounded destinations while retaining existing shift validation locks', () => {

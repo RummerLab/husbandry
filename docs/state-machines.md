@@ -23,7 +23,9 @@ framework or new runtime dependency is needed.
 
 The date picker applies **only to the visible workflow's sections**. A completed
 multi-section save creates empty submitted drafts dated today in Brisbane. It never
-re-dates unrelated drafts. On returning to another workflow, the picker shows that
+re-dates drafts that contain answers; untouched drafts (identical to an empty form apart
+from the date) roll forward with it so a tablet left open overnight cannot save the other
+shift under yesterday's date (`rollPristineDrafts`). On returning to another workflow, the picker shows that
 workflow's retained date. Shared WQ can therefore differ from the AM draft after a
 standalone edit; show both dates and require an explicit “Use [date] for these sections”
 or picker change before a combined save. `createEntryPayload` also rejects date mismatches.
