@@ -5,6 +5,8 @@ export interface LSSData {
 	date: string;
 	amInitials: string;
 	pmInitials: string;
+	/** Which shift's half of the LSS sheet this record covers. Absent on pre-split records, which cover both. */
+	shiftPart?: 'AM' | 'PM';
 	/** Daily animal welfare check. Pre-upgrade queued records may lack it at runtime; validation tolerates that. */
 	animalsChecked: '' | 'Y' | 'N';
 	// Protein skimmer

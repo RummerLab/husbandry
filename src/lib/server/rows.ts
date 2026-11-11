@@ -1,5 +1,6 @@
 import type { LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../types';
 import { ROOM12_TANKS } from '../tanksConfig';
+import { NOT_MEASURED } from '../validation';
 /** The animal welfare answer shares Col 20 so the LSS tab keeps its 21 operational columns. */
 export function formatLSSConcerns(data: LSSData): string {
 	const concerns = data.concerns?.trim() || '';
@@ -9,6 +10,8 @@ export function formatLSSConcerns(data: LSSData): string {
 }
 
 export function formatLSSRow(data: LSSData): (string | number)[] {
+	// Shift-part records leave the other shift's columns blank rather than inventing defaults.
+	if (data.shiftPart) return formatLSSShiftRow(data);
 	return [
 		data.date,                          // Col 1: Date
 		data.amInitials || '',              // Col 2: AM Initials
@@ -31,6 +34,19 @@ export function formatLSSRow(data: LSSData): (string | number)[] {
 		data.equipmentDisinfected || 'Y',   // Col 19: Equipment disinfected
 		formatLSSConcerns(data),            // Col 20: Concerns (new), prefixed with the daily animal check
 		data.notes || ''                    // Col 21: Notes
+	];
+}
+
+const LSS_CHECK_COLUMNS = ['skimmerVenturi', 'skimmerSprayDown', 'filterCleaned', 'filterReplaced', 'waterLevelsAM', 'waterLevelsPM', 'waterFlowAM', 'waterFlowPM', 'airstonesAM', 'airstonesPM', 'vacNetTanks', 'tanksScrubbed', 'overflowCleaned', 'hoseFloorLadder', 'footTubLidsSqueegee', 'equipmentDisinfected'] as const;
+
+function formatLSSShiftRow(data: LSSData): (string | number)[] {
+	return [
+		data.date,                          // Col 1
+		data.amInitials || '',              // Col 2
+		data.pmInitials || '',              // Col 3
+		...LSS_CHECK_COLUMNS.map(key => data[key] || ''), // Cols 4-19, same order as formatLSSRow
+		formatLSSConcerns(data),            // Col 20
+		data.notes || ''                    // Col 21
 	];
 }
 
@@ -165,30 +181,32 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 	return row;
 }
 
+const measured = (value: string | undefined) => (value === NOT_MEASURED ? '' : value || '');
+
 export function formatWaterQualityRow(data: WaterQualityData): (string | number)[] {
 	return [
 		data.date,                          // Col 1: DATE
 		data.initials || '',                // Col 2: INITIALS
 		data.tempA || '',                   // Col 3: Temp A
 		data.tempB || '',                   // Col 4: Temp B
-		data.pHA || '',                     // Col 5: pH A
-		data.pHB || '',                     // Col 6: pH B
+		measured(data.pHA),                     // Col 5: pH A
+		measured(data.pHB),                     // Col 6: pH B
 		data.salinityA || '',               // Col 7: Salinity A
 		data.salinityB || '',               // Col 8: Salinity B
 		data.doA || '/',                    // Col 9: DO % A
 		data.doB || '/',                    // Col 10: DO % B
-		(data.isWeeklyCheck ? data.alkA || '' : ''),                   // Col 11: Alk A
-		(data.isWeeklyCheck ? data.alkB || '' : ''),                   // Col 12: Alk B
-		(data.isWeeklyCheck ? data.weeklypHA || '' : ''),              // Col 13: pH A (weekly)
-		(data.isWeeklyCheck ? data.weeklypHB || '' : ''),              // Col 14: pH B (weekly)
-		(data.isWeeklyCheck ? data.nh3A || '' : ''),                   // Col 15: Nh3 A
-		(data.isWeeklyCheck ? data.nh3B || '' : ''),                   // Col 16: Nh3 B
-		(data.isWeeklyCheck ? data.no2A || '' : ''),                   // Col 17: No2 A
-		(data.isWeeklyCheck ? data.no2B || '' : ''),                   // Col 18: No2 B
-		(data.isWeeklyCheck ? data.no3A || '' : ''),                    // Col 19: No3 A
-		(data.isWeeklyCheck ? data.no3B || '' : ''),                    // Col 20: No3 B
-		(data.isWeeklyCheck ? data.po4A || '' : ''),                   // Col 21: Po4 A
-		(data.isWeeklyCheck ? data.po4B || '' : ''),                   // Col 22: Po4 B
+		(data.isWeeklyCheck ? measured(data.alkA) : ''),                   // Col 11: Alk A
+		(data.isWeeklyCheck ? measured(data.alkB) : ''),                   // Col 12: Alk B
+		(data.isWeeklyCheck ? measured(data.weeklypHA) : ''),              // Col 13: pH A (weekly)
+		(data.isWeeklyCheck ? measured(data.weeklypHB) : ''),              // Col 14: pH B (weekly)
+		(data.isWeeklyCheck ? measured(data.nh3A) : ''),                   // Col 15: Nh3 A
+		(data.isWeeklyCheck ? measured(data.nh3B) : ''),                   // Col 16: Nh3 B
+		(data.isWeeklyCheck ? measured(data.no2A) : ''),                   // Col 17: No2 A
+		(data.isWeeklyCheck ? measured(data.no2B) : ''),                   // Col 18: No2 B
+		(data.isWeeklyCheck ? measured(data.no3A) : ''),                    // Col 19: No3 A
+		(data.isWeeklyCheck ? measured(data.no3B) : ''),                    // Col 20: No3 B
+		(data.isWeeklyCheck ? measured(data.po4A) : ''),                   // Col 21: Po4 A
+		(data.isWeeklyCheck ? measured(data.po4B) : ''),                   // Col 22: Po4 B
 		data.notes || ''                    // Col 23: Notes
 	];
 }
