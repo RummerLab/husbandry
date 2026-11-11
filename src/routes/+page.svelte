@@ -42,11 +42,16 @@
 	let validationRoot = $state<HTMLElement>();
 	let showValidation = $state(false);
 	let feedbackBanner = $state<HTMLDivElement>();
-	let selectedShift = $state<Shift>(initialTab === 'noon' ? 'noon' : 'morning');
+	let selectedShift = $state<Shift>(initialTab in shifts ? (initialTab as Shift) : 'morning');
 	let shiftSteps: Step[] = $derived(shifts[selectedShift].steps);
 	let activeStep = $derived(shiftSteps[currentStep - 1]);
 	let selectedDate = $state<string>(todayStr);
 	let offDay = $derived(isOffDay(selectedDate));
+	const shiftIntro: Record<Shift, { title: string; text: string }> = {
+		morning: { title: 'AM shift — LSS + Water Quality', text: 'Record the daily animal welfare check and AM tank checks, then water quality when due (at least every second day). If water quality is not due, save AM LSS alone. Filters, skimmer and hygiene are recorded by the PM shift.' },
+		noon: { title: 'PM shift — LSS, Eggs + Feeds', text: 'Record the PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds. If you only did the PM checks, save PM LSS alone. The AM shift records its own checks.' },
+		offDay: { title: 'Off-day check (Tue, Thu, Sat, Sun)', text: 'The daily minimum: the animal welfare check and AM tank checks, then water quality if it is due. Filters, skimmer and hygiene are not required on off-days.' }
+	};
 	let userInitials = $state<string>('');
 	let isOnline = $state<boolean>(true);
 	let isSubmitting = $state<boolean>(false);
@@ -74,6 +79,9 @@
 
 	onMount(() => {
 		handleDateChange(room12Date());
+		// Off-days open on the Off-day tab so volunteers see only the daily minimum,
+		// unless a deep link (/?tab=…) asked for a specific tab.
+		if (isOffDay(selectedDate) && !parseHomeTab(page.url.search)) selectTab('offDay');
 		try {
 			const saved = getSavedInitials();
 			if (saved) { userInitials = saved; applyInitialsToAll(saved); }
@@ -140,8 +148,8 @@
 		if (isSubmitting) return;
 		showValidation = false;
 		activeTab = tab;
-		if (tab === 'morning' || tab === 'noon') {
-			selectedShift = tab;
+		if (tab in shifts) {
+			selectedShift = tab as Shift;
 			currentStep = 1;
 		}
 		const next = new URL(page.url.href);
@@ -151,7 +159,7 @@
 		}
 	}
 
-	// Deep links from /help and /insights use `/?tab=history|morning|noon|waterQuality`.
+	// Deep links from /help and /insights use `/?tab=history|morning|noon|offDay|waterQuality`.
 	$effect(() => {
 		const fromUrl = parseHomeTab(page.url.search);
 		if (fromUrl && fromUrl !== activeTab) selectTab(fromUrl);
@@ -399,8 +407,8 @@
 			{@render sessionBar()}
 
 			<div class="wq-only-intro">
-				<strong>{selectedShift === 'morning' ? 'AM shift — LSS + Water Quality' : 'PM shift — LSS, Eggs + Feeds'}</strong>
-				<span>{selectedShift === 'morning' ? 'Record the daily animal welfare check and AM tank checks, then water quality when due (at least every second day). If water quality is not due, save AM LSS alone. Filters, skimmer and hygiene are recorded by the PM shift.' : 'Record the PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds. If you only did the PM checks, save PM LSS alone. The AM shift records its own checks.'}</span>
+				<strong>{shiftIntro[selectedShift].title}</strong>
+				<span>{shiftIntro[selectedShift].text}</span>
 			</div>
 			<nav class="stepper-nav" aria-label="Husbandry Sections">
 				{#each shiftSteps as step, index}
@@ -420,10 +428,15 @@
 			<!-- Active Step Content -->
 			<div class="step-content">
 				{#if activeStep === 'lssAM'}
-					{#if offDay}
+					{#if selectedShift === 'offDay'}
 						<aside class="off-day-banner" aria-label="Off-day minimum check">
 							<strong>Off-day check</strong>
-							<p>Animals must be checked and recorded every day, including weekends and public holidays. On days without the full routine, complete this step (the animal welfare check and the AM tank checks), then tap <strong>Save off-day check</strong>. Record water quality next if it is due (at least every second day). Record PM checks and feeds in the PM tab if they were done.</p>
+							<p>Animals must be checked and recorded every day, including weekends and public holidays. Complete the animal welfare check and the AM tank checks. If water quality is not due today, tap <strong>Save off-day check (AM LSS only)</strong>; if it is due (at least every second day), select Next and record it too. If animals were fed, record feeds in the PM tab.</p>
+						</aside>
+					{:else if offDay && selectedShift === 'morning'}
+						<aside class="off-day-banner" aria-label="Off-day reminder">
+							<strong>{selectedDate} is an off-day</strong>
+							<p>The <button type="button" class="link-btn" onclick={() => selectTab('offDay')}>Off-day check</button> tab shows only what is needed today. Your answers here carry over.</p>
 						</aside>
 					{/if}
 					<LSSForm bind:data={lssAmData} />
@@ -497,7 +510,7 @@
 					disabled={!canAdvance || isSubmitting}
 					onclick={() => submitSteps([activeStep])}
 				>
-					{isSubmitting ? 'Saving...' : activeStep === 'lssAM' && offDay ? 'Save off-day check (AM LSS)' : `Save only ${stepLabels[activeStep]} to Sheets`}
+					{isSubmitting ? 'Saving...' : activeStep === 'lssAM' && (selectedShift === 'offDay' || offDay) ? 'Save off-day check (AM LSS only)' : `Save only ${stepLabels[activeStep]} to Sheets`}
 				</button>
 			</div>
 			</fieldset>
@@ -905,6 +918,17 @@
 		border-radius: 10px;
 		color: #78350f;
 		font-size: 0.88rem;
+	}
+
+	.link-btn {
+		padding: 0;
+		border: none;
+		background: none;
+		color: inherit;
+		font: inherit;
+		font-weight: 700;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 
 	.off-day-banner p {

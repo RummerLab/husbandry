@@ -152,3 +152,23 @@ describe('Water Quality "Not measured"', () => {
 		expect(validateSubmission(createEntryPayload(['waterQuality'], forms, date, 'AB'))).toEqual([]);
 	});
 });
+
+describe('Off-day check (#78)', () => {
+	it('uses the AM half: welfare check and AM tank checks, then optional water quality', () => {
+		expect(shifts.offDay.steps).toEqual(['lssAM', 'waterQuality']);
+		const forms = completeForms();
+		const lssOnly = createEntryPayload(['lssAM'], forms, date, 'AB');
+		expect(validateSubmission(lssOnly)).toEqual([]);
+		expect(lssOnly.lss?.shiftPart).toBe('AM');
+		expect(lssOnly.lss?.filterCleaned).toBe('');
+		expect(validateSubmission(createEntryPayload(shifts.offDay.steps, forms, date, 'AB'))).toEqual([]);
+	});
+
+	it('never relaxes the welfare check on off-days', () => {
+		const forms = completeForms();
+		forms.lssAM.animalsChecked = '';
+		expect(() => createEntryPayload(['lssAM'], forms, date, 'AB')).toThrow();
+		forms.lssAM.animalsChecked = 'N';
+		expect(() => createEntryPayload(['lssAM'], forms, date, 'AB')).toThrow();
+	});
+});

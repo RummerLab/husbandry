@@ -99,7 +99,7 @@
 			</div>
 
 			<div class="nav-tabs" role="tablist" aria-label="Recording workflows">
-				{#each ['morning', 'noon'] as shift}
+				{#each Object.keys(shifts) as shift}
 					{#if interactive}
 						<button
 							type="button"
