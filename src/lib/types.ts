@@ -117,16 +117,34 @@ export interface WaterQualityData {
 	notes: string;
 }
 
+/** Room 6 (egg room) daily check (#79). Provisional fields until the lab confirms the Room 6 record. */
+export interface Room6Data {
+	date: string;
+	initials: string;
+	/** All eggs sighted with normal appearance (Y/N); N makes concerns required. */
+	eggsChecked: '' | 'Y' | 'N';
+	/** Dead or unviable eggs removed today (0 is a valid answer). */
+	deadEggsRemoved: string;
+	temp: string;
+	salinity: string;
+	/** A number, or NOT_MEASURED. */
+	pH: string;
+	waterChange: '' | 'None' | '50%' | '75%' | 'Other';
+	concerns: string;
+	notes: string;
+}
+
 export interface FullHusbandrySubmission {
 	id: string;
 	submittedAt: string;
 	date: string;
 	initials: string;
-	modulesSubmitted: ('lss' | 'tanksEggs' | 'feeds' | 'waterQuality')[];
+	modulesSubmitted: ('lss' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6')[];
 	lss?: LSSData;
 	tanksEggs?: TanksEggsData;
 	feeds?: FeedsData;
 	waterQuality?: WaterQualityData;
+	room6?: Room6Data;
 	clientDeviceId?: string;
 }
 

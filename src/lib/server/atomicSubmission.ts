@@ -2,13 +2,15 @@ import { assertMetadataHeaders, METADATA_RANGES } from './sheetMetadata';
 import { createHash } from 'node:crypto';
 import type { sheets_v4 } from 'googleapis';
 import type { FullHusbandrySubmission } from '../types';
-import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow } from './rows';
+import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow, formatRoom6Row } from './rows';
+import { assertRoom6Headers, ROOM6_TAB } from './room6Sheet';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 function cellValue(title: string, value: string | number, column: number, width: number): sheets_v4.Schema$ExtendedValue {
 	// Keep measured quantities numeric for downstream spreadsheet calculations,
 	// while identifiers and free-text notes must never be interpreted as formulas.
-	const measured = (title === 'Feeds' || title === 'Water Quality') && column >= 2 && column < width - 1;
+	const measured = ((title === 'Feeds' || title === 'Water Quality') && column >= 2 && column < width - 1)
+		|| (title === ROOM6_TAB && column >= 3 && column <= 6);
 	if (typeof value === 'number') return { numberValue: value };
 	if (measured && /^\d+(\.\d+)?$/.test(value.trim())) return { numberValue: Number(value) };
 	return { stringValue: value };
@@ -25,6 +27,7 @@ export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadshee
 	if (submission.modulesSubmitted.includes('tanksEggs') && submission.tanksEggs) rows.push({ title: 'Tanks + Eggs', values: formatTanksEggsRow(submission.tanksEggs) });
 	if (submission.modulesSubmitted.includes('feeds') && submission.feeds) rows.push({ title: 'Feeds', values: formatFeedsRow(submission.feeds) });
 	if (submission.modulesSubmitted.includes('waterQuality') && submission.waterQuality) rows.push({ title: 'Water Quality', values: formatWaterQualityRow(submission.waterQuality) });
+	if (submission.modulesSubmitted.includes('room6') && submission.room6) rows.push({ title: ROOM6_TAB, values: formatRoom6Row(submission.room6) });
 	if (!rows.length) throw new Error('No operational rows to write');
 	const receiptId = `husbandry_${hash(submission.id)}`;
 	const receiptName = `husbandry_${hash(canonical(submission))}`;
@@ -37,6 +40,7 @@ export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadshee
 	};
 	const data = await metadata();
 	if (checkReceipt(data)) return rows.map(r => r.title);
+	if (rows.some(r => r.title === ROOM6_TAB)) await assertRoom6Headers(sheets, spreadsheetId);
 	if (options.metadataColumns) {
 		const headers = (await sheets.spreadsheets.get({ spreadsheetId, ranges: METADATA_RANGES, includeGridData: true, fields: 'sheets(properties(title),data(rowData(values(userEnteredValue))))' })).data;
 		assertMetadataHeaders(headers);
@@ -47,7 +51,9 @@ export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadshee
 		const sheetId = data.sheets?.find(s => s.properties?.title === row.title)?.properties?.sheetId;
 		if (sheetId == null) throw new Error(`Missing operational tab: ${row.title}`);
 		const operationalWidth = row.values.length;
-		const values = options.metadataColumns ? [...row.values, submission.id, submission.clientDeviceId || '', submission.submittedAt, receivedAt] : row.values;
+		// The Room 6 tab is new and always has the provenance columns (#79).
+		const withMetadata = options.metadataColumns || row.title === ROOM6_TAB;
+		const values = withMetadata ? [...row.values, submission.id, submission.clientDeviceId || '', submission.submittedAt, receivedAt] : row.values;
 		return { appendCells: { sheetId, fields: 'userEnteredValue', rows: [{ values: values.map((value, column) => ({ userEnteredValue: cellValue(row.title, value, column, operationalWidth) })) }] } };
 	});
 	requests.unshift({ addNamedRange: { namedRange: { namedRangeId: receiptId, name: receiptName, range: { sheetId: requests[0].appendCells!.sheetId!, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 } } } });

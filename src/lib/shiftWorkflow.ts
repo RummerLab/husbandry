@@ -1,13 +1,13 @@
-import type { FullHusbandrySubmission, LSSData, TanksEggsData, FeedsData, WaterQualityData } from './types';
+import type { FullHusbandrySubmission, LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data } from './types';
 import { createEmptyForms, createLSSPart } from './formDefaults';
 import { validateModule, type Module } from './validation';
 
 /** A step is one section of a shift entry. AM and PM LSS are separate halves of the same LSS module. */
-export type Step = 'lssAM' | 'lssPM' | 'tanksEggs' | 'feeds' | 'waterQuality';
-export type StepForms = { lssAM: LSSData; lssPM: LSSData; tanksEggs: TanksEggsData; feeds: FeedsData; waterQuality: WaterQualityData };
+export type Step = 'lssAM' | 'lssPM' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6';
+export type StepForms = { lssAM: LSSData; lssPM: LSSData; tanksEggs: TanksEggsData; feeds: FeedsData; waterQuality: WaterQualityData; room6: Room6Data };
 
-export const stepModule: Record<Step, Module> = { lssAM: 'lss', lssPM: 'lss', tanksEggs: 'tanksEggs', feeds: 'feeds', waterQuality: 'waterQuality' };
-export const stepLabels: Record<Step, string> = { lssAM: 'AM LSS', lssPM: 'PM LSS', tanksEggs: 'Tanks + Eggs', feeds: 'Feeds', waterQuality: 'Water Quality' };
+export const stepModule: Record<Step, Module> = { lssAM: 'lss', lssPM: 'lss', tanksEggs: 'tanksEggs', feeds: 'feeds', waterQuality: 'waterQuality', room6: 'room6' };
+export const stepLabels: Record<Step, string> = { lssAM: 'AM LSS', lssPM: 'PM LSS', tanksEggs: 'Tanks + Eggs', feeds: 'Feeds', waterQuality: 'Water Quality', room6: 'Room 6' };
 
 export const shifts = {
 	morning: { label: 'AM: LSS + WQ', steps: ['lssAM', 'waterQuality'] },
@@ -19,7 +19,7 @@ export type Shift = keyof typeof shifts;
 
 export function createEmptyStepForms(date: string, initials = ''): StepForms {
 	const forms = createEmptyForms(date, initials);
-	return { lssAM: createLSSPart('AM', date, initials), lssPM: createLSSPart('PM', date, initials), tanksEggs: forms.tanksEggs, feeds: forms.feeds, waterQuality: forms.waterQuality };
+	return { lssAM: createLSSPart('AM', date, initials), lssPM: createLSSPart('PM', date, initials), tanksEggs: forms.tanksEggs, feeds: forms.feeds, waterQuality: forms.waterQuality, room6: forms.room6 };
 }
 
 /** Fresh forms for the saved steps; unsaved steps keep their answers. */
