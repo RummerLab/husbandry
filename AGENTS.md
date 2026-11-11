@@ -175,3 +175,6 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 
 - Room 6 initial field list and a separate tab in the existing master workbook were authorised by the repository owner on 2026-11-11. Refine fields later with matching validation, formatter and header changes; no new workbook is required.
 - Header nav (#86): utilities (status, My Device History, Escalation Guide, Lab Overview) sit above the recording tablist (AM, PM, Water Quality, Room 6). Keep recording tabs as the dedicated `role="tablist"`; utility destinations stay out of that strip. Touch targets remain ≥48px.
+- Shared `SiteHeader` (#93/#94) is used on `/`, `/help`, and `/insights`. Home tabs deep-link via `/?tab=morning|noon|waterQuality|room6|history` (`src/lib/homeTab.ts`). On `/` the header keeps interactive tab buttons; on help/insights those destinations are links. Do not put lab-wide sheet data in the header.
+
+- On `/help`, pass `sticky={false}` to SiteHeader: the guide uses section fragment links (including `/help#pathway`) and its header must scroll away so it cannot cover the target heading or instructions. Recording and Insights headers remain sticky.

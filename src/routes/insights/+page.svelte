@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { WATER_QUALITY_RANGES } from '../../lib/insightsConfig';
+	import SiteHeader from '../../lib/components/SiteHeader.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -38,9 +39,10 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
+<SiteHeader highlight="insights" />
+
 <div class="page">
 	<header class="top">
-		<a class="back" href="/">← Husbandry records</a>
 		<h1>Lab Overview</h1>
 		<p class="sub">All Room 12 records from the master spreadsheet. Visible only to named lab administrators.</p>
 	</header>
@@ -229,9 +231,8 @@
 
 <style>
 	.page { box-sizing: border-box; width: 100%; min-width: 0; max-width: 1040px; margin: 0 auto; padding: 1.25rem 1rem 3rem; display: flex; flex-direction: column; gap: 1rem; font-family: var(--font); color: var(--ink); }
-	.top h1 { margin: 0.35rem 0 0.2rem; font-size: 1.5rem; }
+	.top h1 { margin: 0 0 0.2rem; font-size: 1.5rem; }
 	.sub, .meta, .hint { color: var(--muted); font-size: 0.85rem; margin: 0; }
-	.back { color: var(--accent); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
 	.card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 1rem; min-width: 0; }
 	.card h2 { margin: 0 0 0.75rem; font-size: 1.05rem; }
 	.card h3 { margin: 1rem 0 0.5rem; font-size: 0.95rem; }

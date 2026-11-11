@@ -5,6 +5,7 @@
 		LAST_REVIEWED, NEXT_REVIEW_DUE, WATER_QUALITY_LIMITS, WATER_QUALITY_ROOMS, aquiSVolumeMl, reviewStatus, longDate, type RoomId
 	} from '../../lib/help/escalationGuide';
 	import { ESCALATION_TRANSCRIPT } from '../../lib/help/escalationTranscript';
+	import SiteHeader from '../../lib/components/SiteHeader.svelte';
 
 	const today = room12Date();
 	const review = reviewStatus(today);
@@ -18,9 +19,10 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
+<SiteHeader highlight="help" sticky={false} />
+
 <div class="page">
 	<header class="top">
-		<a class="back" href="/">← Husbandry records</a>
 		<h1>Animal Welfare Escalation Guide</h1>
 		<p class="sub">Epaulette sharks (<em>Hemiscyllium ocellatum</em>) · Room 12 (breeding colony) and Room 6 (egg room) · What to look for, who to tell and what to do.</p>
 		<p class="reviewed">
@@ -287,8 +289,7 @@
 
 <style>
 	.page { max-width: 880px; margin: 0 auto; padding: 1rem 1rem 3rem; display: flex; flex-direction: column; gap: 1rem; }
-	.top h1 { margin: 0.4rem 0 0.2rem; font-size: 1.5rem; }
-	.back { color: var(--accent-ink); text-decoration: none; font-weight: 600; display: inline-block; min-height: 48px; line-height: 48px; }
+	.top h1 { margin: 0; font-size: 1.5rem; }
 	.sub { margin: 0; color: var(--ink-2); }
 	.reviewed { margin: 0.5rem 0 0; font-size: 0.9rem; color: var(--muted); }
 	.card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem 1.1rem; min-width: 0; }
