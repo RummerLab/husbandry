@@ -1,4 +1,4 @@
-import type { LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../types';
+import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data } from '../types';
 import { ROOM12_TANKS } from '../tanksConfig';
 import { NOT_MEASURED } from '../validation';
 /** The animal welfare answer shares Col 20 so the LSS tab keeps its 21 operational columns. */
@@ -208,5 +208,21 @@ export function formatWaterQualityRow(data: WaterQualityData): (string | number)
 		(data.isWeeklyCheck ? measured(data.po4A) : ''),                   // Col 21: Po4 A
 		(data.isWeeklyCheck ? measured(data.po4B) : ''),                   // Col 22: Po4 B
 		data.notes || ''                    // Col 23: Notes
+	];
+}
+
+/** Room 6 operational columns (ROOM6_OPERATIONAL_HEADERS); "Not measured" pH exports as a blank cell. */
+export function formatRoom6Row(data: Room6Data): (string | number)[] {
+	return [
+		data.date,                          // Col 1: Date
+		data.initials || '',                // Col 2: Initials
+		data.eggsChecked || '',             // Col 3: All eggs sighted & normal
+		data.deadEggsRemoved || '',         // Col 4: Dead eggs removed
+		data.temp || '',                    // Col 5: Temp (°C)
+		data.salinity || '',                // Col 6: Salinity (ppt)
+		measured(data.pH),                  // Col 7: pH
+		data.waterChange || '',             // Col 8: Water change
+		data.concerns || '',                // Col 9: Concerns
+		data.notes || ''                    // Col 10: Notes
 	];
 }

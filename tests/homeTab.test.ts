@@ -7,6 +7,7 @@ it('parses known home tabs from the query string', () => {
 	expect(parseHomeTab('?tab=noon')).toBe('noon');
 	expect(parseHomeTab('?tab=offDay')).toBe('offDay');
 	expect(parseHomeTab('?tab=waterQuality')).toBe('waterQuality');
+	expect(parseHomeTab('?tab=room6')).toBe('room6');
 });
 
 it('rejects unknown or missing tabs', () => {

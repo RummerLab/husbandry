@@ -105,6 +105,7 @@
 									{:else if mod === 'tanksEggs'}Tanks & Eggs
 									{:else if mod === 'feeds'}Feeds
 									{:else if mod === 'waterQuality'}Water Quality
+									{:else if mod === 'room6'}Room 6
 									{:else}{mod}{/if}
 								</span>
 							{/each}
