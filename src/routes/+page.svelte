@@ -6,8 +6,8 @@
 	import { getModuleIssues, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../lib/waterQualityGuide';
-	import { onMount, tick } from 'svelte';
-	import { replaceState } from '$app/navigation';
+	import { onMount, tick, untrack } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type {
 		LSSData,
@@ -21,7 +21,7 @@
 		FullHusbandrySubmission
 	} from '../lib/types';
 	import { getSavedInitials, setSavedInitials, queueSubmission, getLocalHistory } from '../lib/storage';
-	import { parseHomeTab, type HomeTab } from '../lib/homeTab';
+	import { parseHomeTab, createHomeTabObserver, homeTabUrl, roomForTab, type HomeTab, type RecordingRoom, type Room12Tab } from '../lib/homeTab';
 	import LSSForm from '../lib/components/LSSForm.svelte';
 	import TanksEggsForm from '../lib/components/TanksEggsForm.svelte';
 	import FeedsForm from '../lib/components/FeedsForm.svelte';
@@ -37,13 +37,17 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+	let tabUrl = $derived(homeTabUrl(page));
 
 	// Today's date YYYY-MM-DD
 	const todayStr = room12Date();
 
 	// Top level state
-	const initialTab = parseHomeTab(page.url.search) ?? 'morning';
+	const initialSearch = homeTabUrl(page).search;
+	const initialTab = parseHomeTab(initialSearch) ?? 'morning';
 	let activeTab = $state<HomeTab>(initialTab);
+	let selectedRoom = $state<RecordingRoom>(roomForTab(initialTab) ?? 'room12');
+	let lastRoom12Tab = $state<Room12Tab>(initialTab !== 'room6' && initialTab !== 'history' ? initialTab : 'morning');
 	let currentStep = $state<number>(1);
 	let validationRoot = $state<HTMLElement>();
 	let showValidation = $state(false);
@@ -95,7 +99,7 @@
 		handleDateChange(room12Date());
 		// Off-days open on the Off-day tab so volunteers see only the daily minimum,
 		// unless a deep link (/?tab=…) asked for a specific tab.
-		if (isOffDay(selectedDate) && !parseHomeTab(page.url.search)) selectTab('offDay');
+		if (isOffDay(selectedDate) && !parseHomeTab(tabUrl.search)) selectTab('offDay');
 		try {
 			const saved = getSavedInitials();
 			if (saved) { userInitials = saved; applyInitialsToAll(saved); }
@@ -161,25 +165,38 @@
 		if (currentStep < shiftSteps.length) jumpToStep(currentStep + 1);
 	}
 
-	function selectTab(tab: HomeTab) {
+	function applyTab(tab: HomeTab) {
 		if (isSubmitting) return;
 		showValidation = false;
 		activeTab = tab;
+		const room = roomForTab(tab);
+		if (room) selectedRoom = room;
+		if (room === 'room12') lastRoom12Tab = tab as Room12Tab;
 		if (tab in shifts) {
 			selectedShift = tab as Shift;
 			currentStep = 1;
 		}
-		const next = new URL(page.url.href);
+	}
+
+	async function selectTab(tab: HomeTab) {
+		if (isSubmitting) return;
+		applyTab(tab);
+		const next = new URL(tabUrl.href);
 		if (next.searchParams.get('tab') !== tab) {
 			next.searchParams.set('tab', tab);
-			replaceState(`${next.pathname}${next.search}${next.hash}`, {});
+			try {
+				await goto(`${next.pathname}${next.search}${next.hash}`, { state: page.state, shallow: true, replace: true, reset: false });
+			} catch {
+				// URL synchronisation must not undo an immediate tab switch or discard drafts.
+			}
 		}
 	}
 
-	// Deep links from /help and /insights use `/?tab=history|morning|noon|offDay|waterQuality`.
+	// URL -> view is separate from clicks -> URL. Never react to activeTab against an old URL (#98).
+	const observeTabUrl = createHomeTabObserver(initialSearch, applyTab);
 	$effect(() => {
-		const fromUrl = parseHomeTab(page.url.search);
-		if (fromUrl && fromUrl !== activeTab) selectTab(fromUrl);
+		const search = tabUrl.search;
+		untrack(() => observeTabUrl(search));
 	});
 
 
@@ -303,7 +320,7 @@
 {/snippet}
 
 <div class="app-layout">
-	<SiteHeader highlight={activeTab} {isOnline} {pendingCount} onSelectTab={selectTab} />
+	<SiteHeader room={selectedRoom} room12Tab={lastRoom12Tab} highlight={activeTab} {isOnline} {pendingCount} onSelectTab={selectTab} />
 
 	<main class="main-content" bind:this={validationRoot}>
 		<IosInstallHint />
@@ -1068,12 +1085,6 @@
 		color: #8d9aae;
 	}
 
-	.app-footer code {
-		color: #7dd3fc;
-		background: rgba(255, 255, 255, 0.06);
-		padding: 0.15rem 0.4rem;
-		border-radius: 4px;
-	}
 
 	@media (max-width: 640px) {
 		.step-label {

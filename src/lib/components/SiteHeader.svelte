@@ -2,13 +2,15 @@
 	import { onMount } from 'svelte';
 	import { shifts, type Shift } from '../shiftWorkflow';
 	import { getLocalHistory } from '../storage';
-	import type { HomeTab } from '../homeTab';
+	import { roomForTab, type HomeTab, type RecordingRoom, type Room12Tab } from '../homeTab';
 
 	export type HeaderHighlight = HomeTab | 'help' | 'insights';
 
 	interface Props {
 		/** Which destination is current (utility or recording tab). */
 		highlight: HeaderHighlight;
+		room?: RecordingRoom;
+		room12Tab?: Room12Tab;
 		/** When provided, home tabs use buttons instead of full-page links. */
 		onSelectTab?: (tab: HomeTab) => void;
 		isOnline?: boolean;
@@ -17,7 +19,7 @@
 		sticky?: boolean;
 	}
 
-	let { highlight, onSelectTab, isOnline, pendingCount, sticky = true }: Props = $props();
+	let { highlight, onSelectTab, isOnline, pendingCount, sticky = true, room, room12Tab = 'morning' }: Props = $props();
 
 	let localOnline = $state(true);
 	let localPending = $state(0);
@@ -28,7 +30,9 @@
 	let menuButton: HTMLButtonElement;
 	let headerElement: HTMLElement;
 	const utilityLabels = { waterQuality: 'Water Quality', room6: 'Room 6', history: 'My Device History', help: 'Escalation Guide', insights: 'Lab Overview' };
-	let currentLabel = $derived(highlight in shifts ? shifts[highlight as Shift].label : utilityLabels[highlight as keyof typeof utilityLabels]);
+	let currentRoom = $derived(room ?? (highlight === 'help' || highlight === 'insights' ? null : roomForTab(highlight)));
+	let destinationLabel = $derived(highlight in shifts ? shifts[highlight as Shift].label : utilityLabels[highlight as keyof typeof utilityLabels]);
+	let currentLabel = $derived(currentRoom ? `${currentRoom === 'room6' ? 'Room 6' : 'Room 12'} · ${highlight === 'room6' ? 'Egg room' : destinationLabel}` : destinationLabel);
 
 	function selectTab(tab: HomeTab) {
 		onSelectTab?.(tab);
@@ -98,7 +102,7 @@
 			</a>
 			<div class="room-pill">
 				<span class="room-dot"></span>
-				<span>Room 12 Records</span>
+				<span>{currentRoom === 'room6' ? 'Room 6 · Egg room' : currentRoom === 'room12' ? 'Room 12 · Breeding colony' : 'Choose a room'}</span>
 			</div>
 		</div>
 
@@ -141,7 +145,22 @@
 				</a>
 			</div>
 
-			<div class="nav-tabs" role="tablist" aria-label="Recording workflows">
+			<div class="room-switcher" role="group" aria-label="Recording room">
+				{#if interactive}
+					<button type="button" class:active={currentRoom === 'room12'} aria-pressed={currentRoom === 'room12'} onclick={() => selectTab(room12Tab)}>
+						<strong>Room 12</strong><span>Breeding colony</span>
+					</button>
+					<button type="button" class:active={currentRoom === 'room6'} aria-pressed={currentRoom === 'room6'} onclick={() => selectTab('room6')}>
+						<strong>Room 6</strong><span>Egg room</span>
+					</button>
+				{:else}
+					<a href={`/?tab=${room12Tab}`} onclick={() => menuOpen = false}><strong>Room 12</strong><span>Breeding colony</span></a>
+					<a href="/?tab=room6" onclick={() => menuOpen = false}><strong>Room 6</strong><span>Egg room</span></a>
+				{/if}
+			</div>
+			{#if currentRoom === 'room12'}
+
+			<div class="nav-tabs" role="tablist" aria-label="Room 12 recording workflows">
 				{#each Object.keys(shifts) as shift}
 					{#if interactive}
 						<button
@@ -188,6 +207,10 @@
 						💧 Water Quality
 					</a>
 				{/if}
+			</div>
+			{:else if currentRoom === 'room6'}
+			<div class="nav-tabs" role="tablist" aria-label="Room 6 recording">
+
 				{#if interactive}
 					<button
 						type="button"
@@ -197,7 +220,7 @@
 						class:active={highlight === 'room6'}
 						onclick={() => selectTab('room6')}
 					>
-						🥚 Room 6
+						Egg room records
 					</button>
 				{:else}
 					<a onclick={() => menuOpen = false}
@@ -207,16 +230,30 @@
 						class:active={highlight === 'room6'}
 						href="/?tab=room6"
 					>
-						🥚 Room 6
+						Egg room records
 					</a>
 				{/if}
 			</div>
+			{/if}
+
 		</div>
 	</div>
 	<div class="navy-bar"></div>
 </header>
 
 <style>
+	.room-switcher { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+	.room-switcher button, .room-switcher a {
+		min-height: 48px; min-width: 0; display: flex; flex-direction: column; justify-content: center;
+		padding: 0.45rem 0.75rem; border: 1px solid var(--hairline); border-radius: 8px;
+		background: var(--surface); color: var(--ink-2); text-align: left; font: inherit;
+		text-decoration: none; cursor: pointer;
+	}
+	.room-switcher span { font-size: 0.72rem; }
+	.room-switcher strong { font-size: 0.86rem; }
+	.room-switcher .active { border-color: var(--accent); background: var(--surface-2); color: var(--accent); }
+	.room-switcher button:focus-visible, .room-switcher a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
 	.mobile-bar { display: none; }
 
 	.site-header {
