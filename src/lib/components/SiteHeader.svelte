@@ -24,6 +24,32 @@
 	let showOnline = $derived(isOnline ?? localOnline);
 	let showPending = $derived(pendingCount ?? localPending);
 	let interactive = $derived(typeof onSelectTab === 'function');
+	let menuOpen = $state(false);
+	let menuButton: HTMLButtonElement;
+	let headerElement: HTMLElement;
+	const utilityLabels = { waterQuality: 'Water Quality', room6: 'Room 6', history: 'My Device History', help: 'Escalation Guide', insights: 'Lab Overview' };
+	let currentLabel = $derived(highlight in shifts ? shifts[highlight as Shift].label : utilityLabels[highlight as keyof typeof utilityLabels]);
+
+	function selectTab(tab: HomeTab) {
+		onSelectTab?.(tab);
+		if (menuOpen) {
+			menuOpen = false;
+			menuButton?.focus();
+		}
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && menuOpen && window.matchMedia('(max-width: 640px)').matches) {
+			event.preventDefault();
+			menuOpen = false;
+			menuButton?.focus();
+		}
+	}
+
+	function handleOutsideClick(event: MouseEvent) {
+		if (menuOpen && event.target instanceof Node && !headerElement?.contains(event.target)) menuOpen = false;
+	}
+
 
 	onMount(() => {
 		const refresh = () => {
@@ -46,7 +72,24 @@
 	});
 </script>
 
-<header class="site-header" class:sticky>
+<svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
+
+<header class="site-header" class:sticky bind:this={headerElement}>
+	<div class="mobile-bar">
+		<a class="mobile-brand" href="/" aria-label="RummerLab Husbandry home">
+			<img src="/rummerlab_logo_transparent.png" alt="RummerLab" width="64" height="38" />
+		</a>
+		<div class="mobile-context">
+			<strong class="mobile-destination">{currentLabel}</strong>
+			<span class="mobile-status" class:offline={!showOnline}>
+				<span class="status-dot" aria-hidden="true"></span>
+				{showOnline ? 'Online' : 'Offline'} · {showPending} pending
+			</span>
+		</div>
+		<button type="button" class="menu-toggle" aria-expanded={menuOpen} aria-controls="site-navigation" bind:this={menuButton} onclick={() => menuOpen = !menuOpen}>
+			{menuOpen ? 'Close' : 'Menu'} <span aria-hidden="true">{menuOpen ? '×' : '☰'}</span>
+		</button>
+	</div>
 	<div class="header-container">
 		<div class="brand-group">
 			<a class="brand" href="/" aria-label="RummerLab Husbandry home">
@@ -59,7 +102,7 @@
 			</div>
 		</div>
 
-		<div class="nav-controls">
+		<div class="nav-controls" id="site-navigation" class:menu-open={menuOpen}>
 			<div class="nav-utilities">
 				<div class="network-badge" class:online={showOnline} class:offline={!showOnline}>
 					<span class="status-dot"></span>
@@ -71,16 +114,16 @@
 						class="nav-tab utility-tab"
 						class:active={highlight === 'history'}
 						aria-pressed={highlight === 'history'}
-						onclick={() => onSelectTab?.('history')}
+						onclick={() => selectTab('history')}
 					>
 						📱 My Device History
 					</button>
 				{:else}
-					<a class="nav-tab utility-tab" class:active={highlight === 'history'} href="/?tab=history" aria-current={highlight === 'history' ? 'page' : undefined}>
+					<a onclick={() => menuOpen = false} class="nav-tab utility-tab" class:active={highlight === 'history'} href="/?tab=history" aria-current={highlight === 'history' ? 'page' : undefined}>
 						📱 My Device History
 					</a>
 				{/if}
-				<a
+				<a onclick={() => menuOpen = false}
 					class="nav-tab help-link"
 					class:active={highlight === 'help'}
 					href="/help"
@@ -88,7 +131,7 @@
 				>
 					📘 Escalation Guide
 				</a>
-				<a
+				<a onclick={() => menuOpen = false}
 					class="nav-tab help-link"
 					class:active={highlight === 'insights'}
 					href="/insights"
@@ -107,12 +150,12 @@
 							aria-selected={highlight === shift}
 							class="nav-tab"
 							class:active={highlight === shift}
-							onclick={() => onSelectTab?.(shift as Shift)}
+							onclick={() => selectTab(shift as Shift)}
 						>
 							{shifts[shift as Shift].label}
 						</button>
 					{:else}
-						<a
+						<a onclick={() => menuOpen = false}
 							role="tab"
 							aria-selected={highlight === shift}
 							class="nav-tab"
@@ -130,12 +173,12 @@
 						aria-selected={highlight === 'waterQuality'}
 						class="nav-tab"
 						class:active={highlight === 'waterQuality'}
-						onclick={() => onSelectTab?.('waterQuality')}
+						onclick={() => selectTab('waterQuality')}
 					>
 						💧 Water Quality
 					</button>
 				{:else}
-					<a
+					<a onclick={() => menuOpen = false}
 						role="tab"
 						aria-selected={highlight === 'waterQuality'}
 						class="nav-tab"
@@ -152,12 +195,12 @@
 						aria-selected={highlight === 'room6'}
 						class="nav-tab"
 						class:active={highlight === 'room6'}
-						onclick={() => onSelectTab?.('room6')}
+						onclick={() => selectTab('room6')}
 					>
 						🥚 Room 6
 					</button>
 				{:else}
-					<a
+					<a onclick={() => menuOpen = false}
 						role="tab"
 						aria-selected={highlight === 'room6'}
 						class="nav-tab"
@@ -174,6 +217,8 @@
 </header>
 
 <style>
+	.mobile-bar { display: none; }
+
 	.site-header {
 		position: relative;
 		z-index: 50;
@@ -368,20 +413,38 @@
 	}
 
 	@media (max-width: 640px) {
-		.room-pill {
-			display: none;
+		.mobile-bar {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			padding: 0.5rem 0.75rem;
 		}
-		.nav-controls,
-		.nav-utilities,
-		.nav-tabs {
-			width: 100%;
+		.mobile-brand { display: flex; align-items: center; min-height: 48px; flex-shrink: 0; }
+		.mobile-brand img { width: 64px; height: 38px; object-fit: contain; }
+		.mobile-context { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+		.mobile-destination { font-size: 0.82rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.mobile-status { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--good); }
+		.mobile-status .status-dot { background: currentColor; flex-shrink: 0; }
+		.mobile-status.offline { color: var(--warn); }
+		.menu-toggle {
+			display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+			min-height: 48px; min-width: 76px; flex-shrink: 0; padding: 0.5rem 0.65rem;
+			border: 1px solid var(--hairline); border-radius: 8px; background: var(--surface-2);
+			color: var(--ink); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
 		}
-		.nav-utilities .nav-tab,
-		.nav-tabs .nav-tab {
-			flex: 1 1 auto;
-			min-height: 48px;
-			padding: 0.4rem 0.35rem;
-			font-size: 0.78rem;
+		.menu-toggle:focus-visible, .mobile-brand:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+		.header-container { padding: 0; gap: 0; }
+		.brand-group { display: none; }
+		.nav-controls { display: none; }
+		.nav-controls.menu-open {
+			display: flex; flex: 1 1 100%; width: 100%; box-sizing: border-box;
+			padding: 0 0.75rem 0.75rem; max-height: calc(100dvh - 68px); overflow-y: auto;
+			overscroll-behavior: contain;
+		}
+		.nav-utilities, .nav-tabs { width: 100%; box-sizing: border-box; }
+		.nav-utilities .network-badge { display: none; }
+		.nav-utilities .nav-tab, .nav-tabs .nav-tab {
+			flex: 1 1 auto; min-height: 48px; padding: 0.4rem 0.5rem; font-size: 0.8rem;
 		}
 	}
 </style>

@@ -179,3 +179,5 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 
 - On `/help`, pass `sticky={false}` to SiteHeader: the guide uses section fragment links (including `/help#pathway`) and its header must scroll away so it cannot cover the target heading or instructions. Recording and Insights headers remain sticky.
 - Off-day tab (#78, approved by the repo owner 2026-11-11): `shifts.offDay` = AM LSS → WQ, sharing the AM LSS and WQ drafts with the AM tab, so its required fields are exactly the AM half (welfare check + AM tank checks). PM items (filters, skimmer, hygiene) are not required on off-days. The app opens on this tab when today is an off-day; the AM tab shows a pointer to it on off-days.
+
+- Mobile header (#97): at <=640px show a compact destination/status bar and Menu disclosure; full navigation is hidden until opened. Close it after selection, outside click or Escape (return focus to Menu). Preserve all workflow deep links, >=48px touch controls, desktop navigation and the non-sticky `/help` header.
