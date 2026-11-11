@@ -11,7 +11,8 @@ export function planRoom6Setup(data) {
 	if (!sheet) {
 		return [{ addSheet: { properties: { title: TAB, gridProperties: { frozenRowCount: 1, columnCount: HEADERS.length } } } }];
 	}
-	const values = sheet.data?.[0]?.rowData?.[0]?.values || [];
+	if (!sheet.data) throw new Error(`'${TAB}' header data was not read; refusing to plan changes`);
+	const values = sheet.data[0]?.rowData?.[0]?.values || [];
 	const current = values.map(v => v?.userEnteredValue?.stringValue ?? (v?.userEnteredValue ? '?' : ''));
 	if (HEADERS.every((label, i) => current[i] === label)) return [];
 	if (current.some(Boolean)) throw new Error(`'${TAB}' already has different headers; inspect manually`);
@@ -22,6 +23,13 @@ export function planRoom6Setup(data) {
 	];
 }
 
+/** Establish that a tab is absent before planning creation. Never turn a failed header read into empty headers. */
+export async function readRoom6Setup(sheets, spreadsheetId) {
+	const metadata = (await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets(properties)' })).data;
+	if (!metadata.sheets?.some(sheet => sheet.properties?.title === TAB)) return metadata;
+	return (await sheets.spreadsheets.get({ spreadsheetId, includeGridData: true, ranges: [`'${TAB}'!1:1`], fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
+}
+
 async function main() {
 	const apply = process.argv.includes('--apply');
 	if (process.argv.slice(2).some(arg => arg !== '--apply')) throw new Error('Usage: node --env-file=.env scripts/setup-room6.mjs [--apply]');
@@ -30,7 +38,7 @@ async function main() {
 	const spreadsheetId = process.env.GOOGLE_SHEET_ID?.trim();
 	if (!email || !key || !spreadsheetId) throw new Error('Service account credentials and GOOGLE_SHEET_ID are required');
 	const sheets = google.sheets({ version: 'v4', auth: new google.auth.JWT({ email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] }) });
-	const read = async () => (await sheets.spreadsheets.get({ spreadsheetId, includeGridData: true, ranges: [`'${TAB}'!1:1`], fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' }).catch(async () => sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets(properties)' }))).data;
+	const read = () => readRoom6Setup(sheets, spreadsheetId);
 	let requests = planRoom6Setup(await read());
 	console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', operations: requests.length }, null, 2));
 	if (!apply || !requests.length) { if (!apply) console.log('No writes performed. Re-run with --apply.'); return; }

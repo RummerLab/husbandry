@@ -89,7 +89,7 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	if (module === 'room6') {
 		enumField('eggsChecked', ['Y', 'N']);
 		if (value.eggsChecked === 'N') require('concerns');
-		if (!/^\d+$/.test(String(value.deadEggsRemoved ?? '').trim())) reject('deadEggsRemoved', 'room6: deadEggsRemoved must be a whole number (0 if none)');
+		if (!text(value.deadEggsRemoved) || !/^\d+$/.test(value.deadEggsRemoved.trim()) || !Number.isSafeInteger(Number(value.deadEggsRemoved))) reject('deadEggsRemoved', 'room6: deadEggsRemoved must be a whole number (0 if none)');
 		for (const key of ['temp', 'salinity']) if (!numeric(value[key])) reject(key, `room6: ${key} invalid measurement`);
 		if (value.pH !== NOT_MEASURED && (!numeric(value.pH) || Number(value.pH) > 14)) reject('pH', 'room6: pH invalid measurement');
 		enumField('waterChange', ['None', '50%', '75%', 'Other']);

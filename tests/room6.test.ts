@@ -6,7 +6,7 @@ import { NOT_MEASURED, validateModule, validateSubmission } from '../src/lib/val
 import { formatRoom6Row } from '../src/lib/server/rows';
 import { writeAtomicSubmission } from '../src/lib/server/atomicSubmission';
 import { ROOM6_HEADERS, ROOM6_OPERATIONAL_HEADERS, ROOM6_TAB } from '../src/lib/server/room6Sheet';
-import { HEADERS, TAB, planRoom6Setup } from '../scripts/setup-room6.mjs';
+import { HEADERS, TAB, planRoom6Setup, readRoom6Setup } from '../scripts/setup-room6.mjs';
 import type { Room6Data } from '../src/lib/types';
 
 const date = '2026-11-11';
@@ -101,5 +101,40 @@ describe('Room 6 atomic write', () => {
 		expect(missing.batchUpdate).not.toHaveBeenCalled();
 		const wrong = fakeSheets(['Date', 'Initials']);
 		await expect(writeAtomicSubmission(wrong.client, 'sheet', submission())).rejects.toThrow('setup-room6');
+	});
+});
+
+describe('Room 6 review regressions', () => {
+	it.each([[1], 1, '9'.repeat(400), '9007199254740992'])('rejects malformed or unrepresentable dead-egg count %j', deadEggsRemoved => {
+		expect(validateModule('room6', { ...complete(), deadEggsRemoved }).join()).toContain('deadEggsRemoved');
+	});
+
+	it('refuses to plan a header overwrite when grid data was not fetched', () => {
+		expect(() => planRoom6Setup({ sheets: [{ properties: { title: TAB, sheetId: 9 } }] })).toThrow('header data was not read');
+	});
+
+	it('initialises an explicitly fetched empty header row', () => {
+		const requests = planRoom6Setup({ sheets: [{ properties: { title: TAB, sheetId: 9 }, data: [{}] }] });
+		expect(requests[1].updateCells.rows[0].values.map(cell => cell.userEnteredValue.stringValue)).toEqual(HEADERS);
+	});
+
+	it('propagates an existing tab header-read failure instead of planning a write', async () => {
+		const get = vi.fn()
+			.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: TAB, sheetId: 9 } }] } })
+			.mockRejectedValueOnce(new Error('Temporary read failure'));
+		await expect(readRoom6Setup({ spreadsheets: { get } }, 'sheet')).rejects.toThrow('Temporary read failure');
+		expect(get).toHaveBeenCalledTimes(2);
+	});
+
+	it('creates only when metadata confirms absence and reads headers for an existing tab', async () => {
+		const absent = { sheets: [] };
+		const get = vi.fn().mockResolvedValueOnce({ data: absent });
+		expect(planRoom6Setup(await readRoom6Setup({ spreadsheets: { get } }, 'sheet'))[0]).toHaveProperty('addSheet');
+		expect(get).toHaveBeenCalledTimes(1);
+		const existing = { sheets: [{ properties: { title: TAB, sheetId: 9 }, data: [{ rowData: [{ values: [{ userEnteredValue: { stringValue: 'Other schema' } }] }] }] }] };
+		get.mockResolvedValueOnce({ data: existing }).mockResolvedValueOnce({ data: existing });
+		expect(() => planRoom6Setup(existing)).toThrow('different headers');
+		const read = await readRoom6Setup({ spreadsheets: { get } }, 'sheet');
+		expect(() => planRoom6Setup(read)).toThrow('different headers');
 	});
 });
