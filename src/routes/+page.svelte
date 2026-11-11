@@ -269,12 +269,25 @@
 			</div>
 
 			<div class="nav-controls">
-				<div class="network-badge" class:online={isOnline} class:offline={!isOnline}>
-					<span class="status-dot"></span>
-					<span>{isOnline ? 'Online' : 'Offline Mode'} · {pendingCount} pending</span>
+				<div class="nav-utilities">
+					<div class="network-badge" class:online={isOnline} class:offline={!isOnline}>
+						<span class="status-dot"></span>
+						<span>{isOnline ? 'Online' : 'Offline Mode'} · {pendingCount} pending</span>
+					</div>
+					<button
+						type="button"
+						class="nav-tab utility-tab"
+						class:active={activeTab === 'history'}
+						aria-pressed={activeTab === 'history'}
+						onclick={() => selectTab('history')}
+					>
+						📱 My Device History
+					</button>
+					<a class="nav-tab help-link" href="/help">📘 Escalation Guide</a>
+					<a class="nav-tab help-link" href="/insights">📊 Lab Overview</a>
 				</div>
 
-				<div class="nav-tabs" role="tablist">
+				<div class="nav-tabs" role="tablist" aria-label="Recording workflows">
 					{#each ['morning', 'noon'] as shift}
 						<button type="button" role="tab" aria-selected={activeTab === shift} class="nav-tab" class:active={activeTab === shift} onclick={() => selectTab(shift as Shift)}>
 							{shifts[shift as Shift].label}
@@ -290,19 +303,7 @@
 					>
 						💧 Water Quality
 					</button>
-					<button
-						type="button"
-						role="tab"
-						aria-selected={activeTab === 'history'}
-						class="nav-tab"
-						class:active={activeTab === 'history'}
-						onclick={() => selectTab('history')}
-					>
-						📱 My Device History
-					</button>
 				</div>
-				<a class="nav-tab help-link" href="/help">📘 Escalation Guide</a>
-				<a class="nav-tab help-link" href="/insights">📊 Lab Overview</a>
 			</div>
 		</div>
 		<div class="navy-bar"></div>
@@ -619,9 +620,18 @@
 
 	.nav-controls {
 		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.55rem;
+		flex: 1 1 18rem;
+		min-width: 0;
+	}
+
+	.nav-utilities {
+		display: flex;
 		align-items: center;
-		gap: 0.75rem;
 		flex-wrap: wrap;
+		gap: 0.45rem;
 	}
 
 	.network-badge {
@@ -670,14 +680,21 @@
 		border: 1px solid var(--hairline);
 	}
 
-	.nav-tab.help-link {
+	.nav-tab.help-link,
+	.nav-tab.utility-tab {
 		border: 1px solid var(--hairline);
 		background: var(--surface);
-		min-height: 40px;
+		min-height: 48px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		text-decoration: none;
+	}
+
+	.nav-tab.utility-tab.active {
+		background: #ffffff;
+		color: var(--accent);
+		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.08);
 	}
 
 	.nav-tab {
@@ -1183,11 +1200,13 @@
 			display: none;
 		}
 		.nav-controls,
+		.nav-utilities,
 		.nav-tabs {
 			width: 100%;
 		}
-		.nav-tab {
-			flex: 1;
+		.nav-utilities .nav-tab,
+		.nav-tabs .nav-tab {
+			flex: 1 1 auto;
 			min-height: 48px;
 			padding: 0.4rem 0.35rem;
 			font-size: 0.78rem;

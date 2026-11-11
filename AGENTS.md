@@ -167,3 +167,4 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - WQ "Not measured" (lab decision 2026-11-11): routine pH and every weekly test accept the explicit `NOT_MEASURED` answer (e.g. pH by MARFU, PO4 only with a SpinTouch); it exports as a blank cell. Temperature and salinity always need a number. It is an answer, not a skip: empty fields still fail validation.
 
 - WQ Not measured controls act on one side at a time (#82); never overwrite the other side's reading. Mixed numeric/unmeasured pairs are valid and export the measured value plus a blank cell. Keep the controls at least 48px tall.
+- Header nav (#86): utilities (status, My Device History, Escalation Guide, Lab Overview) sit above the recording tablist (AM, PM, Water Quality). Keep recording tabs as the dedicated `role="tablist"`; utility destinations stay out of that strip. Touch targets remain ≥48px.
