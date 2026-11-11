@@ -12,7 +12,7 @@
 	let roomId = $state<RoomId>('room12');
 	let guide = $derived(guideSnapshot(today, roomId));
 	let review = $derived(guide.review);
-	let month = $derived(guide.month);
+	let currentSetpoint = $derived(guide.currentSetpoint);
 	let room = $derived(guide.room);
 
 	onMount(() => {
@@ -248,7 +248,7 @@
 				<table class="compact">
 					<tbody>
 						{#each TEMPERATURE_SETPOINTS as s}
-							<tr class:current={month >= s.from && month <= s.to}><td>{s.months}</td><td>{s.celsius} °C{#if month >= s.from && month <= s.to} <span class="tag">now</span>{/if}</td></tr>
+							<tr class:current={currentSetpoint === s}><td>{s.months}</td><td>{s.celsius} °C{#if currentSetpoint === s} <span class="tag">now</span>{/if}</td></tr>
 						{/each}
 					</tbody>
 				</table>
