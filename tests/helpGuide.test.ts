@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { VET_CONTACTS, aquiSVolumeMl, reviewStatus, LAST_REVIEWED, NEXT_REVIEW_DUE, ESCALATION_VIDEO } from '../src/lib/help/escalationGuide';
+import { VET_CONTACTS, aquiSVolumeMl, reviewStatus, guideSnapshot, LAST_REVIEWED, NEXT_REVIEW_DUE, ESCALATION_VIDEO } from '../src/lib/help/escalationGuide';
 import { ESCALATION_TRANSCRIPT } from '../src/lib/help/escalationTranscript';
 import { createOfflineCache } from '../src/lib/offlineCache';
 
@@ -14,6 +14,18 @@ it('flags the guide once it passes its review date', () => {
 	expect(reviewStatus(NEXT_REVIEW_DUE).overdue).toBe(false);
 	expect(reviewStatus('2027-11-11')).toEqual({ overdue: true, daysUntilDue: -1 });
 	expect(Date.parse(NEXT_REVIEW_DUE)).toBeGreaterThan(Date.parse(LAST_REVIEWED));
+	expect(guideSnapshot('2026-07-15', 'room6')).toMatchObject({
+		month: 7,
+		review: { overdue: false },
+		room: { id: 'room6' },
+		currentSetpoint: { celsius: 22 }
+	});
+	expect(guideSnapshot('2027-11-11', 'room12')).toMatchObject({
+		month: 11,
+		review: { overdue: true, daysUntilDue: -1 },
+		room: { id: 'room12' },
+		currentSetpoint: { celsius: 26 }
+	});
 });
 
 it('links the vet video and keeps a complete, ordered transcript', () => {

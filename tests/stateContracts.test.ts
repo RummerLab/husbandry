@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { persistNewSubmission, syncPendingSubmissions, saveLocalSubmission, getLocalHistory, migrateLocalHistory } from '../src/lib/storage';
-import { readQueueSnapshot, observeDeviceQueue } from '../src/lib/queueSnapshot';
+import { readQueueSnapshot, observeDeviceQueue, snapshotTone } from '../src/lib/queueSnapshot';
 import { pauseSync, getSyncPause, resumeAuthenticatedSync } from '../src/lib/syncPause';
-import { prepareSave } from '../src/lib/saveState';
-import { destinationForTab, destinationTab, shiftDestination } from '../src/lib/entryDestination';
+import { prepareSave, completeSave, failSave } from '../src/lib/saveState';
+import { destinationForTab, destinationTab, shiftDestination, room6Destination, resolveInitialTab, destinationSteps, activeDestinationStep } from '../src/lib/entryDestination';
 import { createEmptyStepForms, createEntryPayload, resetSubmittedSteps, rollPristineDrafts } from '../src/lib/shiftWorkflow';
 import { getModuleIssues, NOT_MEASURED } from '../src/lib/validation';
 import { visibleModuleIssues } from '../src/lib/validationFeedback';
@@ -50,7 +50,9 @@ it('returns a durable receipt without waiting for a backlog, with one identity o
 
 it('reuses a failed attempt only while the answers are unchanged, and reconciles an uncertain write', () => {
 	const first = payload();
-	const failed = { kind: 'failed' as const, payload: first, message: 'Unknown storage result' };
+	const failed = failSave({ kind: 'editing' }, first, new Error('Unknown storage result'));
+	expect(failed).toMatchObject({ kind: 'failed', payload: first, message: expect.stringContaining('Keep this form open') });
+	expect(failSave(completeSave(first.id), first, new Error('Later failure'))).toEqual({ kind: 'durable', id: first.id });
 	expect(prepareSave(failed, { ...first, id: 'other', submittedAt: '2026-11-11T01:00:00Z' }).payload).toBe(first);
 	const changed = { ...first, id: 'new_observation', waterQuality: { ...first.waterQuality!, notes: 'New reading' } };
 	expect(prepareSave(failed, changed).payload).toBe(changed);
@@ -94,6 +96,16 @@ it('rolls only untouched drafts forward after a pair save, keeping drafts with a
 it('maps tabs to bounded destinations while retaining existing shift validation locks', () => {
 	for (const tab of ['morning', 'noon', 'offDay', 'waterQuality', 'room6', 'history'] as const) expect(destinationTab(destinationForTab(tab))).toBe(tab);
 	expect(destinationForTab('room6')).toEqual({ kind: 'room6', section: 'room6Eggs' });
+	expect(room6Destination('room6Ammonia')).toEqual({ kind: 'room6', section: 'room6Ammonia' });
+	expect(() => room6Destination('invalid' as never)).toThrow('Invalid Room 6 section');
+	expect(resolveInitialTab('', '2026-11-10')).toBe('offDay'); // Tuesday off-day
+	expect(resolveInitialTab('', '2026-11-11')).toBe('morning'); // Wednesday routine day
+	expect(resolveInitialTab('?tab=noon', '2026-11-10')).toBe('noon');
+	expect(destinationSteps(destinationForTab('history'))).toEqual([]);
+	expect(activeDestinationStep(destinationForTab('history'))).toBeNull();
+	expect(destinationSteps(destinationForTab('waterQuality'))).toEqual(['waterQuality']);
+	expect(activeDestinationStep(room6Destination('room6Lss'))).toBe('room6Lss');
+	expect(activeDestinationStep(shiftDestination('noon', 2))).toBe('tanksEggs');
 	expect(shiftDestination('noon', 3)).toEqual({ kind: 'shift', shift: 'noon', step: 3 });
 	for (const step of [0, 4, 1.5, NaN]) expect(() => shiftDestination('noon', step)).toThrow();
 });
@@ -101,12 +113,15 @@ it('maps tabs to bounded destinations while retaining existing shift validation 
 it('never calls a blocked or unreadable queue up to date, and publishes same/cross-tab updates', async () => {
 	const refresh = vi.fn();
 	const stop = observeDeviceQueue(refresh);
+	expect(snapshotTone(readQueueSnapshot())).toBe('good');
 	const record = persistNewSubmission(payload());
+	expect(snapshotTone(readQueueSnapshot())).toBe('warn');
 	saveLocalSubmission({ ...record, syncBlocked: true, syncError: 'Needs review' });
 	vi.mocked(fetch).mockResolvedValue(new Response('{}'));
 	await syncPendingSubmissions();
 	expect(fetch).not.toHaveBeenCalled();
 	expect(readQueueSnapshot()).toMatchObject({ kind: 'ready', pendingCount: 1, reviewCount: 1, status: 'needsReview' });
+	expect(snapshotTone(readQueueSnapshot())).toBe('bad');
 	expect(readQueueSnapshot().message).not.toContain('All up to date');
 	expect(createSubmissionFeedback({ synced: false, syncBlocked: true }, false).message).toContain('will not retry automatically');
 	const calls = refresh.mock.calls.length;
@@ -115,6 +130,7 @@ it('never calls a blocked or unreadable queue up to date, and publishes same/cro
 	stop();
 	localStorage.setItem('rummerlab_submission_bad', '{broken');
 	expect(readQueueSnapshot()).toMatchObject({ kind: 'unavailable' });
+	expect(snapshotTone(readQueueSnapshot())).toBe('bad');
 	expect(localStorage.getItem('rummerlab_submission_bad')).toBe('{broken');
 });
 

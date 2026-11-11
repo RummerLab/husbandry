@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { readQueueSnapshot, observeDeviceQueue, type QueueSnapshot } from '../queueSnapshot';
+	import { readQueueSnapshot, observeDeviceQueue, snapshotTone, type QueueSnapshot } from '../queueSnapshot';
 	import { onMount } from 'svelte';
 	import type { LocalHistoryItem } from '../types';
 	import { syncPendingSubmissions, getDeviceId } from '../storage';
+	import { deliveryState } from '../submissionOutcome';
 
 	let { masterSpreadsheetUrl }: { masterSpreadsheetUrl: string | null } = $props();
 
@@ -26,11 +27,10 @@
 
 	async function handleSync() {
 		isSyncing = true;
-		syncMessage = 'Syncing pending records...';
+		syncMessage = '';
 		try {
 			await syncPendingSubmissions();
 			loadHistory();
-			syncMessage = '';
 		} catch (err) {
 			syncMessage = 'Sync failed. Check internet connection.';
 		} finally {
@@ -58,15 +58,15 @@
 	</div>
 
 	{#if needsSignIn}
-		<div class="sync-banner">Your records are saved on this device. <a href="/login" rel="external">Sign in again to resume sync</a>.</div>
+		<div class="sync-banner warn">Your records are saved on this device. <a href="/login" rel="external">Sign in again to resume sync</a>.</div>
 	{/if}
 
 	{#if syncMessage}
-		<div class="sync-banner">
+		<div class="sync-banner bad">
 			{syncMessage}
 		</div>
 	{/if}
-	<p class="sync-banner" role="status">{snapshot.message}</p>
+	<p class="sync-banner {snapshotTone(snapshot)}" role="status">{snapshot.message}</p>
 
 	{#if snapshot.kind === 'unavailable'}
 		<p>Records have not been removed. Keep this device data and contact the lab administrator.</p>
@@ -80,7 +80,8 @@
 	{:else if history.length > 0}
 		<div class="records-list">
 			{#each history as item}
-				<div class="record-card" class:synced={item.synced} class:pending={!item.synced}>
+				{@const delivery = deliveryState(item)}
+				<div class="record-card" class:synced={delivery === 'synced'} class:pending={delivery !== 'synced'}>
 					<div class="record-header">
 						<div class="record-date-block">
 							<span class="record-date">{item.date}</span>
@@ -89,11 +90,11 @@
 							</span>
 						</div>
 						<div class="badge-status">
-							{#if item.synced}
+							{#if delivery === 'synced'}
 								<span class="status-pill synced">✓ Synced to Sheets</span>
 							{:else}
 								<span class="status-pill pending" title={item.syncError || 'Awaiting connection'}>
-									{item.syncBlocked ? '⚠ Needs review' : '⏳ Pending sync'}
+									{delivery === 'needsReview' ? '⚠ Needs review' : '⏳ Pending sync'}
 								</span>
 							{/if}
 						</div>
@@ -218,6 +219,16 @@
 		border-radius: 8px;
 		font-size: 0.85rem;
 		font-weight: 500;
+	}
+	.sync-banner.warn {
+		background: #fffbeb;
+		border-color: #fde68a;
+		color: #92400e;
+	}
+	.sync-banner.bad {
+		background: #fef2f2;
+		border-color: #fca5a5;
+		color: #991b1b;
 	}
 
 	.empty-state {

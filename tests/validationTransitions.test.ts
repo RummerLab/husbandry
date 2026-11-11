@@ -2,8 +2,8 @@ import { expect, it } from 'vitest';
 import { createEmptyStepForms } from '../src/lib/shiftWorkflow';
 import { getModuleIssues, lssAmChecks, NOT_MEASURED } from '../src/lib/validation';
 import { transitionValidation, visibleModuleIssues } from '../src/lib/validationFeedback';
-import { includeWeeklyMeasurements, toggleNotMeasured } from '../src/lib/waterQualityMeasurements';
-import { formatWaterQualityRow } from '../src/lib/server/rows';
+import { includeWeeklyMeasurements, toggleNotMeasured, toggleRoom6NotMeasured } from '../src/lib/waterQualityMeasurements';
+import { formatWaterQualityRow, formatRoom6WaterQualityRow } from '../src/lib/server/rows';
 
 it('keeps revealed welfare errors until corrected and hides them when the context changes', () => {
 	const form = createEmptyStepForms('2026-11-11', 'TEST').lssAM;
@@ -50,4 +50,12 @@ it('retains weekly drafts through exclusion and keeps each side an explicit inde
 	expect(form.alkA).toBe('116'); expect(form.po4B).toBe('0');
 	expect(getModuleIssues('waterQuality', { ...form, doA: NOT_MEASURED }).map(issue => issue.field)).toContain('doA');
 	expect(() => toggleNotMeasured(form, 'tempA')).toThrow();
+	let room6 = createEmptyStepForms('2026-11-11', 'TEST').room6WaterQuality;
+	Object.assign(room6, { temp: '26', salinity: '36', pH: '8.1', dissolvedOxygen: '95', alk: '7', weeklypH: '8.1', nh3: '0', no2: '0', no3: '10', po4: '0.2' });
+	room6 = toggleRoom6NotMeasured(room6, 'dissolvedOxygen');
+	expect(room6.dissolvedOxygen).toBe(NOT_MEASURED);
+	expect(getModuleIssues('room6WaterQuality', room6)).toEqual([]);
+	expect(formatRoom6WaterQualityRow(room6)[5]).toBe('');
+	expect(() => toggleRoom6NotMeasured(room6, 'temp')).toThrow();
+	expect(() => toggleRoom6NotMeasured(room6, 'salinity')).toThrow();
 });
