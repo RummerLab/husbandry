@@ -1,9 +1,19 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { appendSubmissionToSheets, previewWritesBlocked } from '../src/lib/server/sheets';
+import { appendSubmissionToSheets, previewWritesBlocked, getSheetsWritePolicy } from '../src/lib/server/sheets';
 import type { FullHusbandrySubmission } from '../src/lib/types';
 
 afterEach(() => vi.unstubAllEnvs());
 const submission = { id: 'sub_preview', submittedAt: '2026-11-09T00:00:00Z', date: '2026-11-09', initials: 'TT', modulesSubmitted: ['waterQuality'] } as FullHusbandrySubmission;
+
+it('preserves deployment policy precedence when only one live-write opt-in is enabled', () => {
+	vi.stubEnv('VERCEL_ENV', 'preview'); vi.stubEnv('NODE_ENV', 'development');
+	vi.stubEnv('LOCAL_SHEETS_WRITES_ENABLED', 'true'); vi.stubEnv('PREVIEW_SHEETS_WRITES_ENABLED', '');
+	expect(getSheetsWritePolicy()).toEqual({ kind: 'mock', reason: 'preview' });
+	vi.stubEnv('PREVIEW_SHEETS_WRITES_ENABLED', 'true'); vi.stubEnv('LOCAL_SHEETS_WRITES_ENABLED', '');
+	expect(getSheetsWritePolicy()).toEqual({ kind: 'mock', reason: 'development' });
+	vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('GOOGLE_SHEET_ID', '');
+	expect(getSheetsWritePolicy()).toEqual({ kind: 'mock', reason: 'credentials' });
+});
 
 it('blocks live Sheets writes on Vercel Preview unless explicitly enabled', () => {
 	vi.stubEnv('VERCEL_ENV', 'preview'); vi.stubEnv('PREVIEW_SHEETS_WRITES_ENABLED', '');

@@ -50,3 +50,53 @@ it('cleans only app caches and bypasses APIs, mutations and third parties', asyn
 	expect(cache.handles(new Request(origin + '/_vercel/insights/view', { method: 'POST', body: '{}' }))).toBe(false);
 	expect(cache.handles(navigation())).toBe(true);
 });
+
+it('never replaces authentication responses with a cached shell', async () => {
+	const { storage, network } = harness();
+	const cache = createOfflineCache(storage, network, origin, 'auth', []);
+	await cache.install();
+	for (const status of [401, 403]) {
+		network.mockResolvedValueOnce(new Response('Sign in required', { status }));
+		const result = await cache.respond(navigation());
+		expect(result.status).toBe(status);
+		expect(await result.text()).toBe('Sign in required');
+	}
+});
+
+it('keeps an installed version usable when a new precache fails', async () => {
+	const { storage, network, stores } = harness();
+	const old = createOfflineCache(storage, network, origin, 'old', ['/old.js']);
+	await old.install();
+	const before = [...stores.get('rummerlab-shell-old')!.keys()];
+	network.mockRejectedValue(new Error('Dependency unavailable'));
+	const next = createOfflineCache(storage, network, origin, 'new', ['/new.js']);
+	await expect(next.install()).rejects.toThrow('Dependency unavailable');
+	expect([...stores.get('rummerlab-shell-old')!.keys()]).toEqual(before);
+	expect(await (await old.respond(navigation())).text()).toContain('network:https://lab.test/');
+});
+
+it('falls back for 5xx, offline help and deep links, and reports a genuinely missing shell', async () => {
+	const { storage, network } = harness();
+	const cache = createOfflineCache(storage, network, origin, 'fallback', []);
+	await cache.install();
+	network.mockResolvedValue(new Response('Unavailable', { status: 503 }));
+	expect(await (await cache.respond(navigation())).text()).toContain('network:https://lab.test/');
+	network.mockRejectedValue(new Error('Offline'));
+	const nav = (path: string) => ({ url: origin + path, mode: 'navigate', method: 'GET' }) as Request;
+	expect(await (await cache.respond(nav('/help#pathway'))).text()).toContain('/help');
+	expect(await (await cache.respond(nav('/?tab=room6'))).text()).toContain('network:https://lab.test/');
+	const empty = createOfflineCache(storage, network, origin, 'empty', []);
+	expect((await empty.respond(navigation())).status).toBe(503);
+});
+
+it('excludes sensitive and telemetry paths even when offered as precache files or navigations', async () => {
+	const { storage, network } = harness();
+	const paths = ['/api/submit', '/login', '/auth/google', '/insights', '/_vercel/insights/script.js', '/_vercel/speed-insights/script.js', '/sw.js'];
+	const cache = createOfflineCache(storage, network, origin, 'privacy', paths);
+	await cache.install();
+	expect(network).toHaveBeenCalledTimes(2); // Only the two offline pages.
+	for (const path of paths) {
+		expect(cache.handles(new Request(origin + path))).toBe(false);
+		expect(cache.handles({ url: origin + path, method: 'GET', mode: 'navigate' } as Request)).toBe(false);
+	}
+});

@@ -1,5 +1,6 @@
 import { assertMetadataHeaders, METADATA_RANGES } from './sheetMetadata';
 import { createHash } from 'node:crypto';
+import { SubmissionConflictError } from './submissionErrors';
 import type { sheets_v4 } from 'googleapis';
 import type { FullHusbandrySubmission } from '../types';
 import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow, formatRoom6Row, formatRoom6EggsRow, formatRoom6WaterQualityRow, formatRoom6LssRow, formatRoom6AmmoniaRow } from './rows';
@@ -43,7 +44,7 @@ export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadshee
 	const checkReceipt = (data: sheets_v4.Schema$Spreadsheet): boolean => {
 		const receipt = data.namedRanges?.find(r => r.namedRangeId === receiptId);
 		if (!receipt) return false;
-		if (receipt.name !== receiptName) throw new Error('Submission ID already used for different data');
+		if (receipt.name !== receiptName) throw new SubmissionConflictError();
 		return true;
 	};
 	const data = await metadata();

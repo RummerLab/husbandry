@@ -3,13 +3,13 @@ import { syncPendingSubmissions } from './storage';
 
 /** Runs only while the page is mounted; the device queue survives closing it. */
 export function startAutoSync(onStatus: (online: boolean) => void, onError: (error: unknown) => void): () => void {
-	let stopped = false;
-	let running = false;
+	let phase: 'idle' | 'running' | 'stopped' = 'idle';
+	const stopped = () => phase === 'stopped';
 	let delay = 5000;
 	let timer: ReturnType<typeof setTimeout>;
 	const retry = async () => {
-		if (stopped || running) return;
-		running = true;
+		if (phase !== 'idle') return;
+		phase = 'running';
 		clearTimeout(timer);
 		try {
 			if (navigator.onLine) {
@@ -17,13 +17,12 @@ export function startAutoSync(onStatus: (online: boolean) => void, onError: (err
 				delay = result.errors.length ? Math.min(delay * 2, 60000) : 5000;
 			}
 		} catch (error) { delay = Math.min(delay * 2, 60000); onError(error); }
-		running = false;
-		if (!stopped) { onStatus(navigator.onLine); timer = setTimeout(retry, delay); }
+		if (!stopped()) { phase = 'idle'; onStatus(navigator.onLine); timer = setTimeout(retry, delay); }
 	};
 	const resume = async () => {
 		try { if (navigator.onLine) await resumeSyncAfterAuthorization(); }
 		catch (error) { onError(error); }
-		if (!stopped) await retry();
+		if (phase !== 'stopped') await retry();
 	};
 	const online = () => { onStatus(true); void resume(); };
 	const offline = () => onStatus(false);
@@ -31,5 +30,5 @@ export function startAutoSync(onStatus: (online: boolean) => void, onError: (err
 	window.addEventListener('offline', offline);
 	onStatus(navigator.onLine);
 	void resume();
-	return () => { stopped = true; clearTimeout(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); };
+	return () => { phase = 'stopped'; clearTimeout(timer); window.removeEventListener('online', online); window.removeEventListener('offline', offline); };
 }

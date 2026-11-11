@@ -14,7 +14,7 @@ The application calls the official `@vercel/firewall` SDK before parsing or writ
 
 ## Queue behavior and operations
 
-429/503 stop the drain and persist cooldown across reloads/tabs; Retry-After seconds and dates are honored with a small jitter, or 60 seconds is used when absent. Manual sync and reconnect respect it. 401/403 pause until an authenticated page load resumes the queue. All payloads/IDs remain unchanged for receipt deduplication. Different tabs can each have one request already in flight; the server limiter is the final authority.
+429/503 stop the drain and persist cooldown across reloads/tabs; Retry-After seconds and dates are honored with a small jitter, or 60 seconds is used when absent. Manual sync and reconnect respect it. 401/403 create a separate authentication hold; a successful network `/api/access` verification clears only that hold and preserves any cooldown. Old combined pauses are upgraded conservatively, keeping their deadline. All payloads/IDs remain unchanged for receipt deduplication. Different tabs can each have one request already in flight; the server limiter is the final authority.
 
 Review Vercel Firewall allowed/throttled counts and function 503/error counts together with Sheets quota failures. Alert the lab administrator for sustained protection failures or a rising pending backlog reported by researchers. Logs contain scope/mode/reason, not IPs, raw payloads, or device IDs. For false positives return to Log mode temporarily and tune using recorded traffic; for a limiter outage retain fail-closed writes and restore the service rather than discarding queues. A deployment in Log mode must be treated as temporarily unprotected.
 

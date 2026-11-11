@@ -27,3 +27,19 @@ it('keeps automatic retries running if checking authentication throws', async ()
  expect(onError).toHaveBeenCalled();
  stop();
 });
+
+it('does not schedule or publish status after teardown during an in-flight drain', async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal('window', new EventTarget()); vi.stubGlobal('navigator', { onLine: true });
+	let finish!: (result: { syncedCount: number; errors: string[] }) => void;
+	vi.mocked(syncPendingSubmissions).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+	const status = vi.fn();
+	const stop = startAutoSync(status, vi.fn());
+	await vi.advanceTimersByTimeAsync(0);
+	stop();
+	const calls = status.mock.calls.length;
+	finish({ syncedCount: 1, errors: [] });
+	await vi.advanceTimersByTimeAsync(120000);
+	expect(status).toHaveBeenCalledTimes(calls);
+	expect(syncPendingSubmissions).toHaveBeenCalledTimes(1);
+});

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getSyncPause } from '../syncPause';
+	import { readQueueSnapshot, observeDeviceQueue, type QueueSnapshot } from '../queueSnapshot';
 	import { onMount } from 'svelte';
 	import type { LocalHistoryItem } from '../types';
-	import { getLocalHistory, syncPendingSubmissions, getDeviceId } from '../storage';
+	import { syncPendingSubmissions, getDeviceId } from '../storage';
 
 	let { masterSpreadsheetUrl }: { masterSpreadsheetUrl: string | null } = $props();
 
@@ -11,25 +11,26 @@
 	let isSyncing = $state(false);
 	let syncMessage = $state('');
 	let needsSignIn = $state(false);
+	let snapshot = $state<QueueSnapshot>({ kind: 'unavailable', message: 'Reading device records…' });
 
 	onMount(() => {
 		try { deviceId = getDeviceId(); loadHistory(); } catch (error) { syncMessage = String(error); }
-		const timer = setInterval(() => { try { loadHistory(); } catch (error) { syncMessage = String(error); } }, 2000);
-		return () => clearInterval(timer);
+		return observeDeviceQueue(loadHistory);
 	});
 
 	function loadHistory() {
-		history = getLocalHistory();
-		needsSignIn = Boolean(getSyncPause()?.authentication);
+		snapshot = readQueueSnapshot();
+		if (snapshot.kind === 'ready') history = snapshot.records;
+		needsSignIn = snapshot.kind === 'ready' && snapshot.status === 'signInRequired';
 	}
 
 	async function handleSync() {
 		isSyncing = true;
 		syncMessage = 'Syncing pending records...';
 		try {
-			const res = await syncPendingSubmissions();
+			await syncPendingSubmissions();
 			loadHistory();
-			syncMessage = `Synced ${res.syncedCount} record(s). ${res.errors.length ? res.errors.join('; ') : 'All up to date!'}`;
+			syncMessage = '';
 		} catch (err) {
 			syncMessage = 'Sync failed. Check internet connection.';
 		} finally {
@@ -50,7 +51,7 @@
 			type="button"
 			class="sync-btn"
 			onclick={handleSync}
-			disabled={isSyncing}
+			disabled={isSyncing || snapshot.kind === 'unavailable' || (snapshot.kind === 'ready' && ['signInRequired', 'cooldown', 'syncing'].includes(snapshot.status))}
 		>
 			{isSyncing ? '⏳ Syncing...' : '🔄 Sync Offline Queue'}
 		</button>
@@ -65,8 +66,11 @@
 			{syncMessage}
 		</div>
 	{/if}
+	<p class="sync-banner" role="status">{snapshot.message}</p>
 
-	{#if history.length === 0}
+	{#if snapshot.kind === 'unavailable'}
+		<p>Records have not been removed. Keep this device data and contact the lab administrator.</p>
+	{:else if history.length === 0}
 		<div class="empty-state">
 			<div class="empty-icon">📋</div>
 			<h4>No records submitted from this device yet</h4>

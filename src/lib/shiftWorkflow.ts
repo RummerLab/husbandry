@@ -4,6 +4,7 @@ import { validateModule, type Module } from './validation';
 
 /** A step is one section of a shift entry. AM and PM LSS are separate halves of the same LSS module. */
 export type Step = 'lssAM' | 'lssPM' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6Eggs' | 'room6WaterQuality' | 'room6Lss' | 'room6Ammonia';
+export type Room6Section = Extract<Step, `room6${string}`>;
 export type StepForms = {
 	lssAM: LSSData; lssPM: LSSData; tanksEggs: TanksEggsData; feeds: FeedsData; waterQuality: WaterQualityData;
 	room6Eggs: Room6EggChecksData; room6WaterQuality: Room6WaterQualityData; room6Lss: Room6LssData; room6Ammonia: Room6AmmoniaData;
@@ -19,7 +20,7 @@ export const stepLabels: Record<Step, string> = {
 };
 
 /** Room 6 sections (#99). Each is a standalone entry saved on its own: they happen at different times. */
-export const ROOM6_SECTIONS: { step: Step; label: string; hint: string }[] = [
+export const ROOM6_SECTIONS: { step: Room6Section; label: string; hint: string }[] = [
 	{ step: 'room6Eggs', label: '🥚 Egg Checks', hint: 'Candling, wind, new, developing and dead eggs, with IDs.' },
 	{ step: 'room6WaterQuality', label: '💧 Water Quality', hint: 'Temperature, salinity and pH, plus DO and chemistry when tested.' },
 	{ step: 'room6Lss', label: '🧽 LSS + Maintenance', hint: 'Tank cleans, sump, biofilter, flows and gutters.' },
@@ -61,6 +62,7 @@ export function createEntryPayload(steps: Step[], forms: StepForms, date: string
 	if (!steps.length || new Set(modules).size !== modules.length || steps.some(step => !stepValid(step, forms))) {
 		throw new Error('Complete all required answers in the selected sections before saving.');
 	}
+	if (steps.some(step => forms[step].date !== date)) throw new Error('These sections have different record dates. Choose Date of Records to apply the intended date to this workflow before saving.');
 	return {
 		id: 'sub_' + crypto.randomUUID(),
 		submittedAt: new Date().toISOString(),
