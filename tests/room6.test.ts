@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { sheets_v4 } from 'googleapis';
 import { createEmptyForms } from '../src/lib/formDefaults';
-import { createEmptyStepForms, createEntryPayload } from '../src/lib/shiftWorkflow';
+import type { FullHusbandrySubmission } from '../src/lib/types';
+
+/** Legacy single-row Room 6 records (#79) may still be queued on devices; the server must keep accepting them. */
+const legacyPayload = (room6: Room6Data): FullHusbandrySubmission => ({ id: 'sub_' + crypto.randomUUID(), submittedAt: new Date().toISOString(), date: room6.date, initials: 'AB', modulesSubmitted: ['room6'], room6 });
 import { NOT_MEASURED, validateModule, validateSubmission } from '../src/lib/validation';
 import { formatRoom6Row } from '../src/lib/server/rows';
 import { writeAtomicSubmission } from '../src/lib/server/atomicSubmission';
@@ -32,10 +35,8 @@ describe('Room 6 validation (#79)', () => {
 		expect(validateModule('room6', { ...complete(), deadEggsRemoved: '1.5' }).join()).toContain('deadEggsRemoved');
 	});
 
-	it('saves alone without any Room 12 sections', () => {
-		const forms = createEmptyStepForms(date, 'AB');
-		forms.room6 = complete();
-		const payload = createEntryPayload(['room6'], forms, date, 'AB');
+	it('still validates a queued legacy record without any Room 12 sections', () => {
+		const payload = legacyPayload(complete());
 		expect(payload.modulesSubmitted).toEqual(['room6']);
 		expect(payload.lss).toBeUndefined();
 		expect(validateSubmission(payload)).toEqual([]);
@@ -78,9 +79,7 @@ function fakeSheets(headers: string[] | null) {
 
 describe('Room 6 atomic write', () => {
 	const submission = () => {
-		const forms = createEmptyStepForms(date, 'AB');
-		forms.room6 = complete();
-		return { ...createEntryPayload(['room6'], forms, date, 'AB'), clientDeviceId: 'device_50271f5f-a2e0-4909-b61e-d6d867f7c4a7' };
+		return { ...legacyPayload(complete()), clientDeviceId: 'device_50271f5f-a2e0-4909-b61e-d6d867f7c4a7' };
 	};
 
 	it('writes one Room 6 row with provenance columns and numeric readings', async () => {

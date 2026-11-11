@@ -1,10 +1,10 @@
-# RummerLab Room 12 Husbandry System 🦈
+# RummerLab Husbandry System 🦈
 
 [![CI](https://github.com/RummerLab/lab-maintainance/actions/workflows/ci.yml/badge.svg)](https://github.com/RummerLab/lab-maintainance/actions/workflows/ci.yml)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-blue.svg)](https://husbandry.rummerlab.com)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-v3-ff3e00.svg)](https://kit.svelte.dev)
 
-A mobile-first Progressive Web App (PWA) and automated Google Sheets sync system designed for **RummerLab** (Physioshark / James Cook University), ensuring strict animal ethics compliance and frictionless daily data entry in **Room 12**.
+A mobile-first Progressive Web App (PWA) and automated Google Sheets sync system designed for **RummerLab** (Physioshark / James Cook University), ensuring strict animal ethics compliance and frictionless daily data entry.
 
 Hosted at: **[husbandry.rummerlab.com](https://husbandry.rummerlab.com)**
 
@@ -13,21 +13,21 @@ Hosted at: **[husbandry.rummerlab.com](https://husbandry.rummerlab.com)**
 ## 🎯 The Problem & The Solution
 
 ### The Challenge
-Daily room maintenance and shark husbandry records were previously entered directly into an Excel spreadsheet (`Room 12 Records 2026.xlsx`). Because spreadsheets do not enforce mandatory validation, researchers frequently skipped questions or forgot cells. In an animal research laboratory, incomplete records pose significant animal ethics and welfare compliance risks.
+Daily room maintenance and shark husbandry records were previously entered directly into Excel spreadsheets. Because spreadsheets do not enforce mandatory validation, researchers frequently skipped questions or forgot cells. In an animal research laboratory, incomplete records pose significant animal ethics and welfare compliance risks.
 
 ### The Solution
 This web app transforms the spreadsheet into a fast, stepped, mobile-friendly checklist:
 - **Mandatory validation:** The interface locks the next step until all required checks are answered.
 - **Fast touch targets:** Large, distinct pill selectors (e.g., `[ Yes ]` `[ No ]` `[ N/A ]`) allow lab members to tap through routines in seconds ("tick, tick, tick, boom").
 - **Direct Google Sheets synchronization:** Submissions are automatically formatted and appended into the master Google Sheet across all four tabs (`LSS Checks`, `Tanks + Eggs`, `Feeds`, `Water Quality`).
-- **Offline & PWA capability:** Full offline support. If Wi-Fi in Room 12 drops, entries are queued in local device storage and automatically synced when reconnected.
+- **Offline & PWA capability:** Full offline support. If Wi-Fi in Room 12 or Room 6 drops, entries are queued in local device storage and automatically synced when reconnected.
 - **Per-Device History:** Team members can only see the history of records submitted from their own physical device, preserving privacy while the master spreadsheet consolidates all data for laboratory directors.
 
 ---
 
 ## 📋 The 4 Husbandry Modules
 
-Entries are grouped by shift: **AM: LSS + WQ** (daily welfare check and AM tank checks, then water quality when due) and **PM: LSS, Eggs + Feeds** (PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds). Each shift only sees and saves its own LSS items; the other shift's columns are left blank in the sheet. Save the whole shift together, or save only the current section (e.g. AM LSS when water quality is not due, or PM LSS alone). On off-days (Tue, Thu, Sat, Sun) the app opens on the **Off-day check** tab: the daily welfare check and AM tank checks, plus water quality if due. Water quality tests not done this time (e.g. pH by MARFU, PO4 without a SpinTouch) can be marked **Not measured** and are left blank in the sheet; temperature and salinity always need a reading. The **Room 6** tab records the egg room's daily egg check and water readings to a separate `Room 6` sheet tab (run `scripts/setup-room6.mjs` once first; see `docs/room6.md`). Standalone **Water Quality** remains available for testing alone. Switching tabs preserves unsaved answers while the page stays open; saving clears only the sections submitted.
+Entries are grouped by shift: **AM: LSS + WQ** (daily welfare check and AM tank checks, then water quality when due) and **PM: LSS, Eggs + Feeds** (PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds). Each shift only sees and saves its own LSS items; the other shift's columns are left blank in the sheet. Save the whole shift together, or save only the current section (e.g. AM LSS when water quality is not due, or PM LSS alone). On off-days (Tue, Thu, Sat, Sun) the app opens on the **Off-day check** tab: the daily welfare check and AM tank checks, plus water quality if due. Water quality tests not done this time (e.g. pH by MARFU, PO4 without a SpinTouch) can be marked **Not measured** and are left blank in the sheet; temperature and salinity always need a reading. The **Room 6** tab mirrors the Room 6 Records workbook with four sections, each saved on its own: Egg Checks, Water Quality, LSS + Maintenance, and Ammonia + Nitrite (run `scripts/setup-room6.mjs` once to create their sheet tabs; see `docs/room6.md`). Standalone **Water Quality** remains available for testing alone. Switching tabs preserves unsaved answers while the page stays open; saving clears only the sections submitted.
 
 | Section | Description | Frequency | Key Checks |
 | :--- | :--- | :--- | :--- |
@@ -73,7 +73,7 @@ To connect the app to Dr. Jodie Rummer's Google account and the master Google Sh
    - `private_key` -> Maps to `GOOGLE_PRIVATE_KEY`
 
 ### 4. Share the Master Google Sheet
-1. Open your master Google Sheet (import the tabs from `Room 12 Records 2026.xlsx`).
+1. Open your master Google Sheet.
 2. Click the green **Share** button in the top right.
 3. Paste the **Service Account Email** (from step 2) and grant it **Editor** permissions.
 4. (Optional) Provide lab members with **Viewer** (read-only) permissions if they need to inspect the full historical sheet.

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, stepValid, type Shift, type Step, type StepForms } from '../lib/shiftWorkflow';
+	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, stepValid, type Shift, type Step, type StepForms, ROOM6_SECTIONS } from '../lib/shiftWorkflow';
 	import { createSubmissionFeedback } from '../lib/submissionFeedback';
 	import { startAutoSync } from '../lib/autoSync';
 	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, brisbaneTime } from '../lib/recordRules';
@@ -14,7 +14,10 @@
 		TanksEggsData,
 		FeedsData,
 		WaterQualityData,
-		Room6Data,
+		Room6EggChecksData,
+		Room6WaterQualityData,
+		Room6LssData,
+		Room6AmmoniaData,
 		FullHusbandrySubmission
 	} from '../lib/types';
 	import { getSavedInitials, setSavedInitials, queueSubmission, getLocalHistory } from '../lib/storage';
@@ -23,7 +26,10 @@
 	import TanksEggsForm from '../lib/components/TanksEggsForm.svelte';
 	import FeedsForm from '../lib/components/FeedsForm.svelte';
 	import WaterQualityForm from '../lib/components/WaterQualityForm.svelte';
-	import Room6Form from '../lib/components/Room6Form.svelte';
+	import Room6EggChecksForm from '../lib/components/Room6EggChecksForm.svelte';
+	import Room6WaterQualityForm from '../lib/components/Room6WaterQualityForm.svelte';
+	import Room6LssForm from '../lib/components/Room6LssForm.svelte';
+	import Room6AmmoniaForm from '../lib/components/Room6AmmoniaForm.svelte';
 	import LocalHistoryView from '../lib/components/LocalHistoryView.svelte';
 	import IosInstallHint from '../lib/components/IosInstallHint.svelte';
 	import SiteHeader from '../lib/components/SiteHeader.svelte';
@@ -69,13 +75,21 @@
 
 	let waterQualityData = $state<WaterQualityData>(initialForms.waterQuality);
 
-	let room6Data = $state<Room6Data>(initialForms.room6);
+	// Room 6 sections (#99), each saved on its own to its workbook-matching sheet tab.
+	let room6EggsData = $state<Room6EggChecksData>(initialForms.room6Eggs);
+	let room6WaterQualityData = $state<Room6WaterQualityData>(initialForms.room6WaterQuality);
+	let room6LssData = $state<Room6LssData>(initialForms.room6Lss);
+	let room6AmmoniaData = $state<Room6AmmoniaData>(initialForms.room6Ammonia);
+	let room6Section = $state<Step>('room6Eggs');
 
-	let forms: StepForms = $derived({ lssAM: lssAmData, lssPM: lssPmData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData, room6: room6Data });
+	let forms: StepForms = $derived({
+		lssAM: lssAmData, lssPM: lssPmData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData,
+		room6Eggs: room6EggsData, room6WaterQuality: room6WaterQualityData, room6Lss: room6LssData, room6Ammonia: room6AmmoniaData
+	});
 	let stepValidity = $derived(shiftSteps.map(step => stepValid(step, forms)));
 
 	let waterQualityValid = $derived(validateModule('waterQuality', waterQualityData).length === 0);
-	let room6Valid = $derived(validateModule('room6', room6Data).length === 0);
+	let room6Valid = $derived(stepValid(room6Section, forms));
 
 	onMount(() => {
 		handleDateChange(room12Date());
@@ -104,7 +118,10 @@
 		tanksEggsData.date = val;
 		feedsData.date = val;
 		waterQualityData.date = val;
-		room6Data.date = val;
+		room6EggsData.date = val;
+		room6WaterQualityData.date = val;
+		room6LssData.date = val;
+		room6AmmoniaData.date = val;
 	}
 
 	function applyInitialsToAll(initials: string) {
@@ -113,7 +130,7 @@
 		if (!tanksEggsData.initials) tanksEggsData.initials = initials;
 		if (!feedsData.initials) feedsData.initials = initials;
 		if (!waterQualityData.initials) waterQualityData.initials = initials;
-		if (!room6Data.initials) room6Data.initials = initials;
+		for (const room6 of [room6EggsData, room6WaterQualityData, room6LssData, room6AmmoniaData]) if (!room6.initials) room6.initials = initials;
 	}
 
 	// Step validation logic: you cannot move forward if the current step is not valid
@@ -123,7 +140,7 @@
 	let activeIssues = $derived(activeTab === 'waterQuality'
 		? getModuleIssues('waterQuality', waterQualityData)
 		: activeTab === 'room6'
-			? getModuleIssues('room6', room6Data)
+			? getModuleIssues(stepModule[room6Section], forms[room6Section])
 			: getModuleIssues(stepModule[activeStep], forms[activeStep]));
 	// The Water Quality tab also flags values already typed but invalid (e.g. "98%"), before Save is tried.
 	let visibleIssues = $derived(showValidation
@@ -210,7 +227,10 @@
 			tanksEggsData = fresh.tanksEggs;
 			feedsData = fresh.feeds;
 			waterQualityData = fresh.waterQuality;
-			room6Data = fresh.room6;
+			room6EggsData = fresh.room6Eggs;
+			room6WaterQualityData = fresh.room6WaterQuality;
+			room6LssData = fresh.room6Lss;
+			room6AmmoniaData = fresh.room6Ammonia;
 			// A completed shift pair rolls the date forward to today (as the old full routine did), so a
 			// shared tablet left open overnight cannot keep saving under yesterday's date.
 			const submittedPair = steps.length > 1;
@@ -367,7 +387,16 @@
 
 				<div class="wq-only-intro">
 					<strong>Room 6 (egg room)</strong>
-					<span>Record the Room 6 egg check and water readings. It saves a row to the <em>Room 6</em> sheet, separate from the Room 12 records.</span>
+					<span>Choose what you are recording. Each section saves on its own to its Room 6 sheet, separate from the Room 12 records; answers in other sections are kept.</span>
+				</div>
+
+				<div class="room6-sections" role="group" aria-label="Room 6 record">
+					{#each ROOM6_SECTIONS as section (section.step)}
+						<button type="button" class="room6-section" class:active={room6Section === section.step} aria-pressed={room6Section === section.step} onclick={() => { room6Section = section.step; showValidation = false; }}>
+							<strong>{section.label}</strong>
+							<span>{section.hint}</span>
+						</button>
+					{/each}
 				</div>
 
 				{#if showValidation && activeIssues.length}
@@ -377,12 +406,20 @@
 				{/if}
 
 				<div class="step-content">
-					<Room6Form bind:data={room6Data} />
+					{#if room6Section === 'room6Eggs'}
+						<Room6EggChecksForm bind:data={room6EggsData} />
+					{:else if room6Section === 'room6WaterQuality'}
+						<Room6WaterQualityForm bind:data={room6WaterQualityData} />
+					{:else if room6Section === 'room6Lss'}
+						<Room6LssForm bind:data={room6LssData} />
+					{:else}
+						<Room6AmmoniaForm bind:data={room6AmmoniaData} />
+					{/if}
 				</div>
 
 				<div class="step-nav-footer wq-footer">
 					<div class="step-indicator">
-						Room 6
+						{stepLabels[room6Section]}
 						{#if !room6Valid}
 							<span class="step-hint" id="room6-save-help">• Save unlocks when every required field (*) is valid</span>
 							<button type="button" class="show-missing-btn" onclick={revealWaterQualityIssues}>Show what's missing</button>
@@ -395,9 +432,9 @@
 							class:disabled={!room6Valid || isSubmitting}
 							disabled={!room6Valid || isSubmitting}
 							aria-describedby={!room6Valid ? 'room6-save-help' : undefined}
-							onclick={() => submitSteps(['room6'])}
+							onclick={() => submitSteps([room6Section])}
 						>
-							{isSubmitting ? 'Saving...' : '🥚 Save Room 6 to Sheets'}
+							{isSubmitting ? 'Saving...' : `Save ${stepLabels[room6Section]} to Sheets`}
 						</button>
 					</div>
 				</div>
@@ -520,10 +557,10 @@
 	<!-- Footer -->
 	<footer class="app-footer">
 		<p>
-			<strong>RummerLab Room 12 Husbandry System</strong> • Physioshark / James Cook University
+			<strong>RummerLab Husbandry System</strong> • Physioshark / James Cook University
 		</p>
 		<p class="ethics-note">
-			Animal Ethics Compliance & Strict Husbandry Records • Production: <code>husbandry.rummerlab.com</code>
+			Animal Ethics Compliance & Strict Husbandry Records
 		</p>
 		<p><a href="/help">Animal welfare escalation guide &amp; vet video</a></p>
 		<p><a href="/insights">Lab Overview (lab administrators, Google sign-in)</a></p>
@@ -800,6 +837,36 @@
 		opacity: 0.45;
 		cursor: not-allowed;
 		box-shadow: none;
+	}
+
+	.room6-sections {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.room6-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		min-height: 48px;
+		padding: 0.6rem 0.75rem;
+		border: 1.5px solid #cbd5e1;
+		border-radius: 10px;
+		background: #fff;
+		color: #334155;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.room6-section span { font-size: 0.78rem; color: #64748b; }
+
+	.room6-section.active {
+		border-color: #1d5fb8;
+		background: #eff6ff;
+		color: #0f172a;
 	}
 
 	.wq-only-intro {
