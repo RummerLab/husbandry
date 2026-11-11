@@ -1116,8 +1116,13 @@
 	}
 
 	.privacy-note {
+		display: block;
+		width: min(100%, 46rem);
 		max-width: 46rem;
-		margin: 0.5rem auto 0;
+		margin: 0.75rem auto 0;
+		padding: 0 0.5rem;
+		box-sizing: border-box;
+		text-align: center;
 		font-size: 0.75rem;
 		line-height: 1.45;
 		color: #8d9aae;
