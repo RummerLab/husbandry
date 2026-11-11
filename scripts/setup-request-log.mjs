@@ -7,6 +7,7 @@ export const HEADERS = ['Submission ID', 'Server Logged At (UTC)', 'Client Submi
 
 /** Plan the restricted log tab: create it if missing, write headers only into an empty or matching header row. */
 export function planRequestLogSetup(data) {
+	if (!Array.isArray(data.sheets)) throw new Error('Tab metadata was not read; refusing to plan changes');
 	const sheet = data.sheets?.find(s => s.properties?.title === TAB);
 	if (!sheet) {
 		return [
@@ -29,8 +30,35 @@ export function planRequestLogSetup(data) {
 /** Missing and unreadable are different states: only confirmed absence may create a tab. */
 export async function readRequestLogSetup(sheets, spreadsheetId) {
 	const metadata = (await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets(properties)' })).data;
+	if (!Array.isArray(metadata.sheets)) throw new Error('Tab metadata was not read; refusing to assume absence');
 	if (!metadata.sheets?.some(sheet => sheet.properties?.title === TAB)) return metadata;
-	return (await sheets.spreadsheets.get({ spreadsheetId, includeGridData: true, ranges: [`'${TAB}'!1:1`], fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
+	const headers = (await sheets.spreadsheets.get({ spreadsheetId, includeGridData: true, ranges: [`'${TAB}'!1:1`], fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
+	if (!headers.sheets?.some(sheet => sheet.properties?.title === TAB && Array.isArray(sheet.data))) throw new Error('Header inspection was incomplete; refusing to assume absence');
+	return headers;
+}
+
+/** An uncertain write requires a fresh inspection, never an automatic blind retry.
+ * @returns {Promise<{state: 'dryRun'|'complete', operations: number} | {state: 'refused'|'reinspectionRequired', operations: number, message: string}>}
+ */
+export async function setupRequestLogWorkbook(sheets, spreadsheetId, apply = false) {
+	let phase = 'inspect';
+	let operations = 0;
+	try {
+		const initial = planRequestLogSetup(await readRequestLogSetup(sheets, spreadsheetId));
+		operations = initial.length;
+		if (!apply) return { state: 'dryRun', operations };
+		if (!operations) return { state: 'complete', operations };
+		phase = 'apply';
+		await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: initial } });
+		const headers = planRequestLogSetup(await readRequestLogSetup(sheets, spreadsheetId));
+		operations += headers.length;
+		if (headers.length) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: headers } });
+		if (planRequestLogSetup(await readRequestLogSetup(sheets, spreadsheetId)).length) throw new Error('Setup incomplete');
+		return { state: 'complete', operations };
+	} catch {
+		return { state: phase === 'inspect' ? 'refused' : 'reinspectionRequired', operations,
+			message: phase === 'inspect' ? 'Could not safely inspect the restricted log headers. No writes attempted; inspect the workbook before rerunning.' : 'Setup outcome is uncertain. Inspect the workbook and rerun dry-run before applying again.' };
+	}
 }
 
 async function main() {
@@ -42,14 +70,9 @@ async function main() {
 	if (!email || !key || !spreadsheetId) throw new Error('Service account credentials and GOOGLE_REQUEST_LOG_SHEET_ID are required');
 	if (spreadsheetId === process.env.GOOGLE_SHEET_ID?.trim()) throw new Error('The request log must be a separate, restricted workbook, not the master sheet');
 	const sheets = google.sheets({ version: 'v4', auth: new google.auth.JWT({ email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] }) });
-	const read = () => readRequestLogSetup(sheets, spreadsheetId);
-	let requests = planRequestLogSetup(await read());
-	console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', operations: requests.length }, null, 2));
-	if (!apply || !requests.length) { if (!apply) console.log('No writes performed. Re-run with --apply.'); return; }
-	await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
-	// A newly created tab still needs its header row.
-	requests = planRequestLogSetup(await read());
-	if (requests.length) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
-	console.log('Request log ready.');
+	const result = await setupRequestLogWorkbook(sheets, spreadsheetId, apply);
+	console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', ...result }, null, 2));
+	if (['refused', 'reinspectionRequired'].includes(result.state)) process.exitCode = 1;
+	else console.log(apply ? 'Request log ready.' : 'No writes performed. Re-run with --apply.');
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(error => { console.error(error.message); process.exitCode = 1; });

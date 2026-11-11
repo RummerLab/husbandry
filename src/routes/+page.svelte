@@ -9,7 +9,7 @@
 	import { getModuleIssues, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { describeWaterQualityIssue, sortWaterQualityIssues } from '../lib/waterQualityGuide';
-	import { visibleModuleIssues, type ValidationFeedback } from '../lib/validationFeedback';
+	import { visibleModuleIssues, transitionValidation, type ValidationFeedback } from '../lib/validationFeedback';
 	import { onMount, tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -158,7 +158,7 @@
 	async function nextStep() {
 		if (isSubmitting) return;
 		if (!canAdvance) {
-			validationFeedback = 'revealed';
+			validationFeedback = transitionValidation(validationFeedback, 'reveal');
 			await tick();
 			if (validationRoot) focusFirstInvalidField(validationRoot);
 			return;
@@ -168,7 +168,7 @@
 
 	function applyTab(tab: HomeTab) {
 		if (isSubmitting) return;
-		validationFeedback = 'pristine';
+		validationFeedback = transitionValidation(validationFeedback, 'changeContext');
 		destination = destinationForTab(tab, lastRoom6Section);
 		const room = roomForTab(tab);
 		if (room) selectedRoom = room;
@@ -199,14 +199,14 @@
 
 	/** Save stays disabled while invalid; this reveals and focuses what is missing instead. */
 	async function revealModuleIssues() {
-		validationFeedback = 'revealed';
+		validationFeedback = transitionValidation(validationFeedback, 'reveal');
 		await tick();
 		if (validationRoot) focusFirstInvalidField(validationRoot);
 	}
 
 	function prevStep() {
 		if (currentStep > 1) {
-			validationFeedback = 'pristine';
+			validationFeedback = transitionValidation(validationFeedback, 'changeContext');
 			destination = shiftDestination(selectedShift, currentStep - 1);
 			window.scrollTo({ top: 0, behavior: 'smooth' });
 		}
@@ -214,7 +214,7 @@
 
 	function jumpToStep(step: number) {
 		if (!canNavigate(currentStep, step, stepValidity)) return;
-		validationFeedback = 'pristine';
+		validationFeedback = transitionValidation(validationFeedback, 'changeContext');
 		destination = shiftDestination(selectedShift, step);
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
@@ -254,7 +254,7 @@
 			room6AmmoniaData = fresh.room6Ammonia;
 			if (destination.kind === 'shift') destination = shiftDestination(selectedShift);
 			// Stay in the selected workflow; unsent sections retain their answers.
-			validationFeedback = 'pristine';
+			validationFeedback = transitionValidation(validationFeedback, 'changeContext');
 			submissionFeedback = createSubmissionFeedback(record, submittedPair);
 			receipt = { id: record.id, submittedAll: submittedPair };
 			if (isOnline) void syncPendingSubmissions().catch(() => refreshPending());
@@ -426,7 +426,7 @@
 
 				<div class="room6-sections" role="group" aria-label="Room 6 record">
 					{#each ROOM6_SECTIONS as section (section.step)}
-						<button type="button" class="room6-section" class:active={room6Section === section.step} aria-pressed={room6Section === section.step} onclick={() => { lastRoom6Section = section.step; destination = { kind: 'room6', section: section.step }; validationFeedback = 'pristine'; }}>
+						<button type="button" class="room6-section" class:active={room6Section === section.step} aria-pressed={room6Section === section.step} onclick={() => { lastRoom6Section = section.step; destination = { kind: 'room6', section: section.step }; validationFeedback = transitionValidation(validationFeedback, 'changeContext'); }}>
 							<strong>{section.label}</strong>
 							<span>{section.hint}</span>
 						</button>
@@ -543,6 +543,7 @@
 					Step {currentStep} of {shiftSteps.length}
 					{#if !canAdvance}
 						<span class="step-hint" id="next-step-help">{currentStep < shiftSteps.length ? '• Required answers pending — select Next to find them' : '• Required fields pending'}</span>
+						{#if currentStep === shiftSteps.length}<button type="button" class="show-missing-btn" onclick={revealModuleIssues}>Show what's missing</button>{/if}
 					{/if}
 				</div>
 

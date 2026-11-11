@@ -16,7 +16,7 @@ framework or new runtime dependency is needed.
 | Header menu | closed / open; click, Escape, outside click, destination selected | `SiteHeader.svelte`. Preserve the existing mobile focus return and dedicated recording tablist. |
 | Draft context | date/initials per draft; explicit date change; submitted-draft reset | Home page, `shiftWorkflow.ts`. AM/off-day share AM/WQ drafts; PM and Room 6 sections retain separate drafts. |
 | Save transaction | editing → persisting → durable, or failed → retry | `saveState.ts`, `persistNewSubmission`, home page. One immutable payload/ID per unchanged failed attempt. A deliberate change in answers starts a different attempt. |
-| Validation presentation | pristine / revealed; reveal, edit, context changed | `validationFeedback.ts`, `validationGuide.ts`. Visibility is separate from validity. Only standalone Room 12 WQ flags entered-invalid values before reveal, preserving current behaviour. |
+| Validation presentation | pristine / revealed; reveal, edit, context changed | `transitionValidation` and `visibleModuleIssues` in `validationFeedback.ts`, plus `validationGuide.ts`. Editing retains reveal state while corrected issues disappear; context changes reset it. Visibility never establishes validity. Only standalone Room 12 WQ flags entered-invalid values before reveal. Final shift steps also offer Show what's missing while Save remains disabled. |
 | Individual answer | unanswered / entered / explicitly not measured | `waterQualityMeasurements.ts`. Parsing does not establish validity; `getModuleIssues` does. Not measured → edit returns unanswered, requiring a new answer. |
 | Conditional answers | routine / weekly; welfare N → concerns; positive egg count → IDs; flow N → notes | `validation.ts`, form components. Weekly exclusion retains the draft values but exports blank chemistry. Never infer or auto-fill required measurements. |
 | Shift and legacy schemas | AM / PM / pre-split LSS; legacy Room 6 / current sections; feed/med completion | `validation.ts`, `rows.ts`, config modules. Keep old queued payloads valid under their original rules; new AM/PM rows leave the other half blank. |
@@ -55,13 +55,13 @@ remains an adapter for callers that explicitly want to await a delivery attempt.
 | --- | --- | --- |
 | Record delivery | pending / needsReview / synced | `deliveryState` interprets existing `synced`/`syncBlocked` fields. No persisted submission format migration. Only a confirmed live response marks synced. |
 | Drain | idle / in flight / finished | `storage.ts`. Coalesce drains in one JS context; separate tabs may compete, so server atomic receipts remain authoritative. |
-| Scheduler | idle / running / stopped; startup, online, offline, retry, teardown | `autoSync.ts`. Bounded 5–60 second backoff. Teardown prevents timers/status callbacks after an in-flight attempt returns. An existing durable attempt may still finish. |
+| Scheduler | idle / authorising / draining / stopped; startup, online, offline, retry, teardown | `autoSync.ts`. Reconnect storms coalesce during authorisation too. `syncPolicy.ts` selects eligibility, deadline and bounded 5–60 second backoff without IO. An active cooldown can delay the next timer beyond backoff; the deadline is never shortened. Teardown suppresses late callbacks. An existing durable attempt may still finish. |
 | Authentication hold | absent / required / verifying / cleared | `syncPause.ts`, `authSync.ts`. Only a successful network `/api/access` check clears it; never a cached shell or manual Sync click. |
 | Cooldown | absent / deadline pending / expired | `syncPause.ts`. 429/503 persist the deadline. Authorisation never clears this independent hold. |
 | Device snapshot | unavailable / ready; upToDate, pending, syncing, needsReview, signInRequired, cooldown | `queueSnapshot.ts`. A readable queue with zero unsynced records is the only “All up to date” outcome. Unavailable is never zero pending. |
 | Receipt / History / header | snapshot changed, local mutation, cross-tab storage event | `deviceEvents.ts`, `observeDeviceQueue`. Events contain no record data. Components read only this device's local queue. No History polling timer. |
 | Legacy migration | notNeeded / copying / complete; interrupted or refused | `migrateLocalHistory`. Copy per-record keys first; never overwrite an existing per-record value with an older legacy copy; remove legacy storage only when every write succeeds. |
-| Damaged/unavailable storage | unreadable / recovered on a later read | Fail closed for the entire queue. Keep raw damaged data and readable records intact; show unknown status and administrator guidance. No automatic deletion, repair, enrichment or export. |
+| Damaged/unavailable storage | readable / damaged / unavailable inspection | `inspectLocalHistory` preserves and displays independently readable per-record entries in History, with a recovery warning and unknown overall status. All syncing stays paused until the full queue is readable; `getLocalHistory` remains the strict drain boundary. Migration failures preserve the original legacy copy. No automatic deletion, repair, enrichment or export. |
 
 New authentication holds use `rummerlab_sync_auth_required`, independent of the
 existing cooldown key `rummerlab_sync_pause`. Old combined pauses are upgraded on
@@ -93,6 +93,8 @@ after upgrading. Submission IDs, payloads, hashes and record storage keys do not
 | 400, 409, 413, 415, 422 | needsReview, retained and skipped on future drains |
 | Timeout, malformed response, other provider/network failure | pending with bounded retry |
 
+`submissionOutcome` is the pure shared classifier for this table. The drain applies
+its named effects only after classification, and need not consume login/throttle bodies.
 A **known** receipt-content conflict throws `SubmissionConflictError` and returns 409.
 An uncertain write or failed reconciliation stays retryable 503; never turn unknown
 commit status into permanent rejection. Restricted log failure never fails the
@@ -110,7 +112,7 @@ new atomic log guard retroactively.
 | Asset cache hit / miss; excluded path | `networkOnlyPath` applies to both precache inputs and fetch routing. `/api/*`, `/login`, `/auth/*`, `/insights`, `/_vercel/*`, and the legacy `/sw.js` bridge stay network-only. |
 | Install hint unsupported / standalone / dismissed / Safari / Chrome / other | Existing `installHint.ts` and component. Keep lightweight; instructions do not prove a worker is installed or ready. iOS has no beforeinstallprompt dependency. |
 | Workbook setup inspected / planned / refused / dryRun / applied / reinspected / complete | Existing planners plus `setupRoom6Workbook`. A rerun after tab creation initialises missing headers only; completion verifies the final plan is empty. Failed header reads never imply empty tabs, including the restricted log setup script. |
-| Metadata migration inspected / collision checked / dry-run / atomic apply / no-op | `migrate-sheet-metadata.mjs`. Preserve operational prefixes, refuse occupied columns, and enable runtime metadata only after successful migration. Room 6 metadata remains independent and always present. |
+| Metadata migration inspected / collision checked / dry-run / atomic apply / no-op | `migrateMetadataWorkbook`. Missing collision responses or tab metadata are unknown, never empty. Metadata and restricted-log setup return dryRun/complete/refused/reinspectionRequired outcomes; CLI refusal or uncertainty exits nonzero. Completed writes verify headers afresh. Runtime flags never change automatically. Room 6 metadata remains independent and always present. |
 | Analytics eligible / already injected / starting / failed; retired GA cleanup | Existing analytics/Speed Insights helpers. Fail open; never gate forms or sync. No custom state events, IDs, values, notes or queries sent to telemetry. |
 | Guide Room 12 / Room 6; current / overdue; seasonal text | Existing pure guide selectors. The date is a mount-time snapshot; a long-open guide needs a reload to refresh date-based text. No policy or veterinary instructions are inferred from state. |
 
@@ -128,6 +130,8 @@ pair, observe the durable pending receipt and today's empty AM drafts, then retu
 an unrelated PM draft and verify its old date/notes. History must retain the mock record
 as pending. Do not use production data to test these flows.
 
-Installed-worker upgrade/waiting and offline launch still need a real installed PWA
-check across two releases before #118 is considered fully verified. Local development
-does not exercise worker activation. No production workbook migration is part of this PR.
+Native-worker install, failed precache, waiting, activation, cache cleanup, offline
+reopening and guide navigation were verified in desktop Chrome using two actual compiled
+workers with an isolated synthetic shell. See [the repeatable protocol and evidence](pwa-qualification.md).
+This qualifies worker behaviour rather than phone-specific home-screen installation UI.
+No production workbook migration is part of this work.

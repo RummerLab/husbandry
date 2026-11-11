@@ -20,7 +20,7 @@
 
 	function loadHistory() {
 		snapshot = readQueueSnapshot();
-		if (snapshot.kind === 'ready') history = snapshot.records;
+		history = snapshot.records ?? [];
 		needsSignIn = snapshot.kind === 'ready' && snapshot.status === 'signInRequired';
 	}
 
@@ -70,13 +70,14 @@
 
 	{#if snapshot.kind === 'unavailable'}
 		<p>Records have not been removed. Keep this device data and contact the lab administrator.</p>
-	{:else if history.length === 0}
+	{/if}
+	{#if snapshot.kind === 'ready' && history.length === 0}
 		<div class="empty-state">
 			<div class="empty-icon">📋</div>
 			<h4>No records submitted from this device yet</h4>
 			<p>When you complete and submit husbandry records, your personal log will appear here.</p>
 		</div>
-	{:else}
+	{:else if history.length > 0}
 		<div class="records-list">
 			{#each history as item}
 				<div class="record-card" class:synced={item.synced} class:pending={!item.synced}>
@@ -103,7 +104,7 @@
 							<strong>Initials:</strong> {item.initials}
 						</div>
 						<div class="record-modules">
-							{#each item.modules as mod}
+							{#each item.modules ?? item.payload.modulesSubmitted as mod}
 								<span class="mod-pill">
 									{#if mod === 'lss'}{item.payload?.lss?.shiftPart ? `${item.payload.lss.shiftPart} LSS` : 'LSS Checks'}
 									{:else if mod === 'tanksEggs'}Tanks & Eggs

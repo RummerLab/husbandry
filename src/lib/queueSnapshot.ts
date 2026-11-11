@@ -1,11 +1,11 @@
 import { DEVICE_QUEUE_CHANGED } from './deviceEvents';
-import { getLocalHistory, isQueueSyncing } from './storage';
+import { inspectLocalHistory, isQueueSyncing } from './storage';
 import { getSyncPause } from './syncPause';
 import { deliveryState } from './submissionOutcome';
 import type { LocalHistoryItem } from './types';
 
 export type QueueSnapshot =
-	| { kind: 'unavailable'; message: string }
+	| { kind: 'unavailable'; message: string; records?: LocalHistoryItem[] }
 	| { kind: 'ready'; records: LocalHistoryItem[]; pendingCount: number; reviewCount: number;
 		status: 'upToDate' | 'pending' | 'syncing' | 'needsReview' | 'signInRequired' | 'cooldown';
 		message: string; retryAt: number | null };
@@ -13,7 +13,9 @@ export type QueueSnapshot =
 /** A read error is unknown, never an empty or successfully delivered queue. */
 export function readQueueSnapshot(): QueueSnapshot {
 	try {
-		const records = getLocalHistory();
+		const inspection = inspectLocalHistory();
+		if (inspection.state !== 'readable') return { kind: 'unavailable', message: inspection.message, records: inspection.records };
+		const records = inspection.records;
 		const pendingCount = records.filter(record => deliveryState(record) !== 'synced').length;
 		const reviewCount = records.filter(record => deliveryState(record) === 'needsReview').length;
 		const pause = getSyncPause();

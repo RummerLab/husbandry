@@ -1,4 +1,5 @@
 import { notifyDeviceQueueChanged } from './deviceEvents';
+import { retryDeadline } from './syncPolicy';
 
 const KEY = 'rummerlab_sync_pause';
 const AUTH_KEY = 'rummerlab_sync_auth_required';
@@ -33,10 +34,7 @@ export function pauseSync(message: string, retryAfter: string | null, authentica
 		notifyDeviceQueueChanged();
 		return;
 	}
-	const seconds = retryAfter !== null && /^\d+(?:\.\d+)?$/.test(retryAfter.trim()) ? Number(retryAfter) * 1000 : NaN;
-	const date = retryAfter ? Date.parse(retryAfter) : NaN;
-	const delay = Number.isFinite(seconds) ? seconds : Number.isFinite(date) ? date - Date.now() : 60000;
-	const until = Date.now() + Math.max(1000, delay) + Math.floor(Math.random() * 3000);
+	const until = retryDeadline(retryAfter, Date.now(), Math.floor(Math.random() * 3000));
 	const previous = readCooldown();
 	localStorage.setItem(KEY, JSON.stringify({ until: Math.max(until, previous?.until || 0), message }));
 	notifyDeviceQueueChanged();
