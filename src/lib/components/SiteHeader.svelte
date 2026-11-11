@@ -13,9 +13,11 @@
 		onSelectTab?: (tab: HomeTab) => void;
 		isOnline?: boolean;
 		pendingCount?: number;
+		/** Disable on long guides so fragment links never land underneath the header. */
+		sticky?: boolean;
 	}
 
-	let { highlight, onSelectTab, isOnline, pendingCount }: Props = $props();
+	let { highlight, onSelectTab, isOnline, pendingCount, sticky = true }: Props = $props();
 
 	let localOnline = $state(true);
 	let localPending = $state(0);
@@ -44,7 +46,7 @@
 	});
 </script>
 
-<header class="site-header">
+<header class="site-header" class:sticky>
 	<div class="header-container">
 		<div class="brand-group">
 			<a class="brand" href="/" aria-label="RummerLab Husbandry home">
@@ -151,11 +153,15 @@
 
 <style>
 	.site-header {
-		position: sticky;
-		top: 0;
+		position: relative;
 		z-index: 50;
 		background: #ffffff;
 		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.05);
+	}
+
+	.site-header.sticky {
+		position: sticky;
+		top: 0;
 	}
 
 	.header-container {

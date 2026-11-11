@@ -19,7 +19,7 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<SiteHeader highlight="help" />
+<SiteHeader highlight="help" sticky={false} />
 
 <div class="page">
 	<header class="top">
