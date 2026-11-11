@@ -145,6 +145,28 @@
 						💧 Water Quality
 					</a>
 				{/if}
+				{#if interactive}
+					<button
+						type="button"
+						role="tab"
+						aria-selected={highlight === 'room6'}
+						class="nav-tab"
+						class:active={highlight === 'room6'}
+						onclick={() => onSelectTab?.('room6')}
+					>
+						🥚 Room 6
+					</button>
+				{:else}
+					<a
+						role="tab"
+						aria-selected={highlight === 'room6'}
+						class="nav-tab"
+						class:active={highlight === 'room6'}
+						href="/?tab=room6"
+					>
+						🥚 Room 6
+					</a>
+				{/if}
 			</div>
 		</div>
 	</div>

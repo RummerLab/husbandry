@@ -1,7 +1,7 @@
 import { createEmptyForms } from './formDefaults';
 import { ROOM12_TANKS } from './tanksConfig';
 
-export const modules = ['lss', 'tanksEggs', 'feeds', 'waterQuality'] as const;
+export const modules = ['lss', 'tanksEggs', 'feeds', 'waterQuality', 'room6'] as const;
 export type Module = typeof modules[number];
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim();
@@ -85,6 +85,15 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 			if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) reject(key, `waterQuality: ${key} invalid measurement`);
 		}
 		for (const key of ['doA', 'doB']) if (!numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or explicit N/A required`);
+	}
+	if (module === 'room6') {
+		enumField('eggsChecked', ['Y', 'N']);
+		if (value.eggsChecked === 'N') require('concerns');
+		if (!text(value.deadEggsRemoved) || !/^\d+$/.test(value.deadEggsRemoved.trim()) || !Number.isSafeInteger(Number(value.deadEggsRemoved))) reject('deadEggsRemoved', 'room6: deadEggsRemoved must be a whole number (0 if none)');
+		for (const key of ['temp', 'salinity']) if (!numeric(value[key])) reject(key, `room6: ${key} invalid measurement`);
+		if (value.pH !== NOT_MEASURED && (!numeric(value.pH) || Number(value.pH) > 14)) reject('pH', 'room6: pH invalid measurement');
+		enumField('waterChange', ['None', '50%', '75%', 'Other']);
+		if (value.waterChange === 'Other') require('notes');
 	}
 	return errors;
 }

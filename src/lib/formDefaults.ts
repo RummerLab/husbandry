@@ -1,7 +1,7 @@
 import type { Module } from './validation';
-import type { LSSData, TanksEggsData, FeedsData, WaterQualityData } from './types';
+import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data } from './types';
 
-export type HusbandryForms = { lss: LSSData; tanksEggs: TanksEggsData; feeds: FeedsData; waterQuality: WaterQualityData };
+export type HusbandryForms = { lss: LSSData; tanksEggs: TanksEggsData; feeds: FeedsData; waterQuality: WaterQualityData; room6: Room6Data };
 
 /** Fresh unanswered observations for a new record; only saved initials are reused. */
 export function createEmptyForms(date: string, initials = ''): HusbandryForms {
@@ -73,6 +73,18 @@ export function createEmptyForms(date: string, initials = ''): HusbandryForms {
 			doB: '',
 			notes: ''
 		},
+		room6: {
+			date,
+			initials,
+			eggsChecked: '',
+			deadEggsRemoved: '',
+			temp: '',
+			salinity: '',
+			pH: '',
+			waterChange: '',
+			concerns: '',
+			notes: ''
+		}
 	};
 }
 
@@ -83,7 +95,8 @@ export function resetSubmittedForms(current: HusbandryForms, submitted: Module[]
 		lss: submitted.includes('lss') ? fresh.lss : current.lss,
 		tanksEggs: submitted.includes('tanksEggs') ? fresh.tanksEggs : current.tanksEggs,
 		feeds: submitted.includes('feeds') ? fresh.feeds : current.feeds,
-		waterQuality: submitted.includes('waterQuality') ? fresh.waterQuality : current.waterQuality
+		waterQuality: submitted.includes('waterQuality') ? fresh.waterQuality : current.waterQuality,
+		room6: submitted.includes('room6') ? fresh.room6 : current.room6
 	};
 }
 

@@ -14,6 +14,7 @@
 		TanksEggsData,
 		FeedsData,
 		WaterQualityData,
+		Room6Data,
 		FullHusbandrySubmission
 	} from '../lib/types';
 	import { getSavedInitials, setSavedInitials, queueSubmission, getLocalHistory } from '../lib/storage';
@@ -22,6 +23,7 @@
 	import TanksEggsForm from '../lib/components/TanksEggsForm.svelte';
 	import FeedsForm from '../lib/components/FeedsForm.svelte';
 	import WaterQualityForm from '../lib/components/WaterQualityForm.svelte';
+	import Room6Form from '../lib/components/Room6Form.svelte';
 	import LocalHistoryView from '../lib/components/LocalHistoryView.svelte';
 	import IosInstallHint from '../lib/components/IosInstallHint.svelte';
 	import SiteHeader from '../lib/components/SiteHeader.svelte';
@@ -62,10 +64,13 @@
 
 	let waterQualityData = $state<WaterQualityData>(initialForms.waterQuality);
 
-	let forms: StepForms = $derived({ lssAM: lssAmData, lssPM: lssPmData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData });
+	let room6Data = $state<Room6Data>(initialForms.room6);
+
+	let forms: StepForms = $derived({ lssAM: lssAmData, lssPM: lssPmData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData, room6: room6Data });
 	let stepValidity = $derived(shiftSteps.map(step => stepValid(step, forms)));
 
 	let waterQualityValid = $derived(validateModule('waterQuality', waterQualityData).length === 0);
+	let room6Valid = $derived(validateModule('room6', room6Data).length === 0);
 
 	onMount(() => {
 		handleDateChange(room12Date());
@@ -91,6 +96,7 @@
 		tanksEggsData.date = val;
 		feedsData.date = val;
 		waterQualityData.date = val;
+		room6Data.date = val;
 	}
 
 	function applyInitialsToAll(initials: string) {
@@ -99,6 +105,7 @@
 		if (!tanksEggsData.initials) tanksEggsData.initials = initials;
 		if (!feedsData.initials) feedsData.initials = initials;
 		if (!waterQualityData.initials) waterQualityData.initials = initials;
+		if (!room6Data.initials) room6Data.initials = initials;
 	}
 
 	// Step validation logic: you cannot move forward if the current step is not valid
@@ -107,7 +114,9 @@
 
 	let activeIssues = $derived(activeTab === 'waterQuality'
 		? getModuleIssues('waterQuality', waterQualityData)
-		: getModuleIssues(stepModule[activeStep], forms[activeStep]));
+		: activeTab === 'room6'
+			? getModuleIssues('room6', room6Data)
+			: getModuleIssues(stepModule[activeStep], forms[activeStep]));
 	// The Water Quality tab also flags values already typed but invalid (e.g. "98%"), before Save is tried.
 	let visibleIssues = $derived(showValidation
 		? activeIssues
@@ -193,6 +202,7 @@
 			tanksEggsData = fresh.tanksEggs;
 			feedsData = fresh.feeds;
 			waterQualityData = fresh.waterQuality;
+			room6Data = fresh.room6;
 			// A completed shift pair rolls the date forward to today (as the old full routine did), so a
 			// shared tablet left open overnight cannot keep saving under yesterday's date.
 			const submittedPair = steps.length > 1;
@@ -341,6 +351,47 @@
 					{:else}
 						<span>Master spreadsheet link unavailable. Please contact the lab administrator.</span>
 					{/if}
+				</div>
+			</fieldset>
+		{:else if activeTab === 'room6'}
+			<fieldset class="entry-form" disabled={isSubmitting} aria-busy={isSubmitting}>
+				{@render sessionBar()}
+
+				<div class="wq-only-intro">
+					<strong>Room 6 (egg room)</strong>
+					<span>Record the Room 6 egg check and water readings. It saves a row to the <em>Room 6</em> sheet, separate from the Room 12 records.</span>
+				</div>
+
+				{#if showValidation && activeIssues.length}
+					<p id="step-validation-summary" class="validation-summary" role="alert">
+						Complete the highlighted answers before saving ({activeIssues.length} remaining).
+					</p>
+				{/if}
+
+				<div class="step-content">
+					<Room6Form bind:data={room6Data} />
+				</div>
+
+				<div class="step-nav-footer wq-footer">
+					<div class="step-indicator">
+						Room 6
+						{#if !room6Valid}
+							<span class="step-hint" id="room6-save-help">• Save unlocks when every required field (*) is valid</span>
+							<button type="button" class="show-missing-btn" onclick={revealWaterQualityIssues}>Show what's missing</button>
+						{/if}
+					</div>
+					<div class="right-action">
+						<button
+							type="button"
+							class="nav-action-btn submit"
+							class:disabled={!room6Valid || isSubmitting}
+							disabled={!room6Valid || isSubmitting}
+							aria-describedby={!room6Valid ? 'room6-save-help' : undefined}
+							onclick={() => submitSteps(['room6'])}
+						>
+							{isSubmitting ? 'Saving...' : '🥚 Save Room 6 to Sheets'}
+						</button>
+					</div>
 				</div>
 			</fieldset>
 		{:else}
