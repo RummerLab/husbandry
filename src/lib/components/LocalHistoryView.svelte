@@ -101,7 +101,7 @@
 						<div class="record-modules">
 							{#each item.modules as mod}
 								<span class="mod-pill">
-									{#if mod === 'lss'}LSS Checks
+									{#if mod === 'lss'}{item.payload?.lss?.shiftPart ? `${item.payload.lss.shiftPart} LSS` : 'LSS Checks'}
 									{:else if mod === 'tanksEggs'}Tanks & Eggs
 									{:else if mod === 'feeds'}Feeds
 									{:else if mod === 'waterQuality'}Water Quality

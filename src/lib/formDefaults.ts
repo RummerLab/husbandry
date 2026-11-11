@@ -86,3 +86,9 @@ export function resetSubmittedForms(current: HusbandryForms, submitted: Module[]
 		waterQuality: submitted.includes('waterQuality') ? fresh.waterQuality : current.waterQuality
 	};
 }
+
+/** A fresh LSS record for one shift: AM keeps the daily welfare check; PM covers equipment and hygiene. */
+export function createLSSPart(part: 'AM' | 'PM', date: string, initials = ''): LSSData {
+	const lss = createEmptyForms(date).lss;
+	return part === 'AM' ? { ...lss, shiftPart: 'AM', amInitials: initials } : { ...lss, shiftPart: 'PM', pmInitials: initials };
+}

@@ -95,9 +95,12 @@ export function summariseConcerns(rows: Row[], today: string, days = OVERVIEW_DA
 	}).filter(c => c.animalsNormal === 'N' || c.text !== '' || c.notes !== '');
 }
 
-/** Dates in the window with no LSS (daily) record: the ethics approval requires a check every day. */
+/**
+ * Dates in the window with no daily welfare check: the ethics approval requires a check every day.
+ * Only rows with AM initials count; a PM-only LSS row (blank Col 2) carries no welfare check.
+ */
 export function missingDailyChecks(rows: Row[], today: string, days = OVERVIEW_DAYS): string[] {
-	const present = new Set(rows.map(row => normaliseDate(row[0])).filter(Boolean));
+	const present = new Set(rows.filter(row => (row[1] || '').trim()).map(row => normaliseDate(row[0])).filter(Boolean));
 	return Array.from({ length: days }, (_, i) => daysBefore(today, i)).filter(date => !present.has(date));
 }
 

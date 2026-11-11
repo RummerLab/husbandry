@@ -9,6 +9,14 @@ const date = (v: unknown): boolean => text(v) && /^\d{4}-\d{2}-\d{2}$/.test(v) &
 const numeric = (v: unknown): boolean => text(v) && /^\d+(\.\d+)?$/.test(v.trim()) && Number.isFinite(Number(v));
 const choices = ['Y', 'N', 'N/A', '/'];
 export const lssChecks = ['skimmerVenturi', 'skimmerSprayDown', 'filterCleaned', 'filterReplaced', 'waterLevelsAM', 'waterLevelsPM', 'waterFlowAM', 'waterFlowPM', 'airstonesAM', 'airstonesPM', 'vacNetTanks', 'tanksScrubbed', 'overflowCleaned', 'hoseFloorLadder', 'footTubLidsSqueegee', 'equipmentDisinfected'];
+/** Checks recorded by the AM shift; everything else in lssChecks belongs to the PM shift (last person in the room). */
+export const lssAmChecks = ['waterLevelsAM', 'waterFlowAM', 'airstonesAM'];
+export const lssPmChecks = lssChecks.filter(key => !lssAmChecks.includes(key));
+export const lssShiftParts = ['AM', 'PM'] as const;
+/** Explicit answer for water tests not done in this session (e.g. pH by MARFU, PO4 only with a SpinTouch); exported as a blank cell. */
+export const NOT_MEASURED = 'Not measured';
+/** Water Quality fields that accept NOT_MEASURED. Temperature and salinity always need a reading. */
+export const notMeasurableFields = ['pHA', 'pHB', 'alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
 export const weeklyFields = ['alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
 
 export interface ModuleIssue { field: string; message: string }
@@ -29,12 +37,29 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	const require = (key: string, check = text) => { if (!check(value[key])) reject(key, `${module}: ${key} required or invalid`); };
 	const enumField = (key: string, allowed = choices) => require(key, (v: unknown): v is string => typeof v === 'string' && allowed.includes(v));
 	if (!date(value.date)) reject('date', `${module}: valid date required`);
-	require(module === 'lss' ? 'amInitials' : 'initials');
+	if (module !== 'lss') require('initials');
 	if (module === 'lss') {
-		lssChecks.forEach(key => enumField(key));
-		// New forms always carry animalsChecked; only pre-upgrade queued records omit it.
-		if (value.animalsChecked !== undefined) enumField('animalsChecked', ['Y', 'N']);
-		if (value.animalsChecked === 'N') require('concerns');
+		const part = value.shiftPart;
+		const blank = (key: string) => { const v = value[key]; if (v !== undefined && v !== '') reject(key, `lss: ${key} belongs to the other shift and must be left blank`); };
+		if (part === undefined) {
+			// Pre-split records carry both shifts in one row.
+			require('amInitials');
+			lssChecks.forEach(key => enumField(key));
+			// New forms always carry animalsChecked; only pre-upgrade queued records omit it.
+			if (value.animalsChecked !== undefined) enumField('animalsChecked', ['Y', 'N']);
+			if (value.animalsChecked === 'N') require('concerns');
+		} else if (part === 'AM') {
+			// The daily animal welfare check stays with the AM shift.
+			require('amInitials');
+			enumField('animalsChecked', ['Y', 'N']);
+			if (value.animalsChecked === 'N') require('concerns');
+			lssAmChecks.forEach(key => enumField(key));
+			['pmInitials', ...lssPmChecks].forEach(blank);
+		} else if (part === 'PM') {
+			require('pmInitials');
+			lssPmChecks.forEach(key => enumField(key));
+			['amInitials', 'animalsChecked', ...lssAmChecks].forEach(blank);
+		} else reject('shiftPart', 'lss: shift must be AM or PM');
 	}
 	if (module === 'tanksEggs') {
 		['103', '102', '116', '105', '117'].forEach(id => enumField(`palpationHO${id}`, ['0', 'L', 'R', 'B', 'N/A']));
@@ -55,7 +80,10 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	if (module === 'waterQuality') {
 		if (typeof value.isWeeklyCheck !== 'boolean') reject('isWeeklyCheck', 'waterQuality: weekly check flag required');
 		const fields = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', ...(value.isWeeklyCheck === true ? weeklyFields : [])];
-		for (const key of fields) if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) reject(key, `waterQuality: ${key} invalid measurement`);
+		for (const key of fields) {
+			if (value[key] === NOT_MEASURED && notMeasurableFields.includes(key)) continue;
+			if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) reject(key, `waterQuality: ${key} invalid measurement`);
+		}
 		for (const key of ['doA', 'doB']) if (!numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or explicit N/A required`);
 	}
 	return errors;
