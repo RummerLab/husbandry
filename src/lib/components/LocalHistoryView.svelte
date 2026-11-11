@@ -11,7 +11,6 @@
 	let deviceId = $state('');
 	let isSyncing = $state(false);
 	let syncMessage = $state('');
-	let needsSignIn = $state(false);
 	let snapshot = $state<QueueSnapshot>({ kind: 'unavailable', message: 'Reading device records…' });
 
 	onMount(() => {
@@ -22,7 +21,6 @@
 	function loadHistory() {
 		snapshot = readQueueSnapshot();
 		history = snapshot.records ?? [];
-		needsSignIn = snapshot.kind === 'ready' && snapshot.status === 'signInRequired';
 	}
 
 	async function handleSync() {
@@ -57,16 +55,18 @@
 		</button>
 	</div>
 
-	{#if needsSignIn}
-		<div class="sync-banner warn">Your records are saved on this device. <a href="/login" rel="external">Sign in again to resume sync</a>.</div>
-	{/if}
-
 	{#if syncMessage}
 		<div class="sync-banner bad">
 			{syncMessage}
 		</div>
 	{/if}
-	<p class="sync-banner {snapshotTone(snapshot)}" role="status">{snapshot.message}</p>
+	<p class="sync-banner {snapshotTone(snapshot)}" role="status">
+		{#if snapshot.kind === 'ready' && snapshot.status === 'signInRequired'}
+			<a href="/login" rel="external">Sign in again to resume sync</a>.{snapshot.message.replace(/^Sign in again to resume sync\./, '')}
+		{:else}
+			{snapshot.message}
+		{/if}
+	</p>
 
 	{#if snapshot.kind === 'unavailable'}
 		<p>Records have not been removed. Keep this device data and contact the lab administrator.</p>
