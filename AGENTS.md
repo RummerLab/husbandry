@@ -73,7 +73,7 @@ The operational columns below must maintain exact parity with `Room 12 Records 2
    - Col 11–22: Weekly Chemistry (Alk A/B, pH A/B, NH3 A/B, NO2 A/B, NO3 A/B, PO4 A/B)
    - Col 23: Notes
 
-5. **`Room 6`** (Cols 1–14, #79; egg room, provisional fields): Date | Initials | All eggs sighted & normal | Dead eggs removed | Temp | Salinity | pH | Water change | Concerns | Notes, then the four provenance columns, always written. Created by `scripts/setup-room6.mjs`; see `docs/room6.md`.
+5. **`Room 6`** (Cols 1–14, #79; egg room, initial layout authorised 2026-11-11): Date | Initials | All eggs sighted & normal | Dead eggs removed | Temp | Salinity | pH | Water change | Concerns | Notes, then the four provenance columns, always written. Created by `scripts/setup-room6.mjs`; see `docs/room6.md`.
 
 ---
 
@@ -169,7 +169,7 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - WQ "Not measured" (lab decision 2026-11-11): routine pH and every weekly test accept the explicit `NOT_MEASURED` answer (e.g. pH by MARFU, PO4 only with a SpinTouch); it exports as a blank cell. Temperature and salinity always need a number. It is an answer, not a skip: empty fields still fail validation.
 
 - WQ Not measured controls act on one side at a time (#82); never overwrite the other side's reading. Mixed numeric/unmeasured pairs are valid and export the measured value plus a blank cell. Keep the controls at least 48px tall.
-- Room 6 (#79): module `room6` (`Room6Data`, `Room6Form`, header tab "Room 6") writes to a `Room 6` tab in the master sheet. The tab is new, so its rows ALWAYS carry the four provenance columns regardless of `GOOGLE_SHEET_METADATA_ENABLED`, and it is NOT in `sheetMetadata.json` widths (adding it there would make every write fail preflight while the tab is missing). `assertRoom6Headers` runs only when a Room 6 row is written; a missing tab returns 503, so the record stays queued. Headers live in `room6Sheet.ts` and `scripts/setup-room6.mjs` (a test keeps them equal). Fields are a provisional best guess until the lab confirms them; Lab Overview does not read Room 6 yet.
+- Room 6 (#79): module `room6` (`Room6Data`, `Room6Form`, header tab "Room 6") writes to a `Room 6` tab in the master sheet. The tab is new, so its rows ALWAYS carry the four provenance columns regardless of `GOOGLE_SHEET_METADATA_ENABLED`, and it is NOT in `sheetMetadata.json` widths (adding it there would make every write fail preflight while the tab is missing). `assertRoom6Headers` runs only when a Room 6 row is written; a missing tab returns 503, so the record stays queued. Headers live in `room6Sheet.ts` and `scripts/setup-room6.mjs` (a test keeps them equal). The initial fields were authorised by the repository owner on 2026-11-11 (see below); Lab Overview does not read Room 6 yet.
 
 - Room 6 setup (#88): check tab existence before fetching headers; header-read errors must abort, never fall back to metadata and assume an empty row. Dead-egg counts (#89) must be digit strings that convert to safe integers.
 
