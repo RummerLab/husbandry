@@ -95,6 +95,7 @@
 		</button>
 	</div>
 	<div class="header-container">
+		<div class="brand-panel">
 		<div class="brand-group">
 			<a class="brand" href="/" aria-label="RummerLab Husbandry home">
 				<img class="brand-logo" src="/rummerlab_logo_transparent.png" alt="RummerLab" height="38" />
@@ -105,13 +106,14 @@
 				<span>{currentRoom === 'room6' ? 'Room 6 · Egg room' : currentRoom === 'room12' ? 'Room 12 · Breeding colony' : 'Choose a room'}</span>
 			</div>
 		</div>
+			<div class="network-badge" class:online={showOnline} class:offline={!showOnline}>
+				<span class="status-dot"></span>
+				<span>{showOnline ? 'Online' : 'Offline Mode'} · {showPending} pending</span>
+			</div>
+		</div>
 
 		<div class="nav-controls" id="site-navigation" class:menu-open={menuOpen}>
 			<div class="nav-utilities">
-				<div class="network-badge" class:online={showOnline} class:offline={!showOnline}>
-					<span class="status-dot"></span>
-					<span>{showOnline ? 'Online' : 'Offline Mode'} · {showPending} pending</span>
-				</div>
 				{#if interactive}
 					<button
 						type="button"
@@ -158,9 +160,9 @@
 					<a href="/?tab=room6" onclick={() => menuOpen = false}><strong>Room 6</strong><span>Egg room</span></a>
 				{/if}
 			</div>
-			{#if currentRoom === 'room12'}
-
-			<div class="nav-tabs" role="tablist" aria-label="Room 12 recording workflows">
+			{#if currentRoom}
+			<div class="workflow-slot">
+			<div class="nav-tabs" class:inactive={currentRoom !== 'room12'} inert={currentRoom !== 'room12'} aria-hidden={currentRoom !== 'room12'} role="tablist" aria-label="Room 12 recording workflows">
 				{#each Object.keys(shifts) as shift}
 					{#if interactive}
 						<button
@@ -208,8 +210,7 @@
 					</a>
 				{/if}
 			</div>
-			{:else if currentRoom === 'room6'}
-			<div class="nav-tabs" role="tablist" aria-label="Room 6 recording">
+			<div class="nav-tabs" class:inactive={currentRoom !== 'room6'} inert={currentRoom !== 'room6'} aria-hidden={currentRoom !== 'room6'} role="tablist" aria-label="Room 6 recording">
 
 				{#if interactive}
 					<button
@@ -233,6 +234,7 @@
 						Egg room records
 					</a>
 				{/if}
+			</div>
 			</div>
 			{/if}
 
@@ -272,12 +274,15 @@
 		max-width: 1040px;
 		margin: 0 auto;
 		padding: 0.75rem 1.25rem;
-		display: flex;
-		justify-content: space-between;
+		display: grid;
+		grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
 		align-items: center;
-		flex-wrap: wrap;
 		gap: 0.85rem;
 	}
+
+	.brand-panel { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; min-width: 0; }
+	.workflow-slot { display: grid; min-width: 0; }
+	.nav-tabs.inactive { visibility: hidden; pointer-events: none; }
 
 	.brand-group {
 		display: flex;
@@ -314,6 +319,8 @@
 	}
 
 	.room-pill {
+		width: 13rem;
+		min-height: 24px;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
@@ -392,6 +399,8 @@
 	}
 
 	.nav-tabs {
+		grid-area: 1 / 1;
+		align-self: start;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.3rem;
@@ -449,6 +458,10 @@
 		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.08);
 	}
 
+	@media (min-width: 641px) and (max-width: 899px) {
+		.header-container { grid-template-columns: minmax(0, 1fr); }
+	}
+
 	@media (max-width: 640px) {
 		.mobile-bar {
 			display: flex;
@@ -470,8 +483,8 @@
 			color: var(--ink); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
 		}
 		.menu-toggle:focus-visible, .mobile-brand:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-		.header-container { padding: 0; gap: 0; }
-		.brand-group { display: none; }
+		.header-container { display: block; padding: 0; gap: 0; }
+		.brand-panel { display: none; }
 		.nav-controls { display: none; }
 		.nav-controls.menu-open {
 			display: flex; flex: 1 1 100%; width: 100%; box-sizing: border-box;
@@ -479,7 +492,6 @@
 			overscroll-behavior: contain;
 		}
 		.nav-utilities, .nav-tabs { width: 100%; box-sizing: border-box; }
-		.nav-utilities .network-badge { display: none; }
 		.nav-utilities .nav-tab, .nav-tabs .nav-tab {
 			flex: 1 1 auto; min-height: 48px; padding: 0.4rem 0.5rem; font-size: 0.8rem;
 		}
