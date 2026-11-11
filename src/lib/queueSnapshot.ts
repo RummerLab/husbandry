@@ -8,7 +8,10 @@ export type QueueSnapshot =
 	| { kind: 'unavailable'; message: string; records?: LocalHistoryItem[] }
 	| { kind: 'ready'; records: LocalHistoryItem[]; pendingCount: number; reviewCount: number;
 		status: 'upToDate' | 'pending' | 'syncing' | 'needsReview' | 'signInRequired' | 'cooldown';
-		message: string; retryAt: number | null };
+		/** Record counts without the status prompt, for views that render the prompt as a link. */
+		message: string; detail: string; retryAt: number | null };
+
+export const SIGN_IN_PROMPT = 'Sign in again to resume sync';
 
 export type QueueStatusTone = 'good' | 'warn' | 'bad';
 export function snapshotTone(snapshot: QueueSnapshot): QueueStatusTone {
@@ -26,12 +29,12 @@ export function readQueueSnapshot(): QueueSnapshot {
 		const reviewCount = records.filter(record => deliveryState(record) === 'needsReview').length;
 		const pause = getSyncPause();
 		const base = { kind: 'ready' as const, records, pendingCount, reviewCount, retryAt: pause?.until ? pause.until : null };
-		if (!pendingCount) return { ...base, status: 'upToDate', message: 'All up to date!' };
+		if (!pendingCount) return { ...base, status: 'upToDate', message: 'All up to date!', detail: '' };
 		const counts = `${pendingCount} record(s) remain on this device.${reviewCount ? ` ${reviewCount} need administrator review and will not retry automatically.` : ''}`;
-		if (pause?.authentication) return { ...base, status: 'signInRequired', message: `Sign in again to resume sync. ${counts}` };
-		if (pause) return { ...base, status: 'cooldown', message: `Sync paused until ${new Date(pause.until).toLocaleTimeString()}. ${counts}` };
-		if (isQueueSyncing()) return { ...base, status: 'syncing', message: `Syncing pending records. ${counts}` };
-		return { ...base, status: reviewCount ? 'needsReview' : 'pending', message: counts };
+		if (pause?.authentication) return { ...base, status: 'signInRequired', message: `${SIGN_IN_PROMPT}. ${counts}`, detail: counts };
+		if (pause) return { ...base, status: 'cooldown', message: `Sync paused until ${new Date(pause.until).toLocaleTimeString()}. ${counts}`, detail: counts };
+		if (isQueueSyncing()) return { ...base, status: 'syncing', message: `Syncing pending records. ${counts}`, detail: counts };
+		return { ...base, status: reviewCount ? 'needsReview' : 'pending', message: counts, detail: counts };
 	} catch {
 		return { kind: 'unavailable', message: 'Device records are unavailable or damaged. Keep this device data and contact the lab administrator. Sync status is unknown.' };
 	}

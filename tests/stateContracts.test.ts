@@ -142,10 +142,20 @@ it('never calls a blocked or unreadable queue up to date, and publishes same/cro
 it('keeps authentication and cooldown independent, including upgraded legacy pauses', () => {
 	vi.useFakeTimers();
 	vi.setSystemTime(new Date('2026-11-11T00:00:00Z'));
+	persistNewSubmission(payload());
 	pauseSync('Rate limited', '120');
 	const deadline = getSyncPause()!.until;
 	pauseSync('Sign in', null, true);
 	expect(getSyncPause()).toMatchObject({ authentication: true, until: deadline });
+	const authSnapshot = readQueueSnapshot();
+	expect(authSnapshot).toMatchObject({
+		kind: 'ready',
+		status: 'signInRequired',
+		pendingCount: 1,
+		message: 'Sign in again to resume sync. 1 record(s) remain on this device.',
+		detail: '1 record(s) remain on this device.'
+	});
+	expect(snapshotTone(authSnapshot)).toBe('warn');
 	resumeAuthenticatedSync();
 	expect(getSyncPause()).toMatchObject({ until: deadline, message: 'Rate limited' });
 	vi.advanceTimersByTime(124000);
