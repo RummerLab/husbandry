@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { readQueueSnapshot, observeDeviceQueue, snapshotTone, type QueueSnapshot } from '../queueSnapshot';
+	import { readQueueSnapshot, observeDeviceQueue, snapshotTone, SIGN_IN_PROMPT, type QueueSnapshot } from '../queueSnapshot';
 	import { onMount } from 'svelte';
 	import type { LocalHistoryItem } from '../types';
 	import { syncPendingSubmissions, getDeviceId } from '../storage';
@@ -62,7 +62,7 @@
 	{/if}
 	<p class="sync-banner {snapshotTone(snapshot)}" role="status">
 		{#if snapshot.kind === 'ready' && snapshot.status === 'signInRequired'}
-			<a href="/login" rel="external">Sign in again to resume sync</a>.{snapshot.message.replace(/^Sign in again to resume sync\./, '')}
+			<a href="/login" rel="external">{SIGN_IN_PROMPT}</a>. {snapshot.detail}
 		{:else}
 			{snapshot.message}
 		{/if}

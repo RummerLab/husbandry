@@ -152,7 +152,8 @@ it('keeps authentication and cooldown independent, including upgraded legacy pau
 		kind: 'ready',
 		status: 'signInRequired',
 		pendingCount: 1,
-		message: 'Sign in again to resume sync. 1 record(s) remain on this device.'
+		message: 'Sign in again to resume sync. 1 record(s) remain on this device.',
+		detail: '1 record(s) remain on this device.'
 	});
 	expect(snapshotTone(authSnapshot)).toBe('warn');
 	resumeAuthenticatedSync();
