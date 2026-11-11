@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { validateModule, NOT_MEASURED } from "../validation";
-	import { toggleNotMeasured } from '../waterQualityMeasurements';
+	import { measurementInputValue, toggleNotMeasured } from '../waterQualityMeasurements';
 	import type { WaterQualityData } from '../types';
+
+	type MeasurableField = Exclude<keyof WaterQualityData, 'date' | 'initials' | 'isWeeklyCheck' | 'notes'>;
 
 	interface Props {
 		data: WaterQualityData;
@@ -24,6 +26,23 @@
 	<button type="button" class="not-measured-btn" class:on={data[field] === NOT_MEASURED} aria-pressed={data[field] === NOT_MEASURED} aria-label={`${label}: not measured this time`} onclick={() => data = toggleNotMeasured(data, field)}>
 		{data[field] === NOT_MEASURED ? '✓ Not measured' : 'Not measured'}
 	</button>
+{/snippet}
+
+{#snippet measurableInput(field: MeasurableField, placeholder: string, label: string)}
+	<input
+		type="text"
+		{placeholder}
+		inputmode="decimal"
+		aria-label={label}
+		data-field={field}
+		value={measurementInputValue(data[field])}
+		readonly={data[field] === NOT_MEASURED}
+		title={data[field] === NOT_MEASURED ? 'Not measured' : undefined}
+		oninput={(e) => {
+			if (data[field] === NOT_MEASURED) return;
+			data[field] = e.currentTarget.value;
+		}}
+	/>
 {/snippet}
 
 <div class="form-container">
@@ -91,11 +110,11 @@
 					<span class="required-star">*</span>
 				</div>
 				<div class="measurement">
-					<input type="text" placeholder="8.20" inputmode="decimal" aria-label="pH Side A" data-field="pHA" bind:value={data.pHA} readonly={data.pHA === NOT_MEASURED} />
+					{@render measurableInput('pHA', '8.20', 'pH Side A')}
 					{@render notMeasuredToggle('pHA', 'pH Side A')}
 				</div>
 				<div class="measurement">
-					<input type="text" placeholder="8.25" inputmode="decimal" aria-label="pH Side B" data-field="pHB" bind:value={data.pHB} readonly={data.pHB === NOT_MEASURED} />
+					{@render measurableInput('pHB', '8.25', 'pH Side B')}
 					{@render notMeasuredToggle('pHB', 'pH Side B')}
 				</div>
 			</div>
@@ -134,11 +153,11 @@
 					<div class="param-title">Alkalinity (dKH / ppm) <span class="required-star">*</span>
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="116" inputmode="decimal" aria-label="Alkalinity Side A" data-field="alkA" bind:value={data.alkA} readonly={data.alkA === NOT_MEASURED} />
+						{@render measurableInput('alkA', '116', 'Alkalinity Side A')}
 						{@render notMeasuredToggle('alkA', 'Alkalinity Side A')}
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="118" inputmode="decimal" aria-label="Alkalinity Side B" data-field="alkB" bind:value={data.alkB} readonly={data.alkB === NOT_MEASURED} />
+						{@render measurableInput('alkB', '118', 'Alkalinity Side B')}
 						{@render notMeasuredToggle('alkB', 'Alkalinity Side B')}
 					</div>
 				</div>
@@ -147,11 +166,11 @@
 					<div class="param-title">Weekly pH <span class="required-star">*</span>
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="8.2" inputmode="decimal" aria-label="Weekly pH Side A" data-field="weeklypHA" bind:value={data.weeklypHA} readonly={data.weeklypHA === NOT_MEASURED} />
+						{@render measurableInput('weeklypHA', '8.2', 'Weekly pH Side A')}
 						{@render notMeasuredToggle('weeklypHA', 'Weekly pH Side A')}
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="8.2" inputmode="decimal" aria-label="Weekly pH Side B" data-field="weeklypHB" bind:value={data.weeklypHB} readonly={data.weeklypHB === NOT_MEASURED} />
+						{@render measurableInput('weeklypHB', '8.2', 'Weekly pH Side B')}
 						{@render notMeasuredToggle('weeklypHB', 'Weekly pH Side B')}
 					</div>
 				</div>
@@ -160,11 +179,11 @@
 					<div class="param-title">Ammonia NH3 (ppm) <span class="required-star">*</span>
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="0" inputmode="decimal" aria-label="Ammonia NH3 (ppm) Side A" data-field="nh3A" bind:value={data.nh3A} readonly={data.nh3A === NOT_MEASURED} />
+						{@render measurableInput('nh3A', '0', 'Ammonia NH3 (ppm) Side A')}
 						{@render notMeasuredToggle('nh3A', 'Ammonia NH3 Side A')}
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="0" inputmode="decimal" aria-label="Ammonia NH3 (ppm) Side B" data-field="nh3B" bind:value={data.nh3B} readonly={data.nh3B === NOT_MEASURED} />
+						{@render measurableInput('nh3B', '0', 'Ammonia NH3 (ppm) Side B')}
 						{@render notMeasuredToggle('nh3B', 'Ammonia NH3 Side B')}
 					</div>
 				</div>
@@ -173,11 +192,11 @@
 					<div class="param-title">Nitrite NO2 (ppm) <span class="required-star">*</span>
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="0" inputmode="decimal" aria-label="Nitrite NO2 (ppm) Side A" data-field="no2A" bind:value={data.no2A} readonly={data.no2A === NOT_MEASURED} />
+						{@render measurableInput('no2A', '0', 'Nitrite NO2 (ppm) Side A')}
 						{@render notMeasuredToggle('no2A', 'Nitrite NO2 Side A')}
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="0" inputmode="decimal" aria-label="Nitrite NO2 (ppm) Side B" data-field="no2B" bind:value={data.no2B} readonly={data.no2B === NOT_MEASURED} />
+						{@render measurableInput('no2B', '0', 'Nitrite NO2 (ppm) Side B')}
 						{@render notMeasuredToggle('no2B', 'Nitrite NO2 Side B')}
 					</div>
 				</div>
@@ -186,11 +205,11 @@
 					<div class="param-title">Nitrate NO3 (ppm) <span class="required-star">*</span>
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="20" inputmode="decimal" aria-label="Nitrate NO3 (ppm) Side A" data-field="no3A" bind:value={data.no3A} readonly={data.no3A === NOT_MEASURED} />
+						{@render measurableInput('no3A', '20', 'Nitrate NO3 (ppm) Side A')}
 						{@render notMeasuredToggle('no3A', 'Nitrate NO3 Side A')}
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="15" inputmode="decimal" aria-label="Nitrate NO3 (ppm) Side B" data-field="no3B" bind:value={data.no3B} readonly={data.no3B === NOT_MEASURED} />
+						{@render measurableInput('no3B', '15', 'Nitrate NO3 (ppm) Side B')}
 						{@render notMeasuredToggle('no3B', 'Nitrate NO3 Side B')}
 					</div>
 				</div>
@@ -199,11 +218,11 @@
 					<div class="param-title">Phosphate PO4 (ppm) <span class="required-star">*</span>
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="1.5" inputmode="decimal" aria-label="Phosphate PO4 (ppm) Side A" data-field="po4A" bind:value={data.po4A} readonly={data.po4A === NOT_MEASURED} />
+						{@render measurableInput('po4A', '1.5', 'Phosphate PO4 (ppm) Side A')}
 						{@render notMeasuredToggle('po4A', 'Phosphate PO4 Side A')}
 					</div>
 					<div class="measurement">
-						<input type="text" placeholder="1.8" inputmode="decimal" aria-label="Phosphate PO4 (ppm) Side B" data-field="po4B" bind:value={data.po4B} readonly={data.po4B === NOT_MEASURED} />
+						{@render measurableInput('po4B', '1.8', 'Phosphate PO4 (ppm) Side B')}
 						{@render notMeasuredToggle('po4B', 'Phosphate PO4 Side B')}
 					</div>
 				</div>
@@ -397,6 +416,14 @@
 		outline: none;
 		color: #1e293b;
 		background: #ffffff;
+	}
+
+	.grid-row input[readonly] {
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: 0.02em;
+		color: #475569;
+		background: #e2e8f0;
 	}
 
 	.grid-row input:focus {
