@@ -1,7 +1,8 @@
 import { createEmptyForms } from './formDefaults';
 import { ROOM12_TANKS } from './tanksConfig';
+import { ROOM6_LSS_FLOWS, ROOM6_LSS_TICKS, ROOM6_TANK_TASK_KEYS, ROOM6_TOP_UP, ROOM6_WATER_CHANGE } from './room6Config';
 
-export const modules = ['lss', 'tanksEggs', 'feeds', 'waterQuality', 'room6'] as const;
+export const modules = ['lss', 'tanksEggs', 'feeds', 'waterQuality', 'room6', 'room6Eggs', 'room6WaterQuality', 'room6Lss', 'room6Ammonia'] as const;
 export type Module = typeof modules[number];
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim();
@@ -94,6 +95,41 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 		if (value.pH !== NOT_MEASURED && (!numeric(value.pH) || Number(value.pH) > 14)) reject('pH', 'room6: pH invalid measurement');
 		enumField('waterChange', ['None', '50%', '75%', 'Other']);
 		if (value.waterChange === 'Other') require('notes');
+	}
+	// A whole-number count (0 if none) that converts to a safe integer for the numeric sheet cell.
+	const count = (key: string) => {
+		const v = value[key];
+		if (!text(v) || !/^\d+$/.test(v.trim()) || !Number.isSafeInteger(Number(v))) reject(key, `${module}: ${key} must be a whole number (0 if none)`);
+	};
+	const measuredOrSkipped = (key: string) => {
+		if (value[key] === NOT_MEASURED) return;
+		if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) reject(key, `${module}: ${key} invalid measurement`);
+	};
+	if (module === 'room6Eggs') {
+		enumField('candling', ['Y', 'N']);
+		for (const [countKey, idsKey] of [['windCount', 'windIds'], ['newCount', 'newIds'], ['embryoCount', 'embryoIds'], ['deadCount', 'deadIds']]) {
+			count(countKey);
+			// Any eggs counted must be identified (tag IDs, or the tank for wind eggs).
+			if (text(value[countKey]) && Number(value[countKey]) > 0) require(idsKey);
+		}
+	}
+	if (module === 'room6WaterQuality') {
+		for (const key of ['temp', 'salinity']) if (!numeric(value[key])) reject(key, `${module}: ${key} invalid measurement`);
+		for (const key of ['pH', 'dissolvedOxygen', 'alk', 'weeklypH', 'nh3', 'no2', 'no3', 'po4']) measuredOrSkipped(key);
+	}
+	if (module === 'room6Lss') {
+		for (const key of [...ROOM6_TANK_TASK_KEYS, ...ROOM6_LSS_TICKS]) {
+			if (value[key] !== undefined && value[key] !== '' && value[key] !== 'Y') reject(key, `${module}: ${key} must be ticked or left blank`);
+		}
+		enumField('sumpWaterChange', Object.keys(ROOM6_WATER_CHANGE));
+		enumField('sumpTopUp', [...ROOM6_TOP_UP]);
+		for (const key of ROOM6_LSS_FLOWS) enumField(key, ['Y', 'N']);
+		// A flow problem is a welfare concern: say what was found and done.
+		if (ROOM6_LSS_FLOWS.some(key => value[key] === 'N')) require('notes');
+	}
+	if (module === 'room6Ammonia') {
+		require('time', (v: unknown): v is string => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v));
+		for (const key of ['ammonia', 'nitrite']) if (!numeric(value[key])) reject(key, `${module}: ${key} invalid measurement`);
 	}
 	return errors;
 }

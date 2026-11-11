@@ -106,6 +106,10 @@
 									{:else if mod === 'feeds'}Feeds
 									{:else if mod === 'waterQuality'}Water Quality
 									{:else if mod === 'room6'}Room 6
+									{:else if mod === 'room6Eggs'}Room 6 Egg Checks
+									{:else if mod === 'room6WaterQuality'}Room 6 Water Quality
+									{:else if mod === 'room6Lss'}Room 6 LSS
+									{:else if mod === 'room6Ammonia'}Room 6 Ammonia + Nitrite
 									{:else}{mod}{/if}
 								</span>
 							{/each}

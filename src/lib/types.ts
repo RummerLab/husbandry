@@ -134,17 +134,86 @@ export interface Room6Data {
 	notes: string;
 }
 
+/** Room 6 Egg Checks (#99): mirrors the workbook's "Egg Checks" sheet. Counts are whole numbers; IDs are free text. */
+export interface Room6EggChecksData {
+	date: string;
+	initials: string;
+	candling: '' | 'Y' | 'N';
+	windCount: string;
+	windIds: string;
+	newCount: string;
+	newIds: string;
+	embryoCount: string;
+	embryoIds: string;
+	deadCount: string;
+	deadIds: string;
+	notes: string;
+}
+
+/** Room 6 Water Quality (#99): one system (no Side A/B). Values are numbers or NOT_MEASURED. */
+export interface Room6WaterQualityData {
+	date: string;
+	initials: string;
+	temp: string;
+	pH: string;
+	salinity: string;
+	dissolvedOxygen: string;
+	alk: string;
+	weeklypH: string;
+	nh3: string;
+	no2: string;
+	no3: string;
+	po4: string;
+	notes: string;
+}
+
+/**
+ * Room 6 LSS and Maintenance (#99). Per-tank task keys come from ROOM6_TANK_TASK_KEYS
+ * (e.g. tank1_siphon) and hold 'Y' (done) or '' (not done).
+ */
+export interface Room6LssData {
+	date: string;
+	initials: string;
+	sumpWaterChange: '' | 'None' | '25%' | '50%' | '75%' | '100%';
+	sumpTopUp: '' | 'None' | 'Fresh' | 'Salt';
+	sumpVac: '' | 'Y';
+	biofilterClean: '' | 'Y';
+	biofilterFlowAir: '' | 'Y' | 'N';
+	biofilterFlowWater: '' | 'Y' | 'N';
+	tankFlowAir: '' | 'Y' | 'N';
+	tankFlowWater: '' | 'Y' | 'N';
+	gutterVac: '' | 'Y';
+	gutterScrub: '' | 'Y';
+	notes: string;
+	[tankTask: `tank${string}_${string}`]: string;
+}
+
+/** Room 6 Ammonia + Nitrite spot check (#99), recorded several times a day. */
+export interface Room6AmmoniaData {
+	date: string;
+	time: string;
+	initials: string;
+	ammonia: string;
+	nitrite: string;
+	notes: string;
+}
+
 export interface FullHusbandrySubmission {
 	id: string;
 	submittedAt: string;
 	date: string;
 	initials: string;
-	modulesSubmitted: ('lss' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6')[];
+	modulesSubmitted: ('lss' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6' | 'room6Eggs' | 'room6WaterQuality' | 'room6Lss' | 'room6Ammonia')[];
 	lss?: LSSData;
 	tanksEggs?: TanksEggsData;
 	feeds?: FeedsData;
 	waterQuality?: WaterQualityData;
+	/** Legacy single-row Room 6 record (#79); new entries use the workbook-matching modules below. */
 	room6?: Room6Data;
+	room6Eggs?: Room6EggChecksData;
+	room6WaterQuality?: Room6WaterQualityData;
+	room6Lss?: Room6LssData;
+	room6Ammonia?: Room6AmmoniaData;
 	clientDeviceId?: string;
 }
 
