@@ -1,13 +1,30 @@
-import type { FullHusbandrySubmission, LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data } from './types';
+import type { FullHusbandrySubmission, LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6EggChecksData, Room6WaterQualityData, Room6LssData, Room6AmmoniaData } from './types';
 import { createEmptyForms, createLSSPart } from './formDefaults';
 import { validateModule, type Module } from './validation';
 
 /** A step is one section of a shift entry. AM and PM LSS are separate halves of the same LSS module. */
-export type Step = 'lssAM' | 'lssPM' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6';
-export type StepForms = { lssAM: LSSData; lssPM: LSSData; tanksEggs: TanksEggsData; feeds: FeedsData; waterQuality: WaterQualityData; room6: Room6Data };
+export type Step = 'lssAM' | 'lssPM' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6Eggs' | 'room6WaterQuality' | 'room6Lss' | 'room6Ammonia';
+export type StepForms = {
+	lssAM: LSSData; lssPM: LSSData; tanksEggs: TanksEggsData; feeds: FeedsData; waterQuality: WaterQualityData;
+	room6Eggs: Room6EggChecksData; room6WaterQuality: Room6WaterQualityData; room6Lss: Room6LssData; room6Ammonia: Room6AmmoniaData;
+};
 
-export const stepModule: Record<Step, Module> = { lssAM: 'lss', lssPM: 'lss', tanksEggs: 'tanksEggs', feeds: 'feeds', waterQuality: 'waterQuality', room6: 'room6' };
-export const stepLabels: Record<Step, string> = { lssAM: 'AM LSS', lssPM: 'PM LSS', tanksEggs: 'Tanks + Eggs', feeds: 'Feeds', waterQuality: 'Water Quality', room6: 'Room 6' };
+export const stepModule: Record<Step, Module> = {
+	lssAM: 'lss', lssPM: 'lss', tanksEggs: 'tanksEggs', feeds: 'feeds', waterQuality: 'waterQuality',
+	room6Eggs: 'room6Eggs', room6WaterQuality: 'room6WaterQuality', room6Lss: 'room6Lss', room6Ammonia: 'room6Ammonia'
+};
+export const stepLabels: Record<Step, string> = {
+	lssAM: 'AM LSS', lssPM: 'PM LSS', tanksEggs: 'Tanks + Eggs', feeds: 'Feeds', waterQuality: 'Water Quality',
+	room6Eggs: 'Room 6 Egg Checks', room6WaterQuality: 'Room 6 Water Quality', room6Lss: 'Room 6 LSS', room6Ammonia: 'Room 6 Ammonia + Nitrite'
+};
+
+/** Room 6 sections (#99). Each is a standalone entry saved on its own: they happen at different times. */
+export const ROOM6_SECTIONS: { step: Step; label: string; hint: string }[] = [
+	{ step: 'room6Eggs', label: '🥚 Egg Checks', hint: 'Candling, wind, new, developing and dead eggs, with IDs.' },
+	{ step: 'room6WaterQuality', label: '💧 Water Quality', hint: 'Temperature, salinity and pH, plus DO and chemistry when tested.' },
+	{ step: 'room6Lss', label: '🧽 LSS + Maintenance', hint: 'Tank cleans, sump, biofilter, flows and gutters.' },
+	{ step: 'room6Ammonia', label: '🧪 Ammonia + Nitrite', hint: 'Quick timed check; save one each time you test.' }
+];
 
 export const shifts = {
 	morning: { label: 'AM: LSS + WQ', steps: ['lssAM', 'waterQuality'] },
@@ -22,7 +39,10 @@ export type Shift = keyof typeof shifts;
 
 export function createEmptyStepForms(date: string, initials = ''): StepForms {
 	const forms = createEmptyForms(date, initials);
-	return { lssAM: createLSSPart('AM', date, initials), lssPM: createLSSPart('PM', date, initials), tanksEggs: forms.tanksEggs, feeds: forms.feeds, waterQuality: forms.waterQuality, room6: forms.room6 };
+	return {
+		lssAM: createLSSPart('AM', date, initials), lssPM: createLSSPart('PM', date, initials), tanksEggs: forms.tanksEggs, feeds: forms.feeds, waterQuality: forms.waterQuality,
+		room6Eggs: forms.room6Eggs, room6WaterQuality: forms.room6WaterQuality, room6Lss: forms.room6Lss, room6Ammonia: forms.room6Ammonia
+	};
 }
 
 /** Fresh forms for the saved steps; unsaved steps keep their answers. */

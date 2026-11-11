@@ -1,4 +1,5 @@
-import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data } from '../types';
+import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data, Room6EggChecksData, Room6WaterQualityData, Room6LssData, Room6AmmoniaData } from '../types';
+import { ROOM6_LSS_FLOWS, ROOM6_TANK_TASK_KEYS, ROOM6_WATER_CHANGE } from '../room6Config';
 import { ROOM12_TANKS } from '../tanksConfig';
 import { NOT_MEASURED } from '../validation';
 /** The animal welfare answer shares Col 20 so the LSS tab keeps its 21 operational columns. */
@@ -225,4 +226,44 @@ export function formatRoom6Row(data: Room6Data): (string | number)[] {
 		data.concerns || '',                // Col 9: Concerns
 		data.notes || ''                    // Col 10: Notes
 	];
+}
+
+// ---------- Room 6 workbook sheets (#99); column order = ROOM6_HEADERS in room6Config.ts ----------
+
+export function formatRoom6EggsRow(data: Room6EggChecksData): (string | number)[] {
+	return [
+		data.date, data.initials || '', data.candling || '',
+		data.windCount || '', data.windIds || '',
+		data.newCount || '', data.newIds || '',
+		data.embryoCount || '', data.embryoIds || '',
+		data.deadCount || '', data.deadIds || '',
+		data.notes || ''
+	];
+}
+
+export function formatRoom6WaterQualityRow(data: Room6WaterQualityData): (string | number)[] {
+	return [
+		data.date, data.initials || '',
+		data.temp || '', measured(data.pH), data.salinity || '', measured(data.dissolvedOxygen),
+		measured(data.alk), measured(data.weeklypH), measured(data.nh3), measured(data.no2), measured(data.no3), measured(data.po4),
+		data.notes || ''
+	];
+}
+
+export function formatRoom6LssRow(data: Room6LssData): (string | number)[] {
+	const waterChange = data.sumpWaterChange ? ROOM6_WATER_CHANGE[data.sumpWaterChange] : '';
+	return [
+		data.date, data.initials || '',
+		...ROOM6_TANK_TASK_KEYS.map(key => (data[key as `tank${string}_${string}`] === 'Y' ? 'Y' : '')),
+		waterChange,                                                  // fraction of the sump changed, as in the workbook (0.5, 0.75, 1)
+		data.sumpTopUp === 'None' ? '' : data.sumpTopUp || '',        // Fresh / Salt
+		data.sumpVac || '', data.biofilterClean || '',
+		...ROOM6_LSS_FLOWS.map(key => data[key] || ''),
+		data.gutterVac || '', data.gutterScrub || '',
+		data.notes || ''
+	];
+}
+
+export function formatRoom6AmmoniaRow(data: Room6AmmoniaData): (string | number)[] {
+	return [data.date, data.time || '', data.initials || '', data.ammonia || '', data.nitrite || '', data.notes || ''];
 }
