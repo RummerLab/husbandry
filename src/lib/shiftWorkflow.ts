@@ -12,7 +12,10 @@ export const stepLabels: Record<Step, string> = { lssAM: 'AM LSS', lssPM: 'PM LS
 export const shifts = {
 	morning: { label: 'AM: LSS + WQ', steps: ['lssAM', 'waterQuality'] },
 	// PM LSS comes first so someone doing only the PM checks can save it without Eggs + Feeds.
-	noon: { label: 'PM: LSS, Eggs + Feeds', steps: ['lssPM', 'tanksEggs', 'feeds'] }
+	noon: { label: 'PM: LSS, Eggs + Feeds', steps: ['lssPM', 'tanksEggs', 'feeds'] },
+	// #78: off-days (Tue/Thu/Sat/Sun) need only the daily minimum. It reuses the AM LSS draft, so required
+	// fields are identical to the AM shift; water quality is saved with it only when due.
+	offDay: { label: 'Off-day check', steps: ['lssAM', 'waterQuality'] }
 } satisfies Record<string, { label: string; steps: Step[] }>;
 
 export type Shift = keyof typeof shifts;
