@@ -1,7 +1,7 @@
 {
-  "name": "RummerLab Husbandry - Room 12",
-  "short_name": "RummerLab",
-  "description": "Room 12 Husbandry, LSS, Feeds, and Water Quality records for RummerLab",
+  "name": "RummerLab Husbandry",
+  "short_name": "Husbandry",
+  "description": "Room 12 and Room 6 husbandry records for RummerLab",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f7fa",
