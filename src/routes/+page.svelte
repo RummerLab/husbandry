@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, rollPristineDrafts, stepValid, type Shift, type Step, type StepForms, type Room6Section, ROOM6_SECTIONS } from '../lib/shiftWorkflow';
 	import { createSubmissionFeedback } from '../lib/submissionFeedback';
-	import { prepareSave, completeSave, failSave, type SaveState } from '../lib/saveState';
+	import { prepareSave, completeSave, failSave, saveErrorMessage, type SaveState } from '../lib/saveState';
 	import { destinationForTab, destinationTab, shiftDestination, room6Destination, resolveInitialTab, destinationSteps, activeDestinationStep, type EntryDestination } from '../lib/entryDestination';
 	import { readQueueSnapshot, observeDeviceQueue } from '../lib/queueSnapshot';
 	import { startAutoSync } from '../lib/autoSync';
@@ -259,8 +259,7 @@
 			if (isOnline) void syncPendingSubmissions().catch(() => refreshPending());
 		} catch (error) {
 			saveState = failSave(saveState, payload, error);
-			const message = saveState.kind === 'failed' ? saveState.message : `Could not confirm saving. Keep this form open. ${error instanceof Error ? error.message : 'Storage unavailable'}`;
-			submissionFeedback = { type: 'error', message };
+			submissionFeedback = { type: 'error', message: saveErrorMessage(saveState, error) };
 		} finally {
 			refreshPending();
 			await tick();
@@ -279,7 +278,9 @@
 		deviceHistory = snapshot.records ?? [];
 		if (snapshot.kind === 'unavailable') {
 			pendingCount = null;
-			if (saveState.kind !== 'failed') submissionFeedback = { type: 'error', message: snapshot.message };
+			// Keep a failed save's banner visible; otherwise surface the unknown queue state.
+			const showingSaveFailure = saveState.kind === 'failed' && submissionFeedback?.message === saveState.message;
+			if (!showingSaveFailure) submissionFeedback = { type: 'error', message: snapshot.message };
 			return;
 		}
 		pendingCount = snapshot.pendingCount;
