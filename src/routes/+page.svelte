@@ -7,6 +7,8 @@
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../lib/waterQualityGuide';
 	import { onMount, tick } from 'svelte';
+	import { replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import type {
 		LSSData,
 		TanksEggsData,
@@ -15,12 +17,14 @@
 		FullHusbandrySubmission
 	} from '../lib/types';
 	import { getSavedInitials, setSavedInitials, queueSubmission, getLocalHistory } from '../lib/storage';
+	import { parseHomeTab, type HomeTab } from '../lib/homeTab';
 	import LSSForm from '../lib/components/LSSForm.svelte';
 	import TanksEggsForm from '../lib/components/TanksEggsForm.svelte';
 	import FeedsForm from '../lib/components/FeedsForm.svelte';
 	import WaterQualityForm from '../lib/components/WaterQualityForm.svelte';
 	import LocalHistoryView from '../lib/components/LocalHistoryView.svelte';
 	import IosInstallHint from '../lib/components/IosInstallHint.svelte';
+	import SiteHeader from '../lib/components/SiteHeader.svelte';
 
 	import type { PageData } from './$types';
 
@@ -30,12 +34,13 @@
 	const todayStr = room12Date();
 
 	// Top level state
-	let activeTab = $state<Shift | 'waterQuality' | 'history'>('morning');
+	const initialTab = parseHomeTab(page.url.search) ?? 'morning';
+	let activeTab = $state<HomeTab>(initialTab);
 	let currentStep = $state<number>(1);
 	let validationRoot = $state<HTMLElement>();
 	let showValidation = $state(false);
 	let feedbackBanner = $state<HTMLDivElement>();
-	let selectedShift = $state<Shift>('morning');
+	let selectedShift = $state<Shift>(initialTab in shifts ? (initialTab as Shift) : 'morning');
 	let shiftSteps: Step[] = $derived(shifts[selectedShift].steps);
 	let activeStep = $derived(shiftSteps[currentStep - 1]);
 	let selectedDate = $state<string>(todayStr);
@@ -69,8 +74,9 @@
 
 	onMount(() => {
 		handleDateChange(room12Date());
-		// Off-days open on the Off-day tab so volunteers see only the daily minimum.
-		if (isOffDay(selectedDate)) selectTab('offDay');
+		// Off-days open on the Off-day tab so volunteers see only the daily minimum,
+		// unless a deep link (/?tab=…) asked for a specific tab.
+		if (isOffDay(selectedDate) && !parseHomeTab(page.url.search)) selectTab('offDay');
 		try {
 			const saved = getSavedInitials();
 			if (saved) { userInitials = saved; applyInitialsToAll(saved); }
@@ -129,7 +135,7 @@
 		if (currentStep < shiftSteps.length) jumpToStep(currentStep + 1);
 	}
 
-	function selectTab(tab: typeof activeTab) {
+	function selectTab(tab: HomeTab) {
 		if (isSubmitting) return;
 		showValidation = false;
 		activeTab = tab;
@@ -137,7 +143,18 @@
 			selectedShift = tab as Shift;
 			currentStep = 1;
 		}
+		const next = new URL(page.url.href);
+		if (next.searchParams.get('tab') !== tab) {
+			next.searchParams.set('tab', tab);
+			replaceState(`${next.pathname}${next.search}${next.hash}`, {});
+		}
 	}
+
+	// Deep links from /help and /insights use `/?tab=history|morning|noon|offDay|waterQuality`.
+	$effect(() => {
+		const fromUrl = parseHomeTab(page.url.search);
+		if (fromUrl && fromUrl !== activeTab) selectTab(fromUrl);
+	});
 
 
 	/** Save stays disabled while invalid; this reveals and focuses what is missing instead. */
@@ -256,65 +273,7 @@
 {/snippet}
 
 <div class="app-layout">
-	<!-- Navbar / Header with Physioshark & RummerLab branding -->
-	<header class="site-header">
-		<div class="header-container">
-			<div class="brand-group">
-				<a class="brand" href="/" aria-label="RummerLab Husbandry home">
-					<img
-						class="brand-logo"
-						src="/rummerlab_logo_transparent.png"
-						alt="RummerLab"
-						height="38"
-					/>
-					<span class="badge-app">Husbandry</span>
-				</a>
-				<div class="room-pill">
-					<span class="room-dot"></span>
-					<span>Room 12 Records</span>
-				</div>
-			</div>
-
-			<div class="nav-controls">
-				<div class="nav-utilities">
-					<div class="network-badge" class:online={isOnline} class:offline={!isOnline}>
-						<span class="status-dot"></span>
-						<span>{isOnline ? 'Online' : 'Offline Mode'} · {pendingCount} pending</span>
-					</div>
-					<button
-						type="button"
-						class="nav-tab utility-tab"
-						class:active={activeTab === 'history'}
-						aria-pressed={activeTab === 'history'}
-						onclick={() => selectTab('history')}
-					>
-						📱 My Device History
-					</button>
-					<a class="nav-tab help-link" href="/help">📘 Escalation Guide</a>
-					<a class="nav-tab help-link" href="/insights">📊 Lab Overview</a>
-				</div>
-
-				<div class="nav-tabs" role="tablist" aria-label="Recording workflows">
-					{#each Object.keys(shifts) as shift}
-						<button type="button" role="tab" aria-selected={activeTab === shift} class="nav-tab" class:active={activeTab === shift} onclick={() => selectTab(shift as Shift)}>
-							{shifts[shift as Shift].label}
-						</button>
-					{/each}
-					<button
-						type="button"
-						role="tab"
-						aria-selected={activeTab === 'waterQuality'}
-						class="nav-tab"
-						class:active={activeTab === 'waterQuality'}
-						onclick={() => selectTab('waterQuality')}
-					>
-						💧 Water Quality
-					</button>
-				</div>
-			</div>
-		</div>
-		<div class="navy-bar"></div>
-	</header>
+	<SiteHeader highlight={activeTab} {isOnline} {pendingCount} onSelectTab={selectTab} />
 
 	<main class="main-content" bind:this={validationRoot}>
 		<IosInstallHint />
@@ -549,188 +508,6 @@
 		flex-direction: column;
 		min-height: 100vh;
 		background: var(--page);
-	}
-
-	.site-header {
-		position: sticky;
-		top: 0;
-		z-index: 50;
-		background: #ffffff;
-		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.05);
-	}
-
-	.header-container {
-		max-width: 1040px;
-		margin: 0 auto;
-		padding: 0.75rem 1.25rem;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.85rem;
-	}
-
-	.brand-group {
-		display: flex;
-		align-items: center;
-		gap: 0.85rem;
-		flex-wrap: wrap;
-	}
-
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 0.65rem;
-		text-decoration: none;
-		color: var(--ink);
-	}
-
-	.brand-logo {
-		display: block;
-		height: 38px;
-		width: auto;
-		object-fit: contain;
-	}
-
-	.badge-app {
-		font-weight: 700;
-		font-size: 0.76rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: #ffffff;
-		background: var(--accent);
-		padding: 3px 8px;
-		border-radius: 6px;
-		box-shadow: 0 1px 2px rgba(29, 95, 184, 0.25);
-	}
-
-	.room-pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		font-size: 0.76rem;
-		font-weight: 600;
-		color: var(--ink-2);
-		background: var(--surface-2);
-		padding: 0.2rem 0.6rem;
-		border-radius: 20px;
-		border: 1px solid var(--hairline);
-	}
-
-	.room-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: var(--accent);
-	}
-
-	.navy-bar {
-		height: 4px;
-		background: var(--navy);
-		width: 100%;
-	}
-
-	.nav-controls {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: 0.55rem;
-		flex: 1 1 18rem;
-		min-width: 0;
-	}
-
-	.nav-utilities {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.45rem;
-	}
-
-	.network-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		padding: 0.25rem 0.65rem;
-		border-radius: 20px;
-		font-size: 0.76rem;
-		font-weight: 600;
-	}
-
-	.network-badge.online {
-		background: var(--good-bg);
-		color: var(--good);
-		border: 1px solid var(--good-border);
-	}
-
-	.network-badge.offline {
-		background: var(--warn-bg);
-		color: var(--warn);
-		border: 1px solid var(--warn-border);
-	}
-
-	.status-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-	}
-
-	.network-badge.online .status-dot {
-		background: var(--good);
-	}
-
-	.network-badge.offline .status-dot {
-		background: var(--warn);
-	}
-
-	.nav-tabs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.3rem;
-		background: var(--surface-2);
-		padding: 0.25rem;
-		border-radius: 8px;
-		border: 1px solid var(--hairline);
-	}
-
-	.nav-tab.help-link,
-	.nav-tab.utility-tab {
-		border: 1px solid var(--hairline);
-		background: var(--surface);
-		min-height: 48px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		text-decoration: none;
-	}
-
-	.nav-tab.utility-tab.active {
-		background: #ffffff;
-		color: var(--accent);
-		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.08);
-	}
-
-	.nav-tab {
-		min-height: 48px;
-		background: transparent;
-		border: none;
-		color: var(--ink-2);
-		padding: 0.45rem 0.85rem;
-		border-radius: 6px;
-		font-size: 0.84rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		font-family: inherit;
-	}
-
-	.nav-tab:hover {
-		color: var(--ink);
-	}
-
-	.nav-tab.active {
-		background: #ffffff;
-		color: var(--accent);
-		box-shadow: 0 1px 3px rgba(16, 32, 56, 0.08);
 	}
 
 	.main-content {
@@ -1218,21 +995,6 @@
 			min-height: 48px;
 			padding: 0.55rem 0.6rem;
 			white-space: normal;
-		}
-		.room-pill {
-			display: none;
-		}
-		.nav-controls,
-		.nav-utilities,
-		.nav-tabs {
-			width: 100%;
-		}
-		.nav-utilities .nav-tab,
-		.nav-tabs .nav-tab {
-			flex: 1 1 auto;
-			min-height: 48px;
-			padding: 0.4rem 0.35rem;
-			font-size: 0.78rem;
 		}
 	}
 </style>

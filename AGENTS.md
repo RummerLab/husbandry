@@ -168,4 +168,7 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 
 - WQ Not measured controls act on one side at a time (#82); never overwrite the other side's reading. Mixed numeric/unmeasured pairs are valid and export the measured value plus a blank cell. Keep the controls at least 48px tall.
 - Header nav (#86): utilities (status, My Device History, Escalation Guide, Lab Overview) sit above the recording tablist (AM, PM, Off-day, Water Quality). Keep recording tabs as the dedicated `role="tablist"`; utility destinations stay out of that strip. Touch targets remain ≥48px.
+- Shared `SiteHeader` (#93/#94) is used on `/`, `/help`, and `/insights`. Home tabs deep-link via `/?tab=morning|noon|offDay|waterQuality|history` (`src/lib/homeTab.ts`). On `/` the header keeps interactive tab buttons; on help/insights those destinations are links. Do not put lab-wide sheet data in the header.
+
+- On `/help`, pass `sticky={false}` to SiteHeader: the guide uses section fragment links (including `/help#pathway`) and its header must scroll away so it cannot cover the target heading or instructions. Recording and Insights headers remain sticky.
 - Off-day tab (#78, approved by the repo owner 2026-11-11): `shifts.offDay` = AM LSS → WQ, sharing the AM LSS and WQ drafts with the AM tab, so its required fields are exactly the AM half (welfare check + AM tank checks). PM items (filters, skimmer, hygiene) are not required on off-days. The app opens on this tab when today is an off-day; the AM tab shows a pointer to it on off-days.
