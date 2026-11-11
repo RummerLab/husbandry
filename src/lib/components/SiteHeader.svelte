@@ -2,13 +2,15 @@
 	import { onMount } from 'svelte';
 	import { shifts, type Shift } from '../shiftWorkflow';
 	import { getLocalHistory } from '../storage';
-	import type { HomeTab } from '../homeTab';
+	import { roomForTab, type HomeTab, type RecordingRoom, type Room12Tab } from '../homeTab';
 
 	export type HeaderHighlight = HomeTab | 'help' | 'insights';
 
 	interface Props {
 		/** Which destination is current (utility or recording tab). */
 		highlight: HeaderHighlight;
+		room?: RecordingRoom;
+		room12Tab?: Room12Tab;
 		/** When provided, home tabs use buttons instead of full-page links. */
 		onSelectTab?: (tab: HomeTab) => void;
 		isOnline?: boolean;
@@ -17,13 +19,41 @@
 		sticky?: boolean;
 	}
 
-	let { highlight, onSelectTab, isOnline, pendingCount, sticky = true }: Props = $props();
+	let { highlight, onSelectTab, isOnline, pendingCount, sticky = true, room, room12Tab = 'morning' }: Props = $props();
 
 	let localOnline = $state(true);
 	let localPending = $state(0);
 	let showOnline = $derived(isOnline ?? localOnline);
 	let showPending = $derived(pendingCount ?? localPending);
 	let interactive = $derived(typeof onSelectTab === 'function');
+	let menuOpen = $state(false);
+	let menuButton: HTMLButtonElement;
+	let headerElement: HTMLElement;
+	const utilityLabels = { waterQuality: 'Water Quality', room6: 'Room 6', history: 'My Device History', help: 'Escalation Guide', insights: 'Lab Overview' };
+	let currentRoom = $derived(room ?? (highlight === 'help' || highlight === 'insights' ? null : roomForTab(highlight)));
+	let destinationLabel = $derived(highlight in shifts ? shifts[highlight as Shift].label : utilityLabels[highlight as keyof typeof utilityLabels]);
+	let currentLabel = $derived(currentRoom ? `${currentRoom === 'room6' ? 'Room 6' : 'Room 12'} · ${highlight === 'room6' ? 'Egg room' : destinationLabel}` : destinationLabel);
+
+	function selectTab(tab: HomeTab) {
+		onSelectTab?.(tab);
+		if (menuOpen) {
+			menuOpen = false;
+			menuButton?.focus();
+		}
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && menuOpen && window.matchMedia('(max-width: 640px)').matches) {
+			event.preventDefault();
+			menuOpen = false;
+			menuButton?.focus();
+		}
+	}
+
+	function handleOutsideClick(event: MouseEvent) {
+		if (menuOpen && event.target instanceof Node && !headerElement?.contains(event.target)) menuOpen = false;
+	}
+
 
 	onMount(() => {
 		const refresh = () => {
@@ -46,7 +76,24 @@
 	});
 </script>
 
-<header class="site-header" class:sticky>
+<svelte:window onkeydown={handleKeydown} onclick={handleOutsideClick} />
+
+<header class="site-header" class:sticky bind:this={headerElement}>
+	<div class="mobile-bar">
+		<a class="mobile-brand" href="/" aria-label="RummerLab Husbandry home">
+			<img src="/rummerlab_logo_transparent.png" alt="RummerLab" width="64" height="38" />
+		</a>
+		<div class="mobile-context">
+			<strong class="mobile-destination">{currentLabel}</strong>
+			<span class="mobile-status" class:offline={!showOnline}>
+				<span class="status-dot" aria-hidden="true"></span>
+				{showOnline ? 'Online' : 'Offline'} · {showPending} pending
+			</span>
+		</div>
+		<button type="button" class="menu-toggle" aria-expanded={menuOpen} aria-controls="site-navigation" bind:this={menuButton} onclick={() => menuOpen = !menuOpen}>
+			{menuOpen ? 'Close' : 'Menu'} <span aria-hidden="true">{menuOpen ? '×' : '☰'}</span>
+		</button>
+	</div>
 	<div class="header-container">
 		<div class="brand-group">
 			<a class="brand" href="/" aria-label="RummerLab Husbandry home">
@@ -55,11 +102,11 @@
 			</a>
 			<div class="room-pill">
 				<span class="room-dot"></span>
-				<span>Room 12 Records</span>
+				<span>{currentRoom === 'room6' ? 'Room 6 · Egg room' : currentRoom === 'room12' ? 'Room 12 · Breeding colony' : 'Choose a room'}</span>
 			</div>
 		</div>
 
-		<div class="nav-controls">
+		<div class="nav-controls" id="site-navigation" class:menu-open={menuOpen}>
 			<div class="nav-utilities">
 				<div class="network-badge" class:online={showOnline} class:offline={!showOnline}>
 					<span class="status-dot"></span>
@@ -71,16 +118,16 @@
 						class="nav-tab utility-tab"
 						class:active={highlight === 'history'}
 						aria-pressed={highlight === 'history'}
-						onclick={() => onSelectTab?.('history')}
+						onclick={() => selectTab('history')}
 					>
 						📱 My Device History
 					</button>
 				{:else}
-					<a class="nav-tab utility-tab" class:active={highlight === 'history'} href="/?tab=history" aria-current={highlight === 'history' ? 'page' : undefined}>
+					<a onclick={() => menuOpen = false} class="nav-tab utility-tab" class:active={highlight === 'history'} href="/?tab=history" aria-current={highlight === 'history' ? 'page' : undefined}>
 						📱 My Device History
 					</a>
 				{/if}
-				<a
+				<a onclick={() => menuOpen = false}
 					class="nav-tab help-link"
 					class:active={highlight === 'help'}
 					href="/help"
@@ -88,7 +135,7 @@
 				>
 					📘 Escalation Guide
 				</a>
-				<a
+				<a onclick={() => menuOpen = false}
 					class="nav-tab help-link"
 					class:active={highlight === 'insights'}
 					href="/insights"
@@ -98,7 +145,22 @@
 				</a>
 			</div>
 
-			<div class="nav-tabs" role="tablist" aria-label="Recording workflows">
+			<div class="room-switcher" role="group" aria-label="Recording room">
+				{#if interactive}
+					<button type="button" class:active={currentRoom === 'room12'} aria-pressed={currentRoom === 'room12'} onclick={() => selectTab(room12Tab)}>
+						<strong>Room 12</strong><span>Breeding colony</span>
+					</button>
+					<button type="button" class:active={currentRoom === 'room6'} aria-pressed={currentRoom === 'room6'} onclick={() => selectTab('room6')}>
+						<strong>Room 6</strong><span>Egg room</span>
+					</button>
+				{:else}
+					<a href={`/?tab=${room12Tab}`} onclick={() => menuOpen = false}><strong>Room 12</strong><span>Breeding colony</span></a>
+					<a href="/?tab=room6" onclick={() => menuOpen = false}><strong>Room 6</strong><span>Egg room</span></a>
+				{/if}
+			</div>
+			{#if currentRoom === 'room12'}
+
+			<div class="nav-tabs" role="tablist" aria-label="Room 12 recording workflows">
 				{#each Object.keys(shifts) as shift}
 					{#if interactive}
 						<button
@@ -107,12 +169,12 @@
 							aria-selected={highlight === shift}
 							class="nav-tab"
 							class:active={highlight === shift}
-							onclick={() => onSelectTab?.(shift as Shift)}
+							onclick={() => selectTab(shift as Shift)}
 						>
 							{shifts[shift as Shift].label}
 						</button>
 					{:else}
-						<a
+						<a onclick={() => menuOpen = false}
 							role="tab"
 							aria-selected={highlight === shift}
 							class="nav-tab"
@@ -130,12 +192,12 @@
 						aria-selected={highlight === 'waterQuality'}
 						class="nav-tab"
 						class:active={highlight === 'waterQuality'}
-						onclick={() => onSelectTab?.('waterQuality')}
+						onclick={() => selectTab('waterQuality')}
 					>
 						💧 Water Quality
 					</button>
 				{:else}
-					<a
+					<a onclick={() => menuOpen = false}
 						role="tab"
 						aria-selected={highlight === 'waterQuality'}
 						class="nav-tab"
@@ -145,6 +207,10 @@
 						💧 Water Quality
 					</a>
 				{/if}
+			</div>
+			{:else if currentRoom === 'room6'}
+			<div class="nav-tabs" role="tablist" aria-label="Room 6 recording">
+
 				{#if interactive}
 					<button
 						type="button"
@@ -152,28 +218,44 @@
 						aria-selected={highlight === 'room6'}
 						class="nav-tab"
 						class:active={highlight === 'room6'}
-						onclick={() => onSelectTab?.('room6')}
+						onclick={() => selectTab('room6')}
 					>
-						🥚 Room 6
+						Egg room records
 					</button>
 				{:else}
-					<a
+					<a onclick={() => menuOpen = false}
 						role="tab"
 						aria-selected={highlight === 'room6'}
 						class="nav-tab"
 						class:active={highlight === 'room6'}
 						href="/?tab=room6"
 					>
-						🥚 Room 6
+						Egg room records
 					</a>
 				{/if}
 			</div>
+			{/if}
+
 		</div>
 	</div>
 	<div class="navy-bar"></div>
 </header>
 
 <style>
+	.room-switcher { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+	.room-switcher button, .room-switcher a {
+		min-height: 48px; min-width: 0; display: flex; flex-direction: column; justify-content: center;
+		padding: 0.45rem 0.75rem; border: 1px solid var(--hairline); border-radius: 8px;
+		background: var(--surface); color: var(--ink-2); text-align: left; font: inherit;
+		text-decoration: none; cursor: pointer;
+	}
+	.room-switcher span { font-size: 0.72rem; }
+	.room-switcher strong { font-size: 0.86rem; }
+	.room-switcher .active { border-color: var(--accent); background: var(--surface-2); color: var(--accent); }
+	.room-switcher button:focus-visible, .room-switcher a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+	.mobile-bar { display: none; }
+
 	.site-header {
 		position: relative;
 		z-index: 50;
@@ -368,20 +450,38 @@
 	}
 
 	@media (max-width: 640px) {
-		.room-pill {
-			display: none;
+		.mobile-bar {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			padding: 0.5rem 0.75rem;
 		}
-		.nav-controls,
-		.nav-utilities,
-		.nav-tabs {
-			width: 100%;
+		.mobile-brand { display: flex; align-items: center; min-height: 48px; flex-shrink: 0; }
+		.mobile-brand img { width: 64px; height: 38px; object-fit: contain; }
+		.mobile-context { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+		.mobile-destination { font-size: 0.82rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.mobile-status { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--good); }
+		.mobile-status .status-dot { background: currentColor; flex-shrink: 0; }
+		.mobile-status.offline { color: var(--warn); }
+		.menu-toggle {
+			display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+			min-height: 48px; min-width: 76px; flex-shrink: 0; padding: 0.5rem 0.65rem;
+			border: 1px solid var(--hairline); border-radius: 8px; background: var(--surface-2);
+			color: var(--ink); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
 		}
-		.nav-utilities .nav-tab,
-		.nav-tabs .nav-tab {
-			flex: 1 1 auto;
-			min-height: 48px;
-			padding: 0.4rem 0.35rem;
-			font-size: 0.78rem;
+		.menu-toggle:focus-visible, .mobile-brand:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+		.header-container { padding: 0; gap: 0; }
+		.brand-group { display: none; }
+		.nav-controls { display: none; }
+		.nav-controls.menu-open {
+			display: flex; flex: 1 1 100%; width: 100%; box-sizing: border-box;
+			padding: 0 0.75rem 0.75rem; max-height: calc(100dvh - 68px); overflow-y: auto;
+			overscroll-behavior: contain;
+		}
+		.nav-utilities, .nav-tabs { width: 100%; box-sizing: border-box; }
+		.nav-utilities .network-badge { display: none; }
+		.nav-utilities .nav-tab, .nav-tabs .nav-tab {
+			flex: 1 1 auto; min-height: 48px; padding: 0.4rem 0.5rem; font-size: 0.8rem;
 		}
 	}
 </style>
