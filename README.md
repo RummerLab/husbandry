@@ -13,7 +13,7 @@ Hosted at: **[husbandry.rummerlab.com](https://husbandry.rummerlab.com)**
 ## 🎯 The Problem & The Solution
 
 ### The Challenge
-Daily room maintenance and shark husbandry records were previously entered directly into Excel spreadsheets. Because spreadsheets do not enforce mandatory validation, researchers frequently skipped questions or forgot cells. In an animal research laboratory, incomplete records pose significant animal ethics and welfare compliance risks.
+Daily room maintenance and shark husbandry records were previously entered directly into Excel spreadsheets. Because spreadsheets do not enforce mandatory validation, researchers sometimes skipped questions or forgot cells. In an animal research laboratory, incomplete records pose significant animal ethics and welfare compliance risks.
 
 ### The Solution
 This web app transforms the spreadsheet into a fast, stepped, mobile-friendly checklist:
