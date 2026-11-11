@@ -1,8 +1,14 @@
 import { expect, it } from 'vitest';
 import { createEmptyForms } from '../src/lib/formDefaults';
-import { toggleNotMeasured } from '../src/lib/waterQualityMeasurements';
+import { measurementInputValue, NOT_MEASURED_DISPLAY, toggleNotMeasured } from '../src/lib/waterQualityMeasurements';
 import { NOT_MEASURED, validateModule } from '../src/lib/validation';
 import { formatWaterQualityRow } from '../src/lib/server/rows';
+
+it('shows a short display label for Not measured without changing the stored value', () => {
+	expect(measurementInputValue(NOT_MEASURED)).toBe(NOT_MEASURED_DISPLAY);
+	expect(measurementInputValue('8.2')).toBe('8.2');
+	expect(NOT_MEASURED_DISPLAY.length).toBeLessThan(NOT_MEASURED.length);
+});
 
 it.each(['pH', 'po4'] as const)('preserves %s A when only B was not measured', prefix => {
 	const original = {
