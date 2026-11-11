@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { shifts, createEntryPayload, type Shift } from '../lib/shiftWorkflow';
+	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, stepValid, type Shift, type Step, type StepForms } from '../lib/shiftWorkflow';
 	import { createSubmissionFeedback } from '../lib/submissionFeedback';
-	import { createEmptyForms, resetSubmittedForms } from '../lib/formDefaults';
 	import { startAutoSync } from '../lib/autoSync';
 	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, brisbaneTime } from '../lib/recordRules';
-	import { getModuleIssues, type Module, validateModule } from '../lib/validation';
+	import { getModuleIssues, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../lib/waterQualityGuide';
 	import { onMount, tick } from 'svelte';
@@ -37,10 +36,8 @@
 	let showValidation = $state(false);
 	let feedbackBanner = $state<HTMLDivElement>();
 	let selectedShift = $state<Shift>('morning');
-	let stepModules: Module[] = $derived(shifts[selectedShift].modules);
-	let activeModule = $derived(stepModules[currentStep - 1]);
-
-	const moduleLabels = { lss: 'LSS Checks', tanksEggs: 'Tanks + Eggs', feeds: 'Feeds', waterQuality: 'Water Quality' };
+	let shiftSteps: Step[] = $derived(shifts[selectedShift].steps);
+	let activeStep = $derived(shiftSteps[currentStep - 1]);
 	let selectedDate = $state<string>(todayStr);
 	let offDay = $derived(isOffDay(selectedDate));
 	let userInitials = $state<string>('');
@@ -49,8 +46,10 @@
 	let submissionFeedback = $state<{ type: 'success' | 'pending' | 'error'; message: string } | null>(null);
 
 	// Form datasets
-	const initialForms = createEmptyForms(todayStr);
-	let lssData = $state<LSSData>(initialForms.lss);
+	const initialForms = createEmptyStepForms(todayStr);
+	// AM and PM LSS are separate drafts so each shift saves only its own half of the LSS sheet.
+	let lssAmData = $state<LSSData>(initialForms.lssAM);
+	let lssPmData = $state<LSSData>(initialForms.lssPM);
 
 	let tanksEggsData = $state<TanksEggsData>(initialForms.tanksEggs);
 
@@ -58,8 +57,8 @@
 
 	let waterQualityData = $state<WaterQualityData>(initialForms.waterQuality);
 
-	let forms = $derived({ lss: lssData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData });
-	let stepValidity = $derived(stepModules.map(module => validateModule(module, forms[module]).length === 0));
+	let forms: StepForms = $derived({ lssAM: lssAmData, lssPM: lssPmData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData });
+	let stepValidity = $derived(shiftSteps.map(step => stepValid(step, forms)));
 
 	let waterQualityValid = $derived(validateModule('waterQuality', waterQualityData).length === 0);
 
@@ -82,14 +81,16 @@
 
 	function handleDateChange(val: string) {
 		selectedDate = val;
-		lssData.date = val;
+		lssAmData.date = val;
+		lssPmData.date = val;
 		tanksEggsData.date = val;
 		feedsData.date = val;
 		waterQualityData.date = val;
 	}
 
 	function applyInitialsToAll(initials: string) {
-		if (!lssData.amInitials) lssData.amInitials = initials;
+		if (!lssAmData.amInitials) lssAmData.amInitials = initials;
+		if (!lssPmData.pmInitials) lssPmData.pmInitials = initials;
 		if (!tanksEggsData.initials) tanksEggsData.initials = initials;
 		if (!feedsData.initials) feedsData.initials = initials;
 		if (!waterQualityData.initials) waterQualityData.initials = initials;
@@ -101,7 +102,7 @@
 
 	let activeIssues = $derived(activeTab === 'waterQuality'
 		? getModuleIssues('waterQuality', waterQualityData)
-		: getModuleIssues(activeModule, forms[activeModule]));
+		: getModuleIssues(stepModule[activeStep], forms[activeStep]));
 	// The Water Quality tab also flags values already typed but invalid (e.g. "98%"), before Save is tried.
 	let visibleIssues = $derived(showValidation
 		? activeIssues
@@ -118,7 +119,7 @@
 			if (validationRoot) focusFirstInvalidField(validationRoot);
 			return;
 		}
-		if (currentStep < stepModules.length) jumpToStep(currentStep + 1);
+		if (currentStep < shiftSteps.length) jumpToStep(currentStep + 1);
 	}
 
 	function selectTab(tab: typeof activeTab) {
@@ -154,34 +155,31 @@
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
-	async function submitModules(modules: Module[]) {
+	async function submitSteps(steps: Step[]) {
 		if (isSubmitting) return;
 		try {
-			const payload = createEntryPayload(modules, $state.snapshot(forms), selectedDate, userInitials);
+			const payload = createEntryPayload(steps, $state.snapshot(forms), selectedDate, userInitials);
 			isSubmitting = true;
 			submissionFeedback = null;
-			await persistSubmission(payload);
+			await persistSubmission(payload, steps);
 		} catch (error) {
 			submissionFeedback = { type: 'error', message: error instanceof Error ? error.message : String(error) };
 		}
 	}
 
-	async function submitSingleModule(module: Module) {
-		await submitModules([module]);
-	}
-
-	async function persistSubmission(payload: FullHusbandrySubmission) {
+	async function persistSubmission(payload: FullHusbandrySubmission, steps: Step[]) {
 		try {
 			const record = await queueSubmission(payload, isOnline);
 			if (record.syncBlocked) throw new Error(`Saved locally but needs review before sync. ${record.syncError || ''}`);
-			const fresh = resetSubmittedForms({ lss: lssData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData }, payload.modulesSubmitted, selectedDate, userInitials);
-			lssData = fresh.lss;
+			const fresh = resetSubmittedSteps(forms, steps, selectedDate, userInitials);
+			lssAmData = fresh.lssAM;
+			lssPmData = fresh.lssPM;
 			tanksEggsData = fresh.tanksEggs;
 			feedsData = fresh.feeds;
 			waterQualityData = fresh.waterQuality;
 			// A completed shift pair rolls the date forward to today (as the old full routine did), so a
 			// shared tablet left open overnight cannot keep saving under yesterday's date.
-			const submittedPair = payload.modulesSubmitted.length > 1;
+			const submittedPair = steps.length > 1;
 			if (submittedPair) handleDateChange(room12Date());
 			currentStep = 1;
 			// Stay in the selected workflow; unsent sections retain their answers.
@@ -217,7 +215,7 @@
 			<p>
 				This device saved Water Quality for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
 				Saving again adds a second Water Quality row for {selectedDate}. Only continue if this is a new set of readings.
-				{#if inRoutine}If these readings are already recorded, save LSS alone with <em>Save only LSS Checks to Sheets</em>.{/if}
+				{#if inRoutine}If these readings are already recorded, save AM LSS alone with <em>Save only AM LSS to Sheets</em>.{/if}
 			</p>
 		</aside>
 	{/if}
@@ -366,7 +364,7 @@
 							class:disabled={!waterQualityValid || isSubmitting}
 							disabled={!waterQualityValid || isSubmitting}
 							aria-describedby={!waterQualityValid ? 'wq-save-help' : undefined}
-							onclick={() => submitSingleModule('waterQuality')}
+							onclick={() => submitSteps(['waterQuality'])}
 						>
 							{isSubmitting ? 'Saving...' : '💧 Save Water Quality to Sheets'}
 						</button>
@@ -389,14 +387,14 @@
 			{@render sessionBar()}
 
 			<div class="wq-only-intro">
-				<strong>{selectedShift === 'morning' ? 'Morning — LSS + Water Quality' : 'Noon — Eggs + Feeds'}</strong>
-				<span>{selectedShift === 'morning' ? 'Record the daily animal welfare and LSS checks, then water quality when due (at least every second day). If water quality is not due, save LSS alone.' : 'Record Tanks + Eggs, then Feeds. Morning LSS and water quality are recorded separately by the morning team; no need to repeat their checks.'}</span>
+				<strong>{selectedShift === 'morning' ? 'AM shift — LSS + Water Quality' : 'PM shift — LSS, Eggs + Feeds'}</strong>
+				<span>{selectedShift === 'morning' ? 'Record the daily animal welfare check and AM tank checks, then water quality when due (at least every second day). If water quality is not due, save AM LSS alone. Filters, skimmer and hygiene are recorded by the PM shift.' : 'Record the PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds. If you only did the PM checks, save PM LSS alone. The AM shift records its own checks.'}</span>
 			</div>
 			<nav class="stepper-nav" aria-label="Husbandry Sections">
-				{#each stepModules as module, index}
+				{#each shiftSteps as step, index}
 					<button type="button" class="step-chip" class:active={currentStep === index + 1} class:complete={stepValidity[index]} aria-current={currentStep === index + 1 ? 'step' : undefined} aria-disabled={!canNavigate(currentStep, index + 1, stepValidity)} onclick={() => jumpToStep(index + 1)}>
 						<span class="step-num">{stepValidity[index] ? '✓' : index + 1}</span>
-						<span class="step-label">{moduleLabels[module]}</span>
+						<span class="step-label">{stepLabels[step]}</span>
 					</button>
 				{/each}
 			</nav>
@@ -409,25 +407,25 @@
 
 			<!-- Active Step Content -->
 			<div class="step-content">
-				{#if activeModule === 'lss'}
+				{#if activeStep === 'lssAM'}
 					{#if offDay}
 						<aside class="off-day-banner" aria-label="Off-day minimum check">
 							<strong>Off-day check</strong>
-							<p>Animals must be checked and recorded every day, including weekends and public holidays. On days without the full routine, complete this step (the animal welfare check and the LSS checks), answering any task not done today as <em>No</em> or <em>N/A</em>, then tap <strong>Save off-day check</strong>. Record water quality next if it is due (at least every second day). Record feeds in the Eggs + Feeds tab if animals were fed.</p>
+							<p>Animals must be checked and recorded every day, including weekends and public holidays. On days without the full routine, complete this step (the animal welfare check and the AM tank checks), then tap <strong>Save off-day check</strong>. Record water quality next if it is due (at least every second day). Record PM checks and feeds in the PM tab if they were done.</p>
 						</aside>
 					{/if}
-					<LSSForm
-						bind:data={lssData}
-					/>
-				{:else if activeModule === 'tanksEggs'}
+					<LSSForm bind:data={lssAmData} />
+				{:else if activeStep === 'lssPM'}
+					<LSSForm bind:data={lssPmData} />
+				{:else if activeStep === 'tanksEggs'}
 					<TanksEggsForm
 						bind:data={tanksEggsData}
 					/>
-				{:else if activeModule === 'feeds'}
+				{:else if activeStep === 'feeds'}
 					<FeedsForm
 						bind:data={feedsData}
 					/>
-				{:else if activeModule === 'waterQuality'}
+				{:else if activeStep === 'waterQuality'}
 					{@render duplicateWaterQualityNotice(true)}
 					<WaterQualityForm
 						bind:data={waterQualityData}
@@ -446,14 +444,14 @@
 				</div>
 
 				<div class="step-indicator">
-					Step {currentStep} of {stepModules.length}
+					Step {currentStep} of {shiftSteps.length}
 					{#if !canAdvance}
-						<span class="step-hint" id="next-step-help">{currentStep < stepModules.length ? '• Required answers pending — select Next to find them' : '• Required fields pending'}</span>
+						<span class="step-hint" id="next-step-help">{currentStep < shiftSteps.length ? '• Required answers pending — select Next to find them' : '• Required fields pending'}</span>
 					{/if}
 				</div>
 
 				<div class="right-action">
-					{#if currentStep < stepModules.length}
+					{#if currentStep < shiftSteps.length}
 						<button
 							type="button"
 							class="nav-action-btn next"
@@ -470,7 +468,7 @@
 							class="nav-action-btn submit"
 							class:disabled={!shiftValid || isSubmitting}
 							disabled={!shiftValid || isSubmitting}
-							onclick={() => submitModules(stepModules)}
+							onclick={() => submitSteps(shiftSteps)}
 						>
 							{isSubmitting ? 'Submitting...' : `Save ${shifts[selectedShift].label} to Sheets`}
 						</button>
@@ -485,9 +483,9 @@
 					type="button"
 					class="sub-single-btn"
 					disabled={!canAdvance || isSubmitting}
-					onclick={() => submitSingleModule(activeModule)}
+					onclick={() => submitSteps([activeStep])}
 				>
-					{isSubmitting ? 'Saving...' : activeModule === 'lss' && offDay ? 'Save off-day check (LSS)' : `Save only ${moduleLabels[activeModule]} to Sheets`}
+					{isSubmitting ? 'Saving...' : activeStep === 'lssAM' && offDay ? 'Save off-day check (AM LSS)' : `Save only ${stepLabels[activeStep]} to Sheets`}
 				</button>
 			</div>
 			</fieldset>

@@ -17,12 +17,16 @@
 		if (onValidChange) onValidChange(isValid);
 	});
 
+	// Shift-part records show only that shift's items; pre-split records show everything.
+	let showAM = $derived(data.shiftPart !== 'PM');
+	let showPM = $derived(data.shiftPart !== 'AM');
+
 </script>
 
 <div class="form-container">
 	<div class="header-box">
 		<div class="header-text">
-			<h3>Life Support Systems (LSS) Checks</h3>
+			<h3>{data.shiftPart ? `${data.shiftPart} ` : ''}Life Support Systems (LSS) Checks</h3>
 			<p class="subtitle">Room 12 Maintenance & Checks (Daily, including weekends & public holidays)</p>
 		</div>
 
@@ -30,8 +34,9 @@
 
 	<!-- Person In Charge -->
 	<div class="section-card">
-		<h4>1. Personnel & Initials</h4>
-		<div class="grid-2">
+		<h4>Personnel & Initials</h4>
+		<div class={data.shiftPart ? '' : 'grid-2'}>
+			{#if showAM}
 			<div class="input-field">
 				<label for="lss-am-initials">
 					AM Initials <span class="required-star">*</span>
@@ -44,21 +49,26 @@
 					required
 				/>
 			</div>
+			{/if}
+			{#if showPM}
 			<div class="input-field">
-				<label for="lss-pm-initials">PM Initials (optional if AM only)</label>
+				<label for="lss-pm-initials">PM Initials {#if data.shiftPart === 'PM'}<span class="required-star">*</span>{:else}(optional if AM only){/if}</label>
 				<input
 					id="lss-pm-initials"
 					type="text"
 					placeholder="e.g. JR"
 					data-field="pmInitials" bind:value={data.pmInitials}
+					required={data.shiftPart === 'PM'}
 				/>
 			</div>
+			{/if}
 		</div>
 	</div>
 
+	{#if showAM}
 	<!-- Daily animal welfare check (required every day, including off days) -->
 	<div class="section-card welfare-card">
-		<h4>2. Animal Welfare Check (all tanks)</h4>
+		<h4>Animal Welfare Check (all tanks)</h4>
 		<p class="section-hint">Required every day, including weekends and public holidays. Sight every animal and egg tank before answering.</p>
 		<OptionSelector
 			data-field="animalsChecked"
@@ -75,9 +85,12 @@
 		{/if}
 	</div>
 
-	<!-- Protein Skimmer & Filter Canister -->
+	{/if}
+
+	{#if showPM}
+	<!-- Protein Skimmer & Filter Canister (PM shift) -->
 	<div class="section-card">
-		<h4>3. Protein Skimmer & Filtration</h4>
+		<h4>Protein Skimmer & Filtration</h4>
 		<div class="grid-2">
 			<OptionSelector
 				label="Protein Skimmer: Venturi"
@@ -124,46 +137,64 @@
 		</div>
 	</div>
 
+	{/if}
+
 	<!-- Tanks 1-8 Checks -->
 	<div class="section-card">
-		<h4>4. Tanks 1–8 Daily Checks</h4>
+		<h4>Tanks 1–8 Daily Checks</h4>
 		<div class="grid-2">
+			{#if showAM}
 			<OptionSelector
 				label="Water levels sufficient (AM)"
 				description="All tanks 1-8 adequate level"
 				data-field="waterLevelsAM" bind:value={data.waterLevelsAM}
 			/>
+			{/if}
+			{#if showPM}
 			<OptionSelector
 				label="Water levels sufficient (PM)"
 				description="All tanks 1-8 adequate level"
 				data-field="waterLevelsPM" bind:value={data.waterLevelsPM}
 			/>
+			{/if}
+			{#if showAM}
 			<OptionSelector
 				label="Water coming out of pipes (AM)"
 				description="Proper circulation confirmed"
 				data-field="waterFlowAM" bind:value={data.waterFlowAM}
 			/>
+			{/if}
+			{#if showPM}
 			<OptionSelector
 				label="Water coming out of pipes (PM)"
 				description="Proper circulation confirmed"
 				data-field="waterFlowPM" bind:value={data.waterFlowPM}
 			/>
+			{/if}
+			{#if showAM}
 			<OptionSelector
 				label="Airstones ON in tanks (AM)"
 				description="Aeration running properly"
 				data-field="airstonesAM" bind:value={data.airstonesAM}
 			/>
+			{/if}
+			{#if showPM}
 			<OptionSelector
 				label="Airstones ON in tanks (PM)"
 				description="Aeration running properly"
 				data-field="airstonesPM" bind:value={data.airstonesPM}
 			/>
+			{/if}
 		</div>
+		{#if data.shiftPart === 'AM'}
+			<p class="section-hint">Also look over the room for leaks or equipment faults on your way through, and note anything under New Concerns. Filters, skimmer and hygiene are recorded by the PM shift.</p>
+		{/if}
 	</div>
 
+	{#if showPM}
 	<!-- Maintenance & Hygiene -->
 	<div class="section-card">
-		<h4>5. Maintenance & Room Hygiene</h4>
+		<h4>Maintenance & Room Hygiene</h4>
 		<div class="grid-2">
 			<OptionSelector
 				label="Vac + Net tanks"
@@ -203,9 +234,11 @@
 		</div>
 	</div>
 
+	{/if}
+
 	<!-- Notes & Concerns -->
 	<div class="section-card">
-		<h4>6. Observations & Ethics Concerns</h4>
+		<h4>Observations & Ethics Concerns</h4>
 		<div class="input-field">
 			<label for="lss-concerns">
 				New Concerns (Ethics / Animal Welfare / Equipment)
