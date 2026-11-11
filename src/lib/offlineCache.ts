@@ -1,11 +1,16 @@
 const PREFIX = 'rummerlab-shell-';
 /** Navigations kept for offline use: the app shell and the escalation guide (#help). */
 const OFFLINE_PAGES = ['/', '/help'];
+/** Apply to both precache inputs and fetch handling, even if a route looks like an asset. */
+export function networkOnlyPath(path: string): boolean {
+	return path.startsWith('/api/') || path === '/login' || path.startsWith('/insights') ||
+		path.startsWith('/auth/') || path.startsWith('/_vercel/') || path === '/sw.js';
+}
 
 export function createOfflineCache(storage: CacheStorage, network: typeof fetch, origin: string, version: string, files: string[]) {
 	const name = PREFIX + version;
 	const absolute = (path: string) => new URL(path, origin).href;
-	const assets = new Set(files.filter(path => !path.endsWith('/sw.js')).map(absolute));
+	const assets = new Set(files.filter(path => !networkOnlyPath(new URL(path, origin).pathname)).map(absolute));
 	const root = absolute('/');
 	const pages = new Set(OFFLINE_PAGES.map(absolute));
 	return {
@@ -19,9 +24,7 @@ export function createOfflineCache(storage: CacheStorage, network: typeof fetch,
 		},
 		handles(request: Request) {
 			const url = new URL(request.url);
-			return request.method === 'GET' && url.origin === origin && !url.pathname.startsWith('/api/') && url.pathname !== '/login' &&
-				// Lab-wide data and sign-in are always network-only (#66).
-				!url.pathname.startsWith('/insights') && !url.pathname.startsWith('/auth/') &&
+			return request.method === 'GET' && url.origin === origin && !networkOnlyPath(url.pathname) &&
 				(request.mode === 'navigate' || assets.has(url.href) || url.pathname.startsWith('/_app/immutable/'));
 		},
 		async respond(request: Request): Promise<Response> {

@@ -1,4 +1,5 @@
 import type { sheets_v4 } from 'googleapis';
+import { createHash } from 'node:crypto';
 import type { FullHusbandrySubmission } from '../types';
 
 /**
@@ -120,19 +121,33 @@ export function formatRequestLogRow(submission: FullHusbandrySubmission, context
  */
 export async function appendRequestLog(sheets: sheets_v4.Sheets, spreadsheetId: string, submission: FullHusbandrySubmission, context: RequestContext, now = new Date()): Promise<'logged' | 'duplicate'> {
 	const quoted = `'${REQUEST_LOG_TAB}'`;
+	// This receipt lives ONLY in the restricted workbook; it contains no request metadata.
+	const receipt = `husbandry_log_${createHash('sha256').update(submission.id).digest('hex')}`;
+	const metadata = async () => (await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties(sheetId,title),namedRanges(namedRangeId)' })).data;
+	const hasReceipt = (data: sheets_v4.Schema$Spreadsheet) => data.namedRanges?.some(range => range.namedRangeId === receipt) === true;
+	const meta = await metadata();
+	if (hasReceipt(meta)) return 'duplicate';
 	const [header, ids] = (await sheets.spreadsheets.values.batchGet({ spreadsheetId, ranges: [`${quoted}!1:1`, `${quoted}!A2:A`] })).data.valueRanges || [];
 	const labels = header?.values?.[0] || [];
 	if (!REQUEST_LOG_HEADERS.every((label, i) => labels[i] === label)) {
 		throw new Error('Request log headers missing or misplaced. Run scripts/setup-request-log.mjs first.');
 	}
 	if ((ids?.values || []).some(row => row[0] === submission.id)) return 'duplicate';
-	const meta = (await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties(sheetId,title)' })).data;
 	const sheetId = meta.sheets?.find(s => s.properties?.title === REQUEST_LOG_TAB)?.properties?.sheetId;
 	if (sheetId == null) throw new Error(`Missing tab: ${REQUEST_LOG_TAB}`);
 	const values = formatRequestLogRow(submission, context, now.toISOString());
-	await sheets.spreadsheets.batchUpdate({
-		spreadsheetId,
-		requestBody: { requests: [{ appendCells: { sheetId, fields: 'userEnteredValue', rows: [{ values: values.map(stringValue => ({ userEnteredValue: { stringValue } })) }] } }] }
-	});
+	try {
+		await sheets.spreadsheets.batchUpdate({
+			spreadsheetId,
+			requestBody: { requests: [
+				{ addNamedRange: { namedRange: { namedRangeId: receipt, name: receipt, range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 } } } },
+				{ appendCells: { sheetId, fields: 'userEnteredValue', rows: [{ values: values.map(stringValue => ({ userEnteredValue: { stringValue } })) }] } }
+			] }
+		});
+	} catch (error) {
+		// A competing request or lost acknowledgement may already have committed the batch.
+		if (!hasReceipt(await metadata())) throw error;
+		return 'duplicate';
+	}
 	return 'logged';
 }

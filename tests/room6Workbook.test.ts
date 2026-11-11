@@ -144,6 +144,29 @@ describe('Room 6 atomic writes', () => {
 });
 
 describe('Room 6 setup script', () => {
+	it('restarts safely after tab creation but before header initialisation', async () => {
+		const { setupRoom6Workbook } = await import('../scripts/setup-room6.mjs');
+		const data = { sheets: [] as { properties: { title: string; sheetId: number }; data: object[] }[] };
+		let interrupt = true;
+		const get = vi.fn(async () => ({ data: structuredClone(data) }));
+		const batchUpdate = vi.fn(async ({ requestBody }: { requestBody: { requests: any[] } }) => {
+			for (const request of requestBody.requests) {
+				if (request.addSheet) data.sheets.push({ properties: { title: request.addSheet.properties.title, sheetId: data.sheets.length }, data: [{}] });
+				if (request.updateCells) data.sheets.find(sheet => sheet.properties.sheetId === request.updateCells.start.sheetId)!.data = [{ rowData: request.updateCells.rows }];
+			}
+			if (interrupt) { interrupt = false; throw new Error('Interrupted after creation'); }
+			return {};
+		});
+		const sheets = { spreadsheets: { get, batchUpdate } };
+		expect(await setupRoom6Workbook(sheets, 'disposable')).toMatchObject({ state: 'dryRun', operations: ALL_TABS.length });
+		expect(batchUpdate).not.toHaveBeenCalled();
+		await expect(setupRoom6Workbook(sheets, 'disposable', true)).rejects.toThrow('Interrupted after creation');
+		expect(data.sheets).toHaveLength(ALL_TABS.length);
+		expect(await setupRoom6Workbook(sheets, 'disposable', true)).toMatchObject({ state: 'complete' });
+		expect(planAllRoom6Setup(data)).toEqual([]);
+		expect(await setupRoom6Workbook(sheets, 'disposable', true)).toEqual({ state: 'complete', operations: 0 });
+		expect(data.sheets).toHaveLength(ALL_TABS.length);
+	});
 	it('creates only missing tabs and leaves matching ones alone', () => {
 		const existing = { tab: 'Room 6', headers: ALL_TABS[0].headers };
 		const data = { sheets: [{ properties: { title: existing.tab, sheetId: 9 }, data: [{ rowData: [{ values: existing.headers.map(stringValue => ({ userEnteredValue: { stringValue } })) }] }] }] };

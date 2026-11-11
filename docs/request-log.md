@@ -15,8 +15,8 @@ Submission ID · Server Logged At (UTC) · Client Submitted At (UTC) · Record D
 
 ## Guarantees
 
-- Written only **after** the operational rows are safely in the master sheet. A log failure is caught and logged as an error type only. It never fails or delays the submission, and the record is never re-queued because of the log.
-- **Idempotent:** a retried sync of the same Submission ID does not add a second row.
+- Written only **after** the operational rows are safely in the master sheet. A log failure is caught and logged as an error type only. The API waits for this best-effort call, but a failure never fails the submission or re-queues it. The browser's durable local-save receipt does not wait for delivery or logging.
+- **Idempotent:** the restricted workbook commits a hashed `husbandry_log_*` receipt and log row in the same atomic batch, so competing new server requests and lost acknowledgements cannot duplicate it. Keep these receipts. Existing pre-upgrade log rows without receipts are still found by Submission ID; no backfill is required. Requests already running the old server version during deployment retain the old non-atomic guard.
 - A header check refuses to write if the `Request Log` tab's headers are missing or moved.
 - Never sent to the browser, analytics or the master sheet. Server logs never contain IPs, user agents or payloads.
 

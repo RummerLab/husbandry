@@ -7,6 +7,7 @@ import { appendSubmissionToSheets } from '../../../lib/server/sheets';
 import { collectRequestContext } from '../../../lib/server/requestLog';
 import type { FullHusbandrySubmission } from '../../../lib/types';
 import { validateSubmission } from '../../../lib/validation';
+import { SubmissionConflictError } from '../../../lib/server/submissionErrors';
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	const limited = await enforceRateLimit(request, 'submit');
@@ -39,6 +40,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			timestamp: new Date().toISOString()
 		});
 	} catch (err: unknown) {
+		if (err instanceof SubmissionConflictError) return json({ success: false, code: 'SUBMISSION_CONFLICT', error: 'This saved record needs administrator review before sync. Its submission ID already belongs to different data. Keep the original device record.' }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
 		if (err instanceof RequestBodyError) return json({ success: false, error: err.message }, { status: err.status });
 		const correlationId = randomUUID();
 		// Avoid logging provider request objects, credentials, or raw observations.

@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 import type { sheets_v4 } from 'googleapis';
 import { appendRequestLog, collectRequestContext, formatRequestLogRow, REQUEST_LOG_HEADERS, REQUEST_LOG_TAB } from '../src/lib/server/requestLog';
 // @ts-expect-error plain .mjs script without type declarations
-import { HEADERS, TAB, planRequestLogSetup } from '../scripts/setup-request-log.mjs';
+import { HEADERS, TAB, planRequestLogSetup, readRequestLogSetup } from '../scripts/setup-request-log.mjs';
 import type { FullHusbandrySubmission } from '../src/lib/types';
 
 const submission: FullHusbandrySubmission = {
@@ -54,12 +54,47 @@ it('appends once per submission and skips retries of the same Submission ID', as
 	const context = collectRequestContext(request, () => '198.51.100.7', {});
 	const fresh = fakeSheets(['sub_other']);
 	expect(await appendRequestLog(fresh.sheets, 'log', submission, context)).toBe('logged');
-	const cells = fresh.batchUpdate.mock.calls[0][0].requestBody.requests[0].appendCells;
+	const cells = fresh.batchUpdate.mock.calls[0][0].requestBody.requests[1].appendCells;
 	expect(cells.sheetId).toBe(7);
 	expect(cells.rows[0].values.every((v: { userEnteredValue: Record<string, unknown> }) => 'stringValue' in v.userEnteredValue)).toBe(true);
 	const retry = fakeSheets(['sub_log_1']);
 	expect(await appendRequestLog(retry.sheets, 'log', submission, context)).toBe('duplicate');
 	expect(retry.batchUpdate).not.toHaveBeenCalled();
+});
+
+it('commits one restricted log row for competing retries and reconciles lost acknowledgements', async () => {
+	const data: sheets_v4.Schema$Spreadsheet = { sheets: [{ properties: { sheetId: 7, title: REQUEST_LOG_TAB } }], namedRanges: [] };
+	let rows = 0;
+	let loseAcknowledgement = false;
+	const batchUpdate = vi.fn(async ({ requestBody }: { requestBody: sheets_v4.Schema$BatchUpdateSpreadsheetRequest }) => {
+		const receipt = requestBody.requests![0].addNamedRange!.namedRange!;
+		if (data.namedRanges!.some(range => range.namedRangeId === receipt.namedRangeId)) throw new Error('Duplicate receipt: whole batch refused');
+		data.namedRanges!.push(receipt);
+		rows++;
+		if (loseAcknowledgement) throw new Error('Acknowledgement lost');
+		return {};
+	});
+	const sheets = { spreadsheets: {
+		get: vi.fn(async () => ({ data: structuredClone(data) })),
+		values: { batchGet: vi.fn(async () => ({ data: { valueRanges: [{ values: [[...REQUEST_LOG_HEADERS]] }, { values: [] }] } })) },
+		batchUpdate
+	} } as unknown as sheets_v4.Sheets;
+	const context = collectRequestContext(request);
+	const results = await Promise.all([appendRequestLog(sheets, 'log', submission, context), appendRequestLog(sheets, 'log', submission, context)]);
+	expect(results.sort()).toEqual(['duplicate', 'logged']);
+	expect(rows).toBe(1);
+	expect(batchUpdate).toHaveBeenCalledTimes(2); // Both observed absence; the receipt protects the commit.
+	expect(data.namedRanges![0].name).toMatch(/^husbandry_log_[a-f0-9]{64}$/);
+	loseAcknowledgement = true;
+	await expect(appendRequestLog(sheets, 'log', { ...submission, id: 'lost_ack' }, context)).resolves.toBe('duplicate');
+	await appendRequestLog(sheets, 'log', { ...submission, id: 'lost_ack' }, context);
+	expect(rows).toBe(2);
+});
+
+it('does not reinterpret a failed restricted-log header read as an empty tab', async () => {
+	const get = vi.fn().mockResolvedValueOnce({ data: { sheets: [{ properties: { title: TAB, sheetId: 7 } }] } }).mockRejectedValueOnce(new Error('Read failed'));
+	await expect(readRequestLogSetup({ spreadsheets: { get } }, 'log')).rejects.toThrow('Read failed');
+	expect(() => planRequestLogSetup({ sheets: [{ properties: { title: TAB, sheetId: 7 } }] })).toThrow('header data was not read');
 });
 
 it('refuses to write when the log headers are missing or moved', async () => {

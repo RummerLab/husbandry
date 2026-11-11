@@ -1,11 +1,15 @@
 <script lang="ts">
-	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, stepValid, type Shift, type Step, type StepForms, ROOM6_SECTIONS } from '../lib/shiftWorkflow';
+	import { shifts, stepLabels, stepModule, createEntryPayload, createEmptyStepForms, resetSubmittedSteps, rollPristineDrafts, stepValid, type Shift, type Step, type StepForms, type Room6Section, ROOM6_SECTIONS } from '../lib/shiftWorkflow';
 	import { createSubmissionFeedback } from '../lib/submissionFeedback';
+	import { prepareSave, type SaveState } from '../lib/saveState';
+	import { destinationForTab, destinationTab, shiftDestination, type EntryDestination } from '../lib/entryDestination';
+	import { readQueueSnapshot, observeDeviceQueue } from '../lib/queueSnapshot';
 	import { startAutoSync } from '../lib/autoSync';
 	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, brisbaneTime } from '../lib/recordRules';
 	import { getModuleIssues, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
-	import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../lib/waterQualityGuide';
+	import { describeWaterQualityIssue, sortWaterQualityIssues } from '../lib/waterQualityGuide';
+	import { visibleModuleIssues, type ValidationFeedback } from '../lib/validationFeedback';
 	import { onMount, tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -20,7 +24,7 @@
 		Room6AmmoniaData,
 		FullHusbandrySubmission
 	} from '../lib/types';
-	import { getSavedInitials, setSavedInitials, queueSubmission, getLocalHistory } from '../lib/storage';
+	import { getSavedInitials, setSavedInitials, persistNewSubmission, syncPendingSubmissions, getLocalHistory } from '../lib/storage';
 	import { parseHomeTab, createHomeTabObserver, homeTabUrl, roomForTab, type HomeTab, type RecordingRoom, type Room12Tab } from '../lib/homeTab';
 	import LSSForm from '../lib/components/LSSForm.svelte';
 	import TanksEggsForm from '../lib/components/TanksEggsForm.svelte';
@@ -45,18 +49,19 @@
 	// Top level state
 	const initialSearch = homeTabUrl(page).search;
 	const initialTab = parseHomeTab(initialSearch) ?? 'morning';
-	let activeTab = $state<HomeTab>(initialTab);
+	let destination = $state<EntryDestination>(destinationForTab(initialTab));
+	let activeTab = $derived(destinationTab(destination));
 	let selectedRoom = $state<RecordingRoom>(roomForTab(initialTab) ?? 'room12');
 	let lastRoom12Tab = $state<Room12Tab>(initialTab !== 'room6' && initialTab !== 'history' ? initialTab : 'morning');
-	let currentStep = $state<number>(1);
+	let lastRoom6Section = $state<Room6Section>('room6Eggs');
+	let currentStep = $derived(destination.kind === 'shift' ? destination.step : 1);
 	let validationRoot = $state<HTMLElement>();
-	let showValidation = $state(false);
+	let validationFeedback = $state<ValidationFeedback>('pristine');
+	let showValidation = $derived(validationFeedback === 'revealed');
 	let feedbackBanner = $state<HTMLDivElement>();
-	let selectedShift = $state<Shift>(initialTab in shifts ? (initialTab as Shift) : 'morning');
+	let selectedShift = $derived<Shift>(destination.kind === 'shift' ? destination.shift : 'morning');
 	let shiftSteps: Step[] = $derived(shifts[selectedShift].steps);
 	let activeStep = $derived(shiftSteps[currentStep - 1]);
-	let selectedDate = $state<string>(todayStr);
-	let offDay = $derived(isOffDay(selectedDate));
 	const shiftIntro: Record<Shift, { title: string; text: string }> = {
 		morning: { title: 'AM shift — LSS + Water Quality', text: 'Record the daily animal welfare check and AM tank checks, then water quality when due (at least every second day). If water quality is not due, save AM LSS alone. Filters, skimmer and hygiene are recorded by the PM shift.' },
 		noon: { title: 'PM shift — LSS, Eggs + Feeds', text: 'Record the PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds. If you only did the PM checks, save PM LSS alone. The AM shift records its own checks.' },
@@ -64,7 +69,9 @@
 	};
 	let userInitials = $state<string>('');
 	let isOnline = $state<boolean>(true);
-	let isSubmitting = $state<boolean>(false);
+	let saveState = $state<SaveState>({ kind: 'editing' });
+	let isSubmitting = $derived(saveState.kind === 'persisting');
+	let receipt = $state<{ id: string; submittedAll: boolean } | null>(null);
 	let submissionFeedback = $state<{ type: 'success' | 'pending' | 'error'; message: string } | null>(null);
 
 	// Form datasets
@@ -84,19 +91,24 @@
 	let room6WaterQualityData = $state<Room6WaterQualityData>(initialForms.room6WaterQuality);
 	let room6LssData = $state<Room6LssData>(initialForms.room6Lss);
 	let room6AmmoniaData = $state<Room6AmmoniaData>(initialForms.room6Ammonia);
-	let room6Section = $state<Step>('room6Eggs');
+	let room6Section = $derived(destination.kind === 'room6' ? destination.section : 'room6Eggs');
 
 	let forms: StepForms = $derived({
 		lssAM: lssAmData, lssPM: lssPmData, tanksEggs: tanksEggsData, feeds: feedsData, waterQuality: waterQualityData,
 		room6Eggs: room6EggsData, room6WaterQuality: room6WaterQualityData, room6Lss: room6LssData, room6Ammonia: room6AmmoniaData
 	});
 	let stepValidity = $derived(shiftSteps.map(step => stepValid(step, forms)));
+	let contextSteps: Step[] = $derived(activeTab === 'waterQuality' ? ['waterQuality'] : activeTab === 'room6' ? [room6Section] : shiftSteps);
+	let selectedDate = $derived(forms[contextSteps[0]].date);
+	let mismatchedDates = $derived(contextSteps.some(step => forms[step].date !== selectedDate));
+	let offDay = $derived(isOffDay(selectedDate));
 
 	let waterQualityValid = $derived(validateModule('waterQuality', waterQualityData).length === 0);
 	let room6Valid = $derived(stepValid(room6Section, forms));
 
 	onMount(() => {
-		handleDateChange(room12Date());
+		// Every draft is still empty at mount, so all workflows start on today's Brisbane date.
+		for (const step of Object.keys(forms) as Step[]) forms[step].date = room12Date();
 		// Off-days open on the Off-day tab so volunteers see only the daily minimum,
 		// unless a deep link (/?tab=…) asked for a specific tab.
 		if (isOffDay(selectedDate) && !parseHomeTab(tabUrl.search)) selectTab('offDay');
@@ -105,8 +117,8 @@
 			if (saved) { userInitials = saved; applyInitialsToAll(saved); }
 		} catch { submissionFeedback = { type: 'error', message: 'Device storage is unavailable. Keep this form open until saving succeeds.' }; }
 		const stop = startAutoSync(online => { isOnline = online; refreshPending(); }, error => { submissionFeedback = { type: 'error', message: String(error) }; });
-		window.addEventListener('storage', refreshPending);
-		return () => { stop(); window.removeEventListener('storage', refreshPending); };
+		const stopObserving = observeDeviceQueue(refreshPending);
+		return () => { stop(); stopObserving(); };
 	});
 
 	function handleInitialsChange(val: string) {
@@ -116,16 +128,7 @@
 	}
 
 	function handleDateChange(val: string) {
-		selectedDate = val;
-		lssAmData.date = val;
-		lssPmData.date = val;
-		tanksEggsData.date = val;
-		feedsData.date = val;
-		waterQualityData.date = val;
-		room6EggsData.date = val;
-		room6WaterQualityData.date = val;
-		room6LssData.date = val;
-		room6AmmoniaData.date = val;
+		for (const step of contextSteps) forms[step].date = val;
 	}
 
 	function applyInitialsToAll(initials: string) {
@@ -139,7 +142,7 @@
 
 	// Step validation logic: you cannot move forward if the current step is not valid
 	let canAdvance = $derived(stepValidity[currentStep - 1]);
-	let shiftValid = $derived(stepValidity.every(Boolean));
+	let shiftValid = $derived(stepValidity.every(Boolean) && !mismatchedDates);
 
 	let activeIssues = $derived(activeTab === 'waterQuality'
 		? getModuleIssues('waterQuality', waterQualityData)
@@ -147,9 +150,7 @@
 			? getModuleIssues(stepModule[room6Section], forms[room6Section])
 			: getModuleIssues(stepModule[activeStep], forms[activeStep]));
 	// The Water Quality tab also flags values already typed but invalid (e.g. "98%"), before Save is tried.
-	let visibleIssues = $derived(showValidation
-		? activeIssues
-		: activeTab === 'waterQuality' ? enteredInvalidIssues(activeIssues, waterQualityData) : []);
+	let visibleIssues = $derived(visibleModuleIssues(validationFeedback, activeIssues, waterQualityData, activeTab === 'waterQuality'));
 	$effect(() => {
 		if (validationRoot) markInvalidFields(validationRoot, visibleIssues);
 	});
@@ -157,7 +158,7 @@
 	async function nextStep() {
 		if (isSubmitting) return;
 		if (!canAdvance) {
-			showValidation = true;
+			validationFeedback = 'revealed';
 			await tick();
 			if (validationRoot) focusFirstInvalidField(validationRoot);
 			return;
@@ -167,15 +168,11 @@
 
 	function applyTab(tab: HomeTab) {
 		if (isSubmitting) return;
-		showValidation = false;
-		activeTab = tab;
+		validationFeedback = 'pristine';
+		destination = destinationForTab(tab, lastRoom6Section);
 		const room = roomForTab(tab);
 		if (room) selectedRoom = room;
 		if (room === 'room12') lastRoom12Tab = tab as Room12Tab;
-		if (tab in shifts) {
-			selectedShift = tab as Shift;
-			currentStep = 1;
-		}
 	}
 
 	async function selectTab(tab: HomeTab) {
@@ -201,44 +198,51 @@
 
 
 	/** Save stays disabled while invalid; this reveals and focuses what is missing instead. */
-	async function revealWaterQualityIssues() {
-		showValidation = true;
+	async function revealModuleIssues() {
+		validationFeedback = 'revealed';
 		await tick();
 		if (validationRoot) focusFirstInvalidField(validationRoot);
 	}
 
 	function prevStep() {
 		if (currentStep > 1) {
-			showValidation = false;
-			currentStep--;
+			validationFeedback = 'pristine';
+			destination = shiftDestination(selectedShift, currentStep - 1);
 			window.scrollTo({ top: 0, behavior: 'smooth' });
 		}
 	}
 
 	function jumpToStep(step: number) {
 		if (!canNavigate(currentStep, step, stepValidity)) return;
-		showValidation = false;
-		currentStep = step;
+		validationFeedback = 'pristine';
+		destination = shiftDestination(selectedShift, step);
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
 	async function submitSteps(steps: Step[]) {
 		if (isSubmitting) return;
 		try {
-			const payload = createEntryPayload(steps, $state.snapshot(forms), selectedDate, userInitials);
-			isSubmitting = true;
+			const candidate = createEntryPayload(steps, $state.snapshot(forms), selectedDate, userInitials);
+			saveState = prepareSave(saveState, candidate);
 			submissionFeedback = null;
-			await persistSubmission(payload, steps);
+			receipt = null;
+			await persistSubmission(saveState.payload, steps);
 		} catch (error) {
+			// Drop any earlier receipt so a queue refresh cannot replace this error with an old success.
+			receipt = null;
 			submissionFeedback = { type: 'error', message: error instanceof Error ? error.message : String(error) };
 		}
 	}
 
 	async function persistSubmission(payload: FullHusbandrySubmission, steps: Step[]) {
 		try {
-			const record = await queueSubmission(payload, isOnline);
-			if (record.syncBlocked) throw new Error(`Saved locally but needs review before sync. ${record.syncError || ''}`);
-			const fresh = resetSubmittedSteps(forms, steps, selectedDate, userInitials);
+			const record = persistNewSubmission(payload);
+			saveState = { kind: 'durable', id: record.id };
+			const submittedPair = steps.length > 1;
+			// Only the newly empty submitted drafts roll forward. Other dates/answers stay intact.
+			let fresh = resetSubmittedSteps(forms, steps, submittedPair ? room12Date() : selectedDate, userInitials);
+			// Untouched drafts in other workflows also follow a pair save's rollover (shared tablets left open overnight).
+			if (submittedPair) fresh = rollPristineDrafts(fresh, room12Date(), userInitials);
 			lssAmData = fresh.lssAM;
 			lssPmData = fresh.lssPM;
 			tanksEggsData = fresh.tanksEggs;
@@ -248,18 +252,17 @@
 			room6WaterQualityData = fresh.room6WaterQuality;
 			room6LssData = fresh.room6Lss;
 			room6AmmoniaData = fresh.room6Ammonia;
-			// A completed shift pair rolls the date forward to today (as the old full routine did), so a
-			// shared tablet left open overnight cannot keep saving under yesterday's date.
-			const submittedPair = steps.length > 1;
-			if (submittedPair) handleDateChange(room12Date());
-			currentStep = 1;
+			if (destination.kind === 'shift') destination = shiftDestination(selectedShift);
 			// Stay in the selected workflow; unsent sections retain their answers.
-			showValidation = false;
+			validationFeedback = 'pristine';
 			submissionFeedback = createSubmissionFeedback(record, submittedPair);
+			receipt = { id: record.id, submittedAll: submittedPair };
+			if (isOnline) void syncPendingSubmissions().catch(() => refreshPending());
 		} catch (error) {
-			submissionFeedback = { type: 'error', message: `Could not confirm saving. Keep this form open. ${error instanceof Error ? error.message : 'Storage unavailable'}` };
+			const message = `Could not confirm saving. Keep this form open. ${error instanceof Error ? error.message : 'Storage unavailable'}`;
+			if (saveState.kind !== 'durable') saveState = { kind: 'failed', payload, message };
+			submissionFeedback = { type: 'error', message };
 		} finally {
-			isSubmitting = false;
 			refreshPending();
 			await tick();
 			feedbackBanner?.focus({ preventScroll: true });
@@ -267,14 +270,22 @@
 		}
 	}
 
-	let pendingCount = $state(0);
+	let pendingCount = $state<number | null>(null);
 	let deviceHistory = $state<ReturnType<typeof getLocalHistory>>([]);
 	// #58: warn (never block) when this device already saved Water Quality for the record date.
 	let earlierWaterQuality = $derived(waterQualitySavedOn(deviceHistory, selectedDate));
 	let earlierWaterQualityBy = $derived(earlierWaterQuality?.payload.waterQuality?.initials || '');
 	function refreshPending() {
-		try { deviceHistory = getLocalHistory(); pendingCount = deviceHistory.filter(h => !h.synced).length; }
-		catch (error) { submissionFeedback = { type: 'error', message: String(error) }; }
+		const snapshot = readQueueSnapshot();
+		if (snapshot.kind === 'unavailable') {
+			pendingCount = null;
+			submissionFeedback = { type: 'error', message: snapshot.message };
+			return;
+		}
+		deviceHistory = snapshot.records;
+		pendingCount = snapshot.pendingCount;
+		const record = receipt && snapshot.records.find(record => record.id === receipt?.id);
+		if (record && receipt) submissionFeedback = createSubmissionFeedback(record, receipt.submittedAll);
 	}
 
 </script>
@@ -317,6 +328,12 @@
 			/>
 		</div>
 	</div>
+	{#if mismatchedDates}
+		<div role="status">
+			<p>This workflow has drafts for different dates ({[...new Set(contextSteps.map(step => forms[step].date))].join(', ')}). Other workflows retain their own dates.</p>
+			<button type="button" class="show-missing-btn" onclick={() => handleDateChange(selectedDate)}>Use {selectedDate} for these sections</button>
+		</div>
+	{/if}
 {/snippet}
 
 <div class="app-layout">
@@ -330,7 +347,7 @@
 				<button
 					type="button"
 					class="feedback-close"
-					onclick={() => (submissionFeedback = null)}
+					onclick={() => { submissionFeedback = null; receipt = null; }}
 				>
 					✕
 				</button>
@@ -370,7 +387,7 @@
 						Water Quality
 						{#if !waterQualityValid}
 							<span class="step-hint" id="wq-save-help">• Save unlocks when every required field (*) is valid</span>
-							<button type="button" class="show-missing-btn" onclick={revealWaterQualityIssues}>Show what's missing</button>
+							<button type="button" class="show-missing-btn" onclick={revealModuleIssues}>Show what's missing</button>
 						{/if}
 					</div>
 					<div class="right-action">
@@ -409,7 +426,7 @@
 
 				<div class="room6-sections" role="group" aria-label="Room 6 record">
 					{#each ROOM6_SECTIONS as section (section.step)}
-						<button type="button" class="room6-section" class:active={room6Section === section.step} aria-pressed={room6Section === section.step} onclick={() => { room6Section = section.step; showValidation = false; }}>
+						<button type="button" class="room6-section" class:active={room6Section === section.step} aria-pressed={room6Section === section.step} onclick={() => { lastRoom6Section = section.step; destination = { kind: 'room6', section: section.step }; validationFeedback = 'pristine'; }}>
 							<strong>{section.label}</strong>
 							<span>{section.hint}</span>
 						</button>
@@ -439,7 +456,7 @@
 						{stepLabels[room6Section]}
 						{#if !room6Valid}
 							<span class="step-hint" id="room6-save-help">• Save unlocks when every required field (*) is valid</span>
-							<button type="button" class="show-missing-btn" onclick={revealWaterQualityIssues}>Show what's missing</button>
+							<button type="button" class="show-missing-btn" onclick={revealModuleIssues}>Show what's missing</button>
 						{/if}
 					</div>
 					<div class="right-action">

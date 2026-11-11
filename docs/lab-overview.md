@@ -15,7 +15,7 @@ Flag ranges are **provisional** (`src/lib/insightsConfig.ts`). Confirm them with
 
 - "Sign in with Google" (OAuth authorization code + PKCE). The server verifies Google's ID token and allows only **verified** emails listed in `INSIGHTS_ADMIN_EMAILS`.
 - The session is an HMAC-signed, HttpOnly, Secure, SameSite=Lax cookie lasting 12 hours. Removing an email from `INSIGHTS_ADMIN_EMAILS` (and redeploying) revokes it on the next request.
-- Data is read on the server with the service account's **read-only** scope, cached for at most 60 seconds per server instance, and sent `no-store`. The service worker never caches `/insights` or `/auth/*`.
+- Data is read afresh for each authorised request with the service account's **read-only** scope and sent `no-store`. There is no cross-request server cache. The service worker never caches `/insights` or `/auth/*`.
 - The restricted request log (#54) is **never** shown here.
 - The feature is **off** unless all four settings below are present.
 

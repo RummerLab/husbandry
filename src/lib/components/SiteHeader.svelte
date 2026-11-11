@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { shifts, type Shift } from '../shiftWorkflow';
-	import { getLocalHistory } from '../storage';
+	import { readQueueSnapshot, observeDeviceQueue } from '../queueSnapshot';
 	import { roomForTab, type HomeTab, type RecordingRoom, type Room12Tab } from '../homeTab';
 
 	export type HeaderHighlight = HomeTab | 'help' | 'insights';
@@ -14,7 +14,7 @@
 		/** When provided, home tabs use buttons instead of full-page links. */
 		onSelectTab?: (tab: HomeTab) => void;
 		isOnline?: boolean;
-		pendingCount?: number;
+		pendingCount?: number | null;
 		/** Disable on long guides so fragment links never land underneath the header. */
 		sticky?: boolean;
 	}
@@ -22,9 +22,9 @@
 	let { highlight, onSelectTab, isOnline, pendingCount, sticky = true, room, room12Tab = 'morning' }: Props = $props();
 
 	let localOnline = $state(true);
-	let localPending = $state(0);
+	let localPending = $state<number | null>(null);
 	let showOnline = $derived(isOnline ?? localOnline);
-	let showPending = $derived(pendingCount ?? localPending);
+	let showPending = $derived(pendingCount === undefined ? localPending : pendingCount);
 	let interactive = $derived(typeof onSelectTab === 'function');
 	let menuOpen = $state(false);
 	let menuButton: HTMLButtonElement;
@@ -58,20 +58,17 @@
 	onMount(() => {
 		const refresh = () => {
 			localOnline = navigator.onLine;
-			try {
-				localPending = getLocalHistory().filter((h) => !h.synced).length;
-			} catch {
-				localPending = 0;
-			}
+			const snapshot = readQueueSnapshot();
+			localPending = snapshot.kind === 'ready' ? snapshot.pendingCount : null;
 		};
 		refresh();
 		window.addEventListener('online', refresh);
 		window.addEventListener('offline', refresh);
-		window.addEventListener('storage', refresh);
+		const stopObserving = observeDeviceQueue(refresh);
 		return () => {
 			window.removeEventListener('online', refresh);
 			window.removeEventListener('offline', refresh);
-			window.removeEventListener('storage', refresh);
+			stopObserving();
 		};
 	});
 </script>
@@ -87,7 +84,7 @@
 			<strong class="mobile-destination">{currentLabel}</strong>
 			<span class="mobile-status" class:offline={!showOnline}>
 				<span class="status-dot" aria-hidden="true"></span>
-				{showOnline ? 'Online' : 'Offline'} · {showPending} pending
+				{showOnline ? 'Online' : 'Offline'} · {showPending === null ? 'Sync status unknown' : `${showPending} pending`}
 			</span>
 		</div>
 		<button type="button" class="menu-toggle" aria-expanded={menuOpen} aria-controls="site-navigation" bind:this={menuButton} onclick={() => menuOpen = !menuOpen}>
@@ -108,7 +105,7 @@
 		</div>
 			<div class="network-badge" class:online={showOnline} class:offline={!showOnline}>
 				<span class="status-dot"></span>
-				<span>{showOnline ? 'Online' : 'Offline Mode'} · {showPending} pending</span>
+				<span>{showOnline ? 'Online' : 'Offline Mode'} · {showPending === null ? 'Sync status unknown' : `${showPending} pending`}</span>
 			</div>
 		</div>
 

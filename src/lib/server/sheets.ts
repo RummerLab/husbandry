@@ -48,6 +48,15 @@ export function isGoogleSheetsConfigured(): boolean {
 	return status.configured;
 }
 
+export type SheetsWritePolicy = { kind: 'live' } | { kind: 'mock'; reason: 'preview' | 'development' | 'credentials' };
+/** Precedence is deliberate: an opt-in never bypasses another environment's protection. */
+export function getSheetsWritePolicy(): SheetsWritePolicy {
+	if (previewWritesBlocked()) return { kind: 'mock', reason: 'preview' };
+	if (localDevWritesBlocked()) return { kind: 'mock', reason: 'development' };
+	if (!isGoogleSheetsConfigured()) return { kind: 'mock', reason: 'credentials' };
+	return { kind: 'live' };
+}
+
 function getSheetsClient() {
 	const clientEmail = getEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL');
 	let privateKey = getEnv('GOOGLE_PRIVATE_KEY');
@@ -87,9 +96,10 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 	message: string;
 	tabsUpdated: string[];
 }> {
+	const policy = getSheetsWritePolicy();
 	// Preview deployments never write to a live workbook unless explicitly allowed (#59).
 	// Use a disposable copy of the workbook for preview testing, never the production sheet.
-	if (previewWritesBlocked()) {
+	if (policy.kind === 'mock' && policy.reason === 'preview') {
 		console.warn('[Google Sheets] Preview deployment: live writes disabled. Operating in mock mode.');
 		return {
 			synced: true,
@@ -100,7 +110,7 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 	}
 
 	// A local dev server with the real .env must never sync queued test records into production (#68).
-	if (localDevWritesBlocked()) {
+	if (policy.kind === 'mock' && policy.reason === 'development') {
 		console.warn('[Google Sheets] Local development: live writes disabled. Operating in mock mode.');
 		return {
 			synced: true,
@@ -111,7 +121,7 @@ export async function appendSubmissionToSheets(submission: FullHusbandrySubmissi
 	}
 
 	const status = getSheetsConfigStatus();
-	if (!status.configured) {
+	if (policy.kind === 'mock' && policy.reason === 'credentials') {
 		const missing: string[] = [];
 		if (!status.hasEmail) missing.push('GOOGLE_SERVICE_ACCOUNT_EMAIL');
 		if (!status.hasKey) missing.push('GOOGLE_PRIVATE_KEY');

@@ -1,4 +1,6 @@
 import { getSyncPause, pauseSync } from './syncPause';
+import { notifyDeviceQueueChanged } from './deviceEvents';
+import { deliveryState, PERMANENT_SUBMISSION_STATUSES } from './submissionOutcome';
 import type { FullHusbandrySubmission, LocalHistoryItem } from './types';
 const LEGACY = 'rummerlab_husbandry_local_history';
 const PREFIX = 'rummerlab_submission_';
@@ -14,12 +16,12 @@ export function getSavedInitials(): string { return typeof window === 'undefined
 export function setSavedInitials(initials: string): void { localStorage.setItem(INITIALS, initials); }
 function parse(raw: string): LocalHistoryItem {
  const item = JSON.parse(raw);
- if (!item || typeof item.id !== 'string' || !item.payload || typeof item.synced !== 'boolean') throw new Error('Stored record is damaged. Keep this device data and contact the lab administrator.');
+ if (!item || typeof item.id !== 'string' || !item.payload || typeof item.synced !== 'boolean' || typeof item.submittedAt !== 'string') throw new Error('Stored record is damaged. Keep this device data and contact the lab administrator.');
  return item;
 }
-function migrate(): void {
+export function migrateLocalHistory(): 'notNeeded' | 'complete' {
  const raw = localStorage.getItem(LEGACY);
- if (!raw) return;
+ if (!raw) return 'notNeeded';
  const items = JSON.parse(raw);
  if (!Array.isArray(items)) throw new Error('Stored history is damaged. Keep this device data and contact the lab administrator.');
  for (const value of items) {
@@ -28,10 +30,11 @@ function migrate(): void {
  }
  // Remove the old copy only after every record has been persisted.
  localStorage.removeItem(LEGACY);
+ return 'complete';
 }
 export function getLocalHistory(): LocalHistoryItem[] {
  if (typeof window === 'undefined') return [];
- migrate();
+ migrateLocalHistory();
  const result: LocalHistoryItem[] = [];
  for (let i = 0; i < localStorage.length; i++) {
   const key = localStorage.key(i);
@@ -40,9 +43,10 @@ export function getLocalHistory(): LocalHistoryItem[] {
  return result.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
 }
 export function saveLocalSubmission(item: LocalHistoryItem): void {
- migrate();
+ migrateLocalHistory();
  // Independent keys prevent another tab's save from overwriting this queue.
  localStorage.setItem(PREFIX + item.id, JSON.stringify(item));
+ notifyDeviceQueueChanged();
 }
 export function updateLocalHistorySyncStatus(id: string, synced: boolean, error?: string): void {
  const raw = localStorage.getItem(PREFIX + id);
@@ -52,9 +56,11 @@ export function updateLocalHistorySyncStatus(id: string, synced: boolean, error?
  saveLocalSubmission({ ...item, synced, syncError: error });
 }
 let inFlight: Promise<{ syncedCount: number; errors: string[] }> | undefined;
+export function isQueueSyncing(): boolean { return inFlight !== undefined; }
 export function syncPendingSubmissions(): Promise<{ syncedCount: number; errors: string[] }> {
  if (inFlight) return inFlight;
- inFlight = drain().finally(() => { inFlight = undefined; });
+ inFlight = drain().finally(() => { inFlight = undefined; notifyDeviceQueueChanged(); });
+ notifyDeviceQueueChanged();
  return inFlight;
 }
 async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
@@ -62,7 +68,7 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
  if (pause) return { syncedCount: 0, errors: [pause.message] };
  let syncedCount = 0;
  const errors: string[] = [];
- for (const item of getLocalHistory().filter(h => !h.synced && !h.syncBlocked)) {
+ for (const item of getLocalHistory().filter(h => deliveryState(h) === 'pending')) {
   const sharedPause = getSyncPause();
   if (sharedPause) { errors.push(sharedPause.message); break; }
   try {
@@ -76,7 +82,7 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
     errors.push(message);
     break;
    }
-   if ([400, 413, 415, 422].includes(res.status)) {
+   if ((PERMANENT_SUBMISSION_STATUSES as readonly number[]).includes(res.status)) {
     const result = await res.json().catch(() => ({}));
     const message = result.error || `Submission needs review (HTTP ${res.status}).`;
     const latestRaw = localStorage.getItem(PREFIX + item.id);
@@ -96,12 +102,27 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
  }
  return { syncedCount, errors };
 }
-export async function queueSubmission(payload: FullHusbandrySubmission, online: boolean): Promise<LocalHistoryItem> {
+/** Durable boundary: never wait for delivery, and never reread after a successful write. */
+export function persistNewSubmission(payload: FullHusbandrySubmission): LocalHistoryItem {
+ migrateLocalHistory();
+ const existing = localStorage.getItem(PREFIX + payload.id);
+ if (existing) {
+  const record = parse(existing);
+  // An uncertain local write may be retried with the same identity, never different content.
+  const comparable = (value: FullHusbandrySubmission) => JSON.stringify({ ...value, clientDeviceId: undefined });
+  if (comparable(record.payload) !== comparable(payload)) throw new Error('Saved record identity already belongs to different answers. Keep this device data and contact the lab administrator.');
+  return record;
+ }
  // Capture only for a NEW record, before persistence. Never enrich queued replays.
  payload = { ...payload, clientDeviceId: payload.clientDeviceId ?? getDeviceId() };
  const item: LocalHistoryItem = { id: payload.id, submittedAt: payload.submittedAt, date: payload.date, initials: payload.initials, modules: payload.modulesSubmitted, synced: false, summary: payload.modulesSubmitted.join(', '), payload };
  // Fail before any network request or success message if persistence fails.
  saveLocalSubmission(item);
+ return item;
+}
+/** Compatibility helper for callers that explicitly want to await a delivery attempt. */
+export async function queueSubmission(payload: FullHusbandrySubmission, online: boolean): Promise<LocalHistoryItem> {
+ const item = persistNewSubmission(payload);
  if (online) await syncPendingSubmissions();
  return parse(localStorage.getItem(PREFIX + item.id)!);
 }

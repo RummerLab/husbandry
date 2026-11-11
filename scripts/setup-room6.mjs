@@ -66,6 +66,20 @@ export async function readRoom6Setup(sheets, spreadsheetId) {
 	return readTabsSetup(sheets, spreadsheetId, [TAB]);
 }
 
+/** Restartable phases: inspect -> plan -> create -> reinspect -> initialise -> verify. */
+export async function setupRoom6Workbook(sheets, spreadsheetId, apply = false) {
+	const read = () => readTabsSetup(sheets, spreadsheetId);
+	const initial = planAllRoom6Setup(await read());
+	if (!apply) return { state: 'dryRun', operations: initial.length };
+	if (!initial.length) return { state: 'complete', operations: 0 };
+	await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: initial } });
+	// A crash here leaves created tabs intact. A rerun plans only their missing headers.
+	const headers = planAllRoom6Setup(await read());
+	if (headers.length) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: headers } });
+	if (planAllRoom6Setup(await read()).length) throw new Error('Room 6 setup needs reinspection; rerun dry-run before applying again');
+	return { state: 'complete', operations: initial.length + headers.length };
+}
+
 async function main() {
 	const apply = process.argv.includes('--apply');
 	if (process.argv.slice(2).some(arg => arg !== '--apply')) throw new Error('Usage: node --env-file=.env scripts/setup-room6.mjs [--apply]');
@@ -74,14 +88,8 @@ async function main() {
 	const spreadsheetId = process.env.GOOGLE_SHEET_ID?.trim();
 	if (!email || !key || !spreadsheetId) throw new Error('Service account credentials and GOOGLE_SHEET_ID are required');
 	const sheets = google.sheets({ version: 'v4', auth: new google.auth.JWT({ email, key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] }) });
-	const read = () => readTabsSetup(sheets, spreadsheetId);
-	let requests = planAllRoom6Setup(await read());
-	console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', operations: requests.length }, null, 2));
-	if (!apply || !requests.length) { if (!apply) console.log('No writes performed. Re-run with --apply.'); return; }
-	await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
-	// Newly created tabs still need their header rows.
-	requests = planAllRoom6Setup(await read());
-	if (requests.length) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
-	console.log('Room 6 tabs ready.');
+	const result = await setupRoom6Workbook(sheets, spreadsheetId, apply);
+	console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', ...result }, null, 2));
+	console.log(apply ? 'Room 6 tabs ready.' : 'No writes performed. Re-run with --apply.');
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(error => { console.error(error.message); process.exitCode = 1; });
