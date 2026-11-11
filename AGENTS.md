@@ -168,3 +168,4 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 
 - WQ Not measured controls act on one side at a time (#82); never overwrite the other side's reading. Mixed numeric/unmeasured pairs are valid and export the measured value plus a blank cell. Keep the controls at least 48px tall.
 - Header nav (#86): utilities (status, My Device History, Escalation Guide, Lab Overview) sit above the recording tablist (AM, PM, Water Quality). Keep recording tabs as the dedicated `role="tablist"`; utility destinations stay out of that strip. Touch targets remain ≥48px.
+- Shared `SiteHeader` (#93/#94) is used on `/`, `/help`, and `/insights`. Home tabs deep-link via `/?tab=morning|noon|waterQuality|history` (`src/lib/homeTab.ts`). On `/` the header keeps interactive tab buttons; on help/insights those destinations are links. Do not put lab-wide sheet data in the header.
