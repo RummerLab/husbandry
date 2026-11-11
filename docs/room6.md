@@ -2,7 +2,7 @@
 
 The **Room 6** tab in the app records a daily egg check and water readings for Room 6 (#79). Rows go to a `Room 6` tab in the master sheet, separate from the four Room 12 tabs.
 
-The fields are provisional until the lab confirms what the Room 6 record needs.
+The repository owner authorised this initial field list and a separate tab in the existing master workbook on 11 November 2026. Refine the layout when the lab updates its requirements; update validation, headers and row mapping together.
 
 ## Columns
 

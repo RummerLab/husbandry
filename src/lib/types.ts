@@ -117,7 +117,7 @@ export interface WaterQualityData {
 	notes: string;
 }
 
-/** Room 6 (egg room) daily check (#79). Provisional fields until the lab confirms the Room 6 record. */
+/** Room 6 (egg room) daily check (#79). Initial field list authorised by the repository owner on 2026-11-11. */
 export interface Room6Data {
 	date: string;
 	initials: string;

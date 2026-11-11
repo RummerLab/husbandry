@@ -11,7 +11,7 @@
 <div class="form-container">
 	<div class="header-box">
 		<h3>Room 6 (Egg Room) Check</h3>
-		<p class="subtitle">Daily egg check and water readings for Room 6. Provisional fields until the lab confirms the Room 6 record.</p>
+		<p class="subtitle">Daily egg check and water readings for Room 6.</p>
 	</div>
 
 	<div class="section-card">
