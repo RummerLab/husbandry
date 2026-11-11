@@ -557,10 +557,10 @@
 	<!-- Footer -->
 	<footer class="app-footer">
 		<p>
-			<strong>RummerLab Room 12 Husbandry System</strong> • Physioshark / James Cook University
+			<strong>RummerLab Husbandry System</strong> • Physioshark / James Cook University
 		</p>
 		<p class="ethics-note">
-			Animal Ethics Compliance & Strict Husbandry Records • Production: <code>husbandry.rummerlab.com</code>
+			Animal Ethics Compliance & Strict Husbandry Records
 		</p>
 		<p><a href="/help">Animal welfare escalation guide &amp; vet video</a></p>
 		<p><a href="/insights">Lab Overview (lab administrators, Google sign-in)</a></p>
