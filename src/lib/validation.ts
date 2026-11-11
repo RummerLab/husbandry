@@ -18,6 +18,7 @@ export const lssShiftParts = ['AM', 'PM'] as const;
 export const NOT_MEASURED = 'Not measured';
 /** Water Quality fields that accept NOT_MEASURED. Temperature and salinity always need a reading. */
 export const notMeasurableFields = ['pHA', 'pHB', 'alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
+export const room6NotMeasurableFields = ['pH', 'dissolvedOxygen', 'alk', 'weeklypH', 'nh3', 'no2', 'no3', 'po4'] as const;
 export const weeklyFields = ['alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
 
 export interface ModuleIssue { field: string; message: string }
@@ -115,7 +116,7 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	}
 	if (module === 'room6WaterQuality') {
 		for (const key of ['temp', 'salinity']) if (!numeric(value[key])) reject(key, `${module}: ${key} invalid measurement`);
-		for (const key of ['pH', 'dissolvedOxygen', 'alk', 'weeklypH', 'nh3', 'no2', 'no3', 'po4']) measuredOrSkipped(key);
+		for (const key of room6NotMeasurableFields) measuredOrSkipped(key);
 	}
 	if (module === 'room6Lss') {
 		for (const key of [...ROOM6_TANK_TASK_KEYS, ...ROOM6_LSS_TICKS]) {

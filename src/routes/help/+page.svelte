@@ -1,17 +1,31 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { room12Date } from '../../lib/recordRules';
 	import {
 		ESCALATION_VIDEO, VET_CONTACTS, SOURCE_FOLDER_URL, SOURCE_DOCUMENTS, TEMPERATURE_SETPOINTS,
-		LAST_REVIEWED, NEXT_REVIEW_DUE, WATER_QUALITY_LIMITS, WATER_QUALITY_ROOMS, aquiSVolumeMl, reviewStatus, longDate, type RoomId
+		LAST_REVIEWED, NEXT_REVIEW_DUE, WATER_QUALITY_LIMITS, WATER_QUALITY_ROOMS, aquiSVolumeMl, guideSnapshot, longDate, type RoomId
 	} from '../../lib/help/escalationGuide';
 	import { ESCALATION_TRANSCRIPT } from '../../lib/help/escalationTranscript';
 	import SiteHeader from '../../lib/components/SiteHeader.svelte';
 
-	const today = room12Date();
-	const review = reviewStatus(today);
-	const month = Number(today.slice(5, 7));
+	let today = $state(room12Date());
 	let roomId = $state<RoomId>('room12');
-	let room = $derived(WATER_QUALITY_ROOMS.find(r => r.id === roomId)!);
+	let guide = $derived(guideSnapshot(today, roomId));
+	let review = $derived(guide.review);
+	let currentSetpoint = $derived(guide.currentSetpoint);
+	let room = $derived(guide.room);
+
+	onMount(() => {
+		const refreshDate = () => { today = room12Date(); };
+		const handleVisibility = () => { if (document.visibilityState === 'visible') refreshDate(); };
+		refreshDate();
+		window.addEventListener('focus', refreshDate);
+		document.addEventListener('visibilitychange', handleVisibility);
+		return () => {
+			window.removeEventListener('focus', refreshDate);
+			document.removeEventListener('visibilitychange', handleVisibility);
+		};
+	});
 </script>
 
 <svelte:head>
@@ -234,7 +248,7 @@
 				<table class="compact">
 					<tbody>
 						{#each TEMPERATURE_SETPOINTS as s}
-							<tr class:current={month >= s.from && month <= s.to}><td>{s.months}</td><td>{s.celsius} °C{#if month >= s.from && month <= s.to} <span class="tag">now</span>{/if}</td></tr>
+							<tr class:current={currentSetpoint === s}><td>{s.months}</td><td>{s.celsius} °C{#if currentSetpoint === s} <span class="tag">now</span>{/if}</td></tr>
 						{/each}
 					</tbody>
 				</table>

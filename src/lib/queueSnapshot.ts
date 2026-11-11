@@ -10,6 +10,12 @@ export type QueueSnapshot =
 		status: 'upToDate' | 'pending' | 'syncing' | 'needsReview' | 'signInRequired' | 'cooldown';
 		message: string; retryAt: number | null };
 
+export type QueueStatusTone = 'good' | 'warn' | 'bad';
+export function snapshotTone(snapshot: QueueSnapshot): QueueStatusTone {
+	if (snapshot.kind === 'unavailable' || snapshot.status === 'needsReview') return 'bad';
+	return snapshot.status === 'upToDate' ? 'good' : 'warn';
+}
+
 /** A read error is unknown, never an empty or successfully delivered queue. */
 export function readQueueSnapshot(): QueueSnapshot {
 	try {

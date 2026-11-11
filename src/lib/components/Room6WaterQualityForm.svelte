@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { NOT_MEASURED } from '../validation';
-	import { measurementInputValue, toggleExplicitNotMeasured } from '../waterQualityMeasurements';
+	import { measurementInputValue, toggleRoom6NotMeasured } from '../waterQualityMeasurements';
 	import type { Room6WaterQualityData } from '../types';
 
 	let { data = $bindable() }: { data: Room6WaterQualityData } = $props();
@@ -21,8 +21,7 @@
 		{ key: 'po4', label: 'PO4 (ppm)', placeholder: '0.8', skippable: true }
 	];
 	const toggle = (key: Field) => {
-		if (key === 'temp' || key === 'salinity') return;
-		data[key] = toggleExplicitNotMeasured(data[key]);
+		data = toggleRoom6NotMeasured(data, key);
 	};
 </script>
 

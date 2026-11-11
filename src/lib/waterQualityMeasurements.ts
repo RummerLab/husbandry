@@ -1,5 +1,5 @@
-import type { WaterQualityData } from './types';
-import { NOT_MEASURED, notMeasurableFields } from './validation';
+import type { Room6WaterQualityData, WaterQualityData } from './types';
+import { NOT_MEASURED, notMeasurableFields, room6NotMeasurableFields } from './validation';
 
 /** Short label for narrow read-only inputs; stored value stays NOT_MEASURED and still exports blank. */
 export const NOT_MEASURED_DISPLAY = 'N/M';
@@ -29,4 +29,10 @@ export function measurementInputValue(value: string | undefined): string {
 export function toggleNotMeasured(data: WaterQualityData, field: keyof WaterQualityData): WaterQualityData {
 	if (!notMeasurableFields.includes(field)) throw new Error('This field requires a measurement.');
 	return { ...data, [field]: toggleExplicitNotMeasured(data[field] as string) };
+}
+
+/** Room 6 shares the same explicit Not measured semantics while keeping temp and salinity numeric-only. */
+export function toggleRoom6NotMeasured(data: Room6WaterQualityData, field: keyof Room6WaterQualityData): Room6WaterQualityData {
+	if (!(room6NotMeasurableFields as readonly string[]).includes(field)) throw new Error('This field requires a measurement.');
+	return { ...data, [field]: toggleExplicitNotMeasured(data[field]) };
 }

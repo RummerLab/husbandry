@@ -117,3 +117,19 @@ export const WATER_QUALITY_ROOMS: RoomWaterQuality[] = [
 		ph: { gramsPerTenth: 20, at7_6: 120, at7_8: 80 }
 	}
 ];
+
+export interface GuideSnapshot {
+	today: string;
+	month: number;
+	review: ReviewStatus;
+	room: RoomWaterQuality;
+	currentSetpoint: typeof TEMPERATURE_SETPOINTS[number] | undefined;
+}
+
+/** Pure presentation state for the escalation guide; never infers veterinary policy. */
+export function guideSnapshot(today: string, roomId: RoomId = 'room12'): GuideSnapshot {
+	const month = Number(today.slice(5, 7));
+	const room = WATER_QUALITY_ROOMS.find(r => r.id === roomId) ?? WATER_QUALITY_ROOMS[0];
+	const currentSetpoint = TEMPERATURE_SETPOINTS.find(s => month >= s.from && month <= s.to);
+	return { today, month, review: reviewStatus(today), room, currentSetpoint };
+}
