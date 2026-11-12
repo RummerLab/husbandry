@@ -185,17 +185,19 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 const measured = (value: string | undefined) => (value === NOT_MEASURED ? '' : value || '');
 
 export function formatWaterQualityRow(data: WaterQualityData): (string | number)[] {
+	// A chemistry-only entry leaves the routine columns blank, mirroring the LSS shift halves (#130).
+	const routine = data.routineIncluded !== false;
 	return [
 		data.date,                          // Col 1: DATE
 		data.initials || '',                // Col 2: INITIALS
-		data.tempA || '',                   // Col 3: Temp A
-		data.tempB || '',                   // Col 4: Temp B
-		measured(data.pHA),                     // Col 5: pH A
-		measured(data.pHB),                     // Col 6: pH B
-		data.salinityA || '',               // Col 7: Salinity A
-		data.salinityB || '',               // Col 8: Salinity B
-		data.doA || '/',                    // Col 9: DO % A
-		data.doB || '/',                    // Col 10: DO % B
+		routine ? data.tempA || '' : '',    // Col 3: Temp A
+		routine ? data.tempB || '' : '',    // Col 4: Temp B
+		routine ? measured(data.pHA) : '',  // Col 5: pH A
+		routine ? measured(data.pHB) : '',  // Col 6: pH B
+		routine ? data.salinityA || '' : '', // Col 7: Salinity A
+		routine ? data.salinityB || '' : '', // Col 8: Salinity B
+		routine ? data.doA || '/' : '',      // Col 9: DO % A
+		routine ? data.doB || '/' : '',      // Col 10: DO % B
 		(data.isWeeklyCheck ? measured(data.alkA) : ''),                   // Col 11: Alk A
 		(data.isWeeklyCheck ? measured(data.alkB) : ''),                   // Col 12: Alk B
 		(data.isWeeklyCheck ? measured(data.weeklypHA) : ''),              // Col 13: pH A (weekly)

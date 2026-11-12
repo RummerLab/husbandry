@@ -29,7 +29,7 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	const reject = (field: string, message: string) => errors.push({ field, message });
 	// Validate known text fields while preserving bounded future extension fields unchanged.
 	const fields = new Set([...Object.keys(createEmptyForms('')[module]), ...(module === 'waterQuality' ? weeklyFields : [])]);
-	fields.delete('tanks'); fields.delete('isWeeklyCheck');
+	fields.delete('tanks'); fields.delete('isWeeklyCheck'); fields.delete('routineIncluded');
 	for (const key of fields) {
 		const field = value[key];
 		if (field === undefined) continue;
@@ -81,12 +81,24 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	}
 	if (module === 'waterQuality') {
 		if (typeof value.isWeeklyCheck !== 'boolean') reject('isWeeklyCheck', 'waterQuality: weekly check flag required');
-		const fields = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', ...(value.isWeeklyCheck === true ? weeklyFields : [])];
-		for (const key of fields) {
-			if (value[key] === NOT_MEASURED && notMeasurableFields.includes(key)) continue;
+		// Routine readings and weekly chemistry are often taken at different times, so either section can be
+		// saved on its own (#130). An absent flag means a pre-upgrade record that carries both.
+		const routineIncluded = value.routineIncluded !== false;
+		if (value.routineIncluded !== undefined && typeof value.routineIncluded !== 'boolean') reject('routineIncluded', 'waterQuality: routine inclusion flag must be true or false');
+		if (!routineIncluded && value.isWeeklyCheck !== true) reject('routineIncluded', 'waterQuality: include routine checks or weekly chemistry');
+		const routineFields = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB'];
+		const measurement = (key: string) => {
+			if (value[key] === NOT_MEASURED && notMeasurableFields.includes(key)) return;
 			if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) reject(key, `waterQuality: ${key} invalid measurement`);
+		};
+		if (routineIncluded) {
+			for (const key of [...routineFields, ...(value.isWeeklyCheck === true ? weeklyFields : [])]) measurement(key);
+			for (const key of ['doA', 'doB']) if (!numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or explicit N/A required`);
+		} else {
+			// Chemistry-only rows leave the routine columns blank in the sheet. Their hidden draft answers are
+			// retained (so re-including routine checks restores them) but are never exported.
+			if (value.isWeeklyCheck === true) for (const key of weeklyFields) measurement(key);
 		}
-		for (const key of ['doA', 'doB']) if (!numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or explicit N/A required`);
 	}
 	if (module === 'room6') {
 		enumField('eggsChecked', ['Y', 'N']);

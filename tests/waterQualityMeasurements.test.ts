@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createEmptyForms } from '../src/lib/formDefaults';
-import { measurementInputValue, NOT_MEASURED_DISPLAY, toggleNotMeasured } from '../src/lib/waterQualityMeasurements';
+import { measurementInputValue, NOT_MEASURED_DISPLAY, toggleNotMeasured, includeRoutineMeasurements } from '../src/lib/waterQualityMeasurements';
 import { NOT_MEASURED, validateModule } from '../src/lib/validation';
 import { formatWaterQualityRow } from '../src/lib/server/rows';
 
@@ -36,4 +36,12 @@ it('keeps temperature and salinity numeric-only', () => {
 	const data = createEmptyForms('2026-11-11').waterQuality;
 	expect(() => toggleNotMeasured(data, 'tempA')).toThrow();
 	expect(() => toggleNotMeasured(data, 'salinityB')).toThrow();
+});
+
+it('keeps routine draft answers when routine checks are excluded (#130)', () => {
+	const data = { ...createEmptyForms('2026-11-11', 'AB').waterQuality, tempA: '26' };
+	const excluded = includeRoutineMeasurements(data, false);
+	expect(excluded.routineIncluded).toBe(false);
+	expect(excluded.tempA).toBe('26');
+	expect(includeRoutineMeasurements(excluded, true).routineIncluded).toBe(true);
 });

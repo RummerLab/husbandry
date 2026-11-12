@@ -50,6 +50,15 @@ describe('spreadsheet contracts', () => {
 		const weekly = { ...water, isWeeklyCheck: true, ...Object.fromEntries(weeklyFields.map(f => [f, '0'])) } as WaterQualityData;
 		expect(formatWaterQualityRow(weekly).slice(10, 22)).toEqual(Array(12).fill('0'));
 	});
+	it('records weekly chemistry on its own without routine readings (#130)', () => {
+		const chemistry = { ...water, isWeeklyCheck: true, routineIncluded: false, ...Object.fromEntries(weeklyFields.map(f => [f, '0'])) } as WaterQualityData;
+		expect(validateModule('waterQuality', chemistry)).toEqual([]);
+		// Routine columns stay blank even when the draft still holds earlier answers.
+		expect(formatWaterQualityRow({ ...chemistry, tempA: '26', doA: '/' }).slice(2, 10)).toEqual(Array(8).fill(''));
+		expect(formatWaterQualityRow(chemistry).slice(10, 22)).toEqual(Array(12).fill('0'));
+		// Pre-upgrade records without the flag keep the full routine contract.
+		expect(validateModule('waterQuality', { ...water, routineIncluded: undefined })).toEqual([]);
+	});
 });
 describe('daily animal welfare check', () => {
 	const lss = { date: water.date, amInitials: 'AB', pmInitials: '', concerns: '', notes: '', ...Object.fromEntries(lssChecks.map(f => [f, 'N/A'])) } as unknown as LSSData;

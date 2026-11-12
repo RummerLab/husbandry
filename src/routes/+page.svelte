@@ -273,6 +273,15 @@
 	// #58: warn (never block) when this device already saved Water Quality for the record date.
 	let earlierWaterQuality = $derived(waterQualitySavedOn(deviceHistory, selectedDate));
 	let earlierWaterQualityBy = $derived(earlierWaterQuality?.payload.waterQuality?.initials || '');
+	// #130: routine readings and weekly chemistry can be separate entries on the same day.
+	let earlierWeeklyChemistry = $derived(earlierWaterQuality?.payload.waterQuality?.isWeeklyCheck === true);
+	const routineKeys = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', 'doA', 'doB'] as const;
+	let routineDraftEntered = $derived(routineKeys.some(key => (waterQualityData[key] || '') !== ''));
+	function startChemistryEntry() {
+		if (isSubmitting) return;
+		waterQualityData = { ...waterQualityData, routineIncluded: false, isWeeklyCheck: true };
+		validationFeedback = transitionValidation(validationFeedback, 'changeContext');
+	}
 	function refreshPending() {
 		const snapshot = readQueueSnapshot();
 		deviceHistory = snapshot.records ?? [];
@@ -295,10 +304,16 @@
 		<aside class="duplicate-wq-notice" role="note" aria-label="Water Quality already saved for this date">
 			<strong>Water Quality already saved for this date</strong>
 			<p>
-				This device saved Water Quality for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
+				This device saved {earlierWeeklyChemistry ? 'Water Quality' : 'the routine Water Quality readings'} for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
 				Saving again adds a second Water Quality row for {selectedDate}. Only continue if this is a new set of readings.
+				{#if !earlierWeeklyChemistry}
+					If the weekly chemistry was tested after those routine readings, untick <em>Include routine checks</em> in the form so the routine values are neither retyped nor written twice.
+				{/if}
 				{#if inRoutine}If these readings are already recorded, save AM LSS alone with <em>Save only AM LSS to Sheets</em>.{/if}
 			</p>
+			{#if !inRoutine && !earlierWeeklyChemistry && !routineDraftEntered && waterQualityData.routineIncluded !== false}
+				<button type="button" class="wq-chemistry-btn" onclick={startChemistryEntry}>Record weekly chemistry for {selectedDate}</button>
+			{/if}
 		</aside>
 	{/if}
 {/snippet}
@@ -1010,6 +1025,22 @@
 		margin: 0.3rem 0 0;
 		line-height: 1.45;
 	}
+
+	.wq-chemistry-btn {
+		margin-top: 0.6rem;
+		min-height: 48px;
+		padding: 0.5rem 0.9rem;
+		border: 1.5px solid #1d5fb8;
+		border-radius: 6px;
+		background: #ffffff;
+		color: #1a4f99;
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.wq-chemistry-btn:focus-visible { outline: 3px solid #1d5fb8; outline-offset: 2px; }
 
 	.off-day-banner {
 		margin-bottom: 1rem;

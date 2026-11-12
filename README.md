@@ -53,7 +53,7 @@ Room 12 houses juvenile and adult epaulette sharks across Tanks 1–8. To stream
 1. **AM Shift (`AM: LSS + WQ`)**:
    - **Mandatory Animal Ethics Welfare Check**: Required question: *"All animals sighted & normal: Y/N"*. Selecting **No** strictly requires an explanation of concerns in notes.
    - **AM Tank Checks**: Water levels, water flows, and aeration/airstones across Tanks 1–8.
-   - **Water Quality**: Routine testing (conducted at least every second day) or weekly chemistry when due.
+   - **Water Quality**: Routine testing (conducted at least every second day) or weekly chemistry when due. Routine readings and weekly chemistry can be saved together or as separate entries.
 2. **PM Shift (`PM: LSS, Eggs + Feeds`)**:
    - **PM Tank Checks**: Afternoon water levels, flow, and airstones.
    - **Equipment & Hygiene**: Protein skimmer venturi & spray down, canister filter checks/replacements, tank vacuuming & netting, scrub walls & overflows, floor hosing, foot tub/lids, and Virkon disinfection.
@@ -63,7 +63,8 @@ Room 12 houses juvenile and adult epaulette sharks across Tanks 1–8. To stream
    - Automatically opens on scheduled off-days (**Tuesday, Thursday, Saturday, and Sunday**).
    - Focuses strictly on essential animal welfare: AM Animal Welfare Check, AM Tank Checks, and Water Quality if due. Heavy PM cleaning and equipment maintenance tasks are excluded.
 4. **Standalone Water Quality (`Water Quality`)**:
-   - Dedicated tab for recording routine or weekly water quality tests outside shift handovers.
+   - Dedicated tab for recording routine checks, weekly chemistry, or both outside shift handovers.
+   - If the weekly chemistry was tested after the routine readings were already saved, untick **Include routine checks** and save the chemistry on its own. The routine columns stay blank, so nothing is retyped or written twice.
 
 #### Room 12 Spreadsheet Tab Parity
 Room 12 rows append to the master Google Sheet across four operational tabs:
@@ -78,6 +79,7 @@ Room 12 rows append to the master Google Sheet across four operational tabs:
 > [!NOTE]
 > **LSS Column Split:** AM and PM shifts write their own independent rows into `LSS Checks`, with the other shift's columns left cleanly blank (no false default values).
 > **Not Measured Water Quality:** Optional parameters (e.g. pH tested by MARFU, PO4 without a SpinTouch) accept an explicit **Not measured** (`NOT_MEASURED`) option that writes a blank cell. Temperature and Salinity always require measured readings.
+> **Separate Routine and Chemistry Entries:** A chemistry-only entry leaves the routine columns blank (including DO), and a routine-only entry leaves the weekly columns blank. Every weekly field still needs a reading or an explicit **Not measured**.
 
 ---
 

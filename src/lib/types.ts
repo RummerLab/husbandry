@@ -92,6 +92,8 @@ export interface WaterQualityData {
 	date: string;
 	initials: string;
 	isWeeklyCheck: boolean;
+	/** False when this entry records weekly chemistry only; absent means the routine readings are included (#130). */
+	routineIncluded?: boolean;
 	// Routine checks (at least every second day, including weekends)
 	tempA: string;
 	tempB: string;
