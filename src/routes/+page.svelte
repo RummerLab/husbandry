@@ -1072,6 +1072,9 @@
 	}
 
 	.app-footer {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 		background: var(--navy);
 		color: var(--on-navy-2);
 		padding: 2.25rem 1.25rem;
@@ -1082,9 +1085,10 @@
 	}
 
 	.app-footer p {
-		margin: 0.3rem 0;
+		margin: 0.3rem auto;
 	}
 
+	.app-footer p.privacy-note,
 	.privacy-note {
 		display: block;
 		width: min(100%, 46rem);
@@ -1098,6 +1102,7 @@
 		color: #8d9aae;
 	}
 
+	.app-footer p.ethics-note,
 	.ethics-note {
 		font-size: 0.78rem;
 		color: #8d9aae;
