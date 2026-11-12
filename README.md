@@ -4,7 +4,7 @@
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-blue.svg)](https://husbandry.rummerlab.com)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-v3-ff3e00.svg)](https://kit.svelte.dev)
 
-A mobile-first Progressive Web App (PWA) and automated Google Sheets synchronization system designed for **RummerLab** (Physioshark / James Cook University), ensuring strict animal ethics compliance, reliable offline data capture, and frictionless daily husbandry records.
+A mobile-first Progressive Web App (PWA) and automated Google Sheets synchronisation system designed for **RummerLab** (Physioshark / James Cook University), ensuring strict animal ethics compliance, reliable offline data capture, and frictionless daily husbandry records.
 
 Production URL: **[husbandry.rummerlab.com](https://husbandry.rummerlab.com)**
 
@@ -19,10 +19,10 @@ Daily room maintenance and shark husbandry records were previously entered direc
 This web app replaces loose spreadsheets with a fast, stepped, mobile-first checklist built on strict state machines:
 - **Mandatory validation:** The UI locks advancing to subsequent steps until all required fields are completed. When attempting to advance an incomplete form, the interface focuses and highlights missing answers with clear corrective feedback.
 - **Fast touch targets:** Large, distinct pill selectors (e.g. `[ Yes ]`, `[ No ]`, `[ N/A ]`, ≥48px touch targets) allow lab members to tap through routines in seconds ("tick, tick, tick, boom").
-- **Direct Google Sheets synchronization:** Submissions are validated, formatted, and atomically appended to the master Google Sheets workbook using Google Service Account credentials.
+- **Direct Google Sheets synchronisation:** Submissions are validated, formatted, and atomically appended to the master Google Sheets workbook using Google Service Account credentials.
 - **Offline resilience:** Every submission is saved locally (`localStorage`) before network delivery is attempted. If connectivity drops, records are queued in local device storage and automatically synced with exponential backoff when connectivity is restored.
 - **Device privacy:** Submissions and history are stored locally on each physical device. Lab members only see their own device's history, preserving team member privacy while the master spreadsheet consolidates all data for laboratory directors.
-- **Shift & room separation:** Husbandry routines are tailored to specific shifts (AM vs PM) and facility rooms (**Room 12** main shark facility vs **Room 6** egg room and nursery).
+- **Shift & room separation:** Husbandry routines are tailored to specific shifts (AM vs PM) and facility rooms (**Room 12** main shark facility, and **Room 6** egg room and nursery).
 
 ---
 
@@ -56,11 +56,11 @@ Room 12 houses juvenile and adult epaulette sharks across Tanks 1–8. To stream
    - **Water Quality**: Routine testing (conducted at least every second day) or weekly chemistry when due.
 2. **PM Shift (`PM: LSS, Eggs + Feeds`)**:
    - **PM Tank Checks**: Afternoon water levels, flow, and airstones.
-   - **Equipment & Hygiene**: Protein skimmer venturi & spray down, canister filter checks/replacements, tank vacuuming & netting, scrub walls & overflows, floor hosing, foot tub/lids, and virkon disinfection.
-   - **Tanks + Eggs (Oviposition)**: Female palpation tracking for listed sharks (`HO103`, `HO102`, `HO116`, `HO105`, `HO117` with options `0`, `L`, `R`, `B`), wind eggs, new eggs, candling status, WhatsApp team updates, and animal moves between tanks.
+   - **Equipment & Hygiene**: Protein skimmer venturi & spray down, canister filter checks/replacements, tank vacuuming & netting, scrub walls & overflows, floor hosing, foot tub/lids, and Virkon disinfection.
+   - **Tanks + Eggs (Oviposition)**: Female palpation tracking for listed sharks (`HO103`, `HO102`, `HO116`, `HO105`, and `HO117` with options `0`, `L`, `R`, `B`), wind eggs, new eggs, candling status, WhatsApp team updates, and animal moves between tanks.
    - **Feeds (Nutrition & Medication)**: Tank-by-tank intake tracking against target weights (g), uneaten feed weights (g), and medication tags (Elasmotab or Formula).
 3. **Off-Day Checks (`Off-day check`)**:
-   - Automatically opens on scheduled off-days (**Tuesday, Thursday, Saturday, Sunday**).
+   - Automatically opens on scheduled off-days (**Tuesday, Thursday, Saturday, and Sunday**).
    - Focuses strictly on essential animal welfare: AM Animal Welfare Check, AM Tank Checks, and Water Quality if due. Heavy PM cleaning and equipment maintenance tasks are excluded.
 4. **Standalone Water Quality (`Water Quality`)**:
    - Dedicated tab for recording routine or weekly water quality tests outside shift handovers.
@@ -70,10 +70,10 @@ Room 12 rows append to the master Google Sheet across four operational tabs:
 
 | Tab Name | Columns | Frequency | Key Recorded Data |
 | :--- | :--- | :--- | :--- |
-| **`LSS Checks`** | Cols 1–21 | Daily (AM/PM) | Date, AM/PM Initials, Protein Skimmer, Filter Canister, Daily Tank Checks (Levels, Flow, Airstones AM/PM), Hygiene & Maintenance, Animal Welfare Check & Concerns, Notes |
-| **`Tanks + Eggs`** | Cols 1–21 | Daily | Date, Initials, Female Palpation (`HO103`–`HO117`), Egg Checks (Wind, New, Tags, Embryos, Candling, Dead), Updates (Food PM, WhatsApp AM/PM), Observations, Moves (Description, From, To, Qty) |
-| **`Feeds`** | Cols 1–84 | Daily | Date, Initials, Dynamic tank columns (intake weight, uneaten weight, Elasmotab/Formula medication flags across all Room 12 tanks), Notes |
-| **`Water Quality`** | Cols 1–23 | At least every 2nd day + Weekly | Date, Initials, System A/B Routine (Temp, pH, Salinity, DO), System A/B Weekly Chemistry (Alk, pH, NH3, NO2, NO3, PO4), Notes |
+| **`LSS Checks`** | Cols 1–21 | Daily (AM/PM) | Date, AM/PM Initials, Protein Skimmer, Filter Canister, Daily Tank Checks (Levels, Flow, and Airstones AM/PM), Hygiene & Maintenance, Animal Welfare Check & Concerns, and Notes |
+| **`Tanks + Eggs`** | Cols 1–21 | Daily | Date, Initials, Female Palpation (`HO103`–`HO117`), Egg Checks (Wind, New, Tags, Embryos, Candling, and Dead), Updates (Food PM, WhatsApp AM, and WhatsApp PM), Observations, and Moves (Description, From, To, and Qty) |
+| **`Feeds`** | Cols 1–84 | Daily | Date, Initials, Dynamic tank columns (intake weight, uneaten weight, and Elasmotab/Formula medication flags across all Room 12 tanks), and Notes |
+| **`Water Quality`** | Cols 1–23 | At least every 2nd day + Weekly | Date, Initials, System A/B Routine (Temp, pH, Salinity, and DO), System A/B Weekly Chemistry (Alk, pH, NH3, NO2, NO3, and PO4), and Notes |
 
 > [!NOTE]
 > **LSS Column Split:** AM and PM shifts write their own independent rows into `LSS Checks`, with the other shift's columns left cleanly blank (no false default values).
@@ -87,14 +87,14 @@ Room 6 houses shark egg incubation and nursery tanks. The app's **Room 6** tab m
 
 | App Section | Master Sheet Tab | Frequency | Key Checks & Operations |
 | :--- | :--- | :--- | :--- |
-| 🥚 **Egg Checks** | `Room 6 Egg Checks` | Daily | Date, Initials, Candling completed (Y/N), counts and tag IDs for wind eggs, new eggs, developed embryos, and dead eggs, Notes. Counts are whole numbers (0 if none); IDs are required when counts > 0. |
-| 💧 **Water Quality** | `Room 6 Water Quality` | At least every 2nd day + Weekly | Date, Initials, Temp (°C), pH, Salinity (ppt), DO%, Alk (dKH), weekly pH, NH3, NO2, NO3, PO4 (ppm), Notes. Temp and Salinity are mandatory; others support explicit *Not measured*. |
-| 🧽 **LSS + Maintenance** | `Room 6 LSS` | Daily | Date, Initials, 64 operational columns: Tanks 1–9 cleans (Siphon, Sand Vac, Overflow, Scrub Walls, Scrub Pipes, Sand Change; Tank 8 egg tank), Sump (Water Change fraction, Top-up fresh/salt, Vac), Biofilter Clean, Biofilter & Tank Flows (Air, Water — mandatory Y/N, N requires notes), Gutters, Notes. |
-| 🧪 **Ammonia + Nitrite** | `Room 6 Ammonia + Nitrite` | Multiple times daily | Date, Time (24h `HH:MM`), Initials, Ammonia (ppm), Nitrite (ppm), Notes. Saves one row per test run. |
+| 🥚 **Egg Checks** | `Room 6 Egg Checks` | Daily | Date, Initials, Candling completed (Y/N), counts and tag IDs for wind eggs, new eggs, developed embryos, and dead eggs, and Notes. Counts are whole numbers (0 if none); IDs are required when counts > 0. |
+| 💧 **Water Quality** | `Room 6 Water Quality` | At least every 2nd day + Weekly | Date, Initials, Temp (°C), pH, Salinity (ppt), DO%, Alk (dKH), weekly pH, NH3, NO2, NO3, PO4 (ppm), and Notes. Temp and Salinity are mandatory; others support explicit *Not measured*. |
+| 🧽 **LSS + Maintenance** | `Room 6 LSS` | Daily | Date, Initials, 64 operational columns: Tanks 1–9 cleans (Siphon, Sand Vac, Overflow, Scrub Walls, Scrub Pipes, and Sand Change; Tank 8 egg tank), Sump (Water Change fraction, Top-up fresh/salt, and Vac), Biofilter Clean, Biofilter & Tank Flows (Air, Water — mandatory Y/N, N requires notes), Gutters, and Notes. |
+| 🧪 **Ammonia + Nitrite** | `Room 6 Ammonia + Nitrite` | Multiple times daily | Date, Time (24h `HH:MM`), Initials, Ammonia (ppm), Nitrite (ppm), and Notes. Saves one row per test run. |
 
 #### Room 6 Key Details
-- **Provenance metadata:** Room 6 tabs always append the four provenance columns (Submission ID, Client Device ID, Client Submitted At, Server Received At).
-- **One-time tab initialization:** Before writing Room 6 rows, the master sheet must have these tabs with exact headers. Initialize them with the automated setup script:
+- **Provenance metadata:** Room 6 tabs always append the four provenance columns (Submission ID, Client Device ID, Client Submitted At, and Server Received At).
+- **One-time tab initialisation:** Before writing Room 6 rows, the master sheet must have these tabs with exact headers. Initialise them with the automated setup script:
   ```bash
   node --env-file=.env scripts/setup-room6.mjs --apply
   ```
@@ -106,7 +106,7 @@ Room 6 houses shark egg incubation and nursery tanks. The app's **Room 6** tab m
 
 Accessible directly from the navigation bar (and precached for offline access in the lab), the **Escalation Guide** (`/help`) provides researchers and students with immediate veterinary protocols:
 - **Veterinary Escalation Pathway:** Step-by-step triage guide for identifying abnormal animal clinical signs, notifying researchers, and initiating veterinary contact.
-- **Morbidity & Euthanasia Protocols:** Formal instructions for mortality recording and vet-directed euthanasia (restricted strictly to listed, authorized investigators).
+- **Morbidity & Euthanasia Protocols:** Formal instructions for mortality recording and vet-directed euthanasia (restricted strictly to listed, authorised investigators).
 - **Water Quality Operational Limits:** Permissible ranges and immediate corrective actions for both Room 12 and Room 6 (e.g. 150 g sodium bicarbonate per +0.1 pH for Room 12 vs 20 g for Room 6; water change volumes).
 - **Instructional Video & Transcript:** Direct link to Dr. Leo Foyle's clinical husbandry guidance video and complete searchable transcript ([docs/escalation-video-transcript.md](docs/escalation-video-transcript.md)).
 - **Emergency Contacts:** Direct tap-to-call veterinary phone numbers.
@@ -115,7 +115,7 @@ Accessible directly from the navigation bar (and precached for offline access in
 
 ## 📊 Lab Overview & Admin Insights (`/insights`)
 
-A secure, read-only analytics dashboard for **named laboratory directors** (Jodie Rummer, Emily, Terese):
+A secure, read-only analytics dashboard for **named laboratory directors** (Jodie Rummer, Emily, and Terese):
 - **14-day Operational Dashboard:** Live summaries of uncompleted daily LSS checks, animal welfare concerns ("sighted & normal = N"), feeding dropouts (tanks eating 0 g for 2+ consecutive days), and out-of-range water quality readings.
 - **Palpation Tracking:** Latest oviposition palpation result per female shark and last confirmed egg-holding dates.
 - **Looker Studio Integration:** One-click generation of connected Looker Studio dashboards for deep longitudinal reporting.
@@ -172,7 +172,7 @@ The PWA is branded as **RummerLab Husbandry** (display name **Husbandry**) with 
 - **Shared Lab Access Gate:** Optional HTTP Basic authentication protects the application before public launch (`LAB_ACCESS_ENABLED=true`; see [docs/lab-access.md](docs/lab-access.md)).
 - **Restricted Request Audit Log:** Synced submissions can optionally record IP address, approximate geo-location, user-agent, and client/server timestamps into a completely separate, restricted workbook (`GOOGLE_REQUEST_LOG_SHEET_ID`; see [docs/request-log.md](docs/request-log.md)).
 - **Rate Limiting:** Managed DDoS and submission abuse protection via Vercel Firewall SDK (`docs/rate-limiting.md`).
-- **Privacy-Preserving Analytics:** Lightweight, cookieless page-view tracking via Vercel Web Analytics (no cookies, no PII, no custom tracking; see [docs/analytics.md](docs/analytics.md)).
+- **Privacy-Preserving Analytics:** Lightweight, cookieless page-view tracking via Vercel Web Analytics (no cookies, no PII, and no custom tracking; see [docs/analytics.md](docs/analytics.md)).
 - **Environment Write Protection:** Local development (`npm run dev`) and Vercel Preview deployments operate in Mock Mode by default, preventing accidental test data injection into production sheets.
 
 ---
@@ -214,13 +214,13 @@ https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2u
                                                    (GOOGLE_SHEET_ID)
 ```
 
-### 6. Initialize Room 6 and Request Log Tabs
+### 6. Initialise Room 6 and Request Log Tabs
 Run the provided setup scripts to ensure all required header rows and tabs exist:
 ```bash
-# Initialize Room 6 tabs (Room 6 Egg Checks, Water Quality, LSS, Ammonia + Nitrite)
+# Initialise Room 6 tabs (Room 6 Egg Checks, Water Quality, LSS, and Ammonia + Nitrite)
 node --env-file=.env scripts/setup-room6.mjs --apply
 
-# (Optional) Initialize Restricted Request Log tab in its separate workbook
+# (Optional) Initialise Restricted Request Log tab in its separate workbook
 GOOGLE_REQUEST_LOG_SHEET_ID="<request-log-sheet-id>" node --env-file=.env scripts/setup-request-log.mjs --apply
 ```
 
@@ -246,7 +246,7 @@ Configure these environment variables in your `.env` file (local development) or
 | `GOOGLE_OAUTH_CLIENT_ID` | Optional | Google OAuth 2.0 Web Client ID for admin authentication |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Optional | Google OAuth 2.0 Web Client Secret |
 | `AUTH_SECRET` | Optional | Random 32+ character string for HMAC signing session cookies |
-| `INSIGHTS_ADMIN_EMAILS` | Optional | Comma-separated list of authorized admin Google emails |
+| `INSIGHTS_ADMIN_EMAILS` | Optional | Comma-separated list of authorised admin Google emails |
 | `LOOKER_STUDIO_URL` | Optional | URL to the saved Looker Studio report |
 
 ### Security, Access Control & Auditing
@@ -275,8 +275,8 @@ The repository includes automation scripts in `scripts/`:
 
 | Script | Purpose | Usage |
 | :--- | :--- | :--- |
-| `setup-room6.mjs` | Verifies and initializes the four Room 6 tabs in the master workbook | `node --env-file=.env scripts/setup-room6.mjs --apply` |
-| `setup-request-log.mjs` | Verifies and initializes the restricted request log workbook | `GOOGLE_REQUEST_LOG_SHEET_ID=<id> node --env-file=.env scripts/setup-request-log.mjs --apply` |
+| `setup-room6.mjs` | Verifies and initialises the four Room 6 tabs in the master workbook | `node --env-file=.env scripts/setup-room6.mjs --apply` |
+| `setup-request-log.mjs` | Verifies and initialises the restricted request log workbook | `GOOGLE_REQUEST_LOG_SHEET_ID=<id> node --env-file=.env scripts/setup-request-log.mjs --apply` |
 | `migrate-sheet-metadata.mjs` | Migrates existing Room 12 headers to Provenance Schema v2 | `node --env-file=.env scripts/migrate-sheet-metadata.mjs --apply` |
 | `pwa-qualification.mjs` | Automated service worker & offline qualification testing | `node scripts/pwa-qualification.mjs` |
 | `generate-pwa-icons.py` | Generates official high-resolution PWA icons with badge | `python scripts/generate-pwa-icons.py` |
@@ -324,7 +324,7 @@ For in-depth architectural and operational guides, see the `docs/` directory:
 
 ---
 
-## 📄 License & Attribution
+## 📄 Licence & Attribution
 
 Developed for **RummerLab** / **Physioshark**, James Cook University.  
 All rights reserved.
