@@ -36,7 +36,7 @@
 
 <svelte:head>
 	<title>Lab Overview · RummerLab Husbandry</title>
-	<meta name="robots" content="noindex, nofollow" />
+	<meta name="robots" content="noindex, nofollow, noarchive" />
 </svelte:head>
 
 <SiteHeader highlight="insights" />

@@ -3,7 +3,7 @@ import { json } from '@sveltejs/kit';
 import { sameSecret } from './secrets';
 import { enforceRateLimit } from './rateLimit';
 
-const publicAssets = new Set(['/manifest.webmanifest', '/favicon.svg', '/favicon.ico', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/sw.js', '/service-worker.js']);
+const publicAssets = new Set(['/robots.txt', '/manifest.webmanifest', '/favicon.svg', '/favicon.ico', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/sw.js', '/service-worker.js']);
 export function isPublicRoute(path: string): boolean {
 	return path === '/api/health' || path === '/api/health/diagnostics' || publicAssets.has(path) || path.startsWith('/_app/immutable/');
 }
