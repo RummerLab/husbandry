@@ -273,7 +273,7 @@
 	// #58: warn (never block) when this device already saved Water Quality for the record date.
 	let earlierWaterQuality = $derived(waterQualitySavedOn(deviceHistory, selectedDate));
 	let earlierWaterQualityBy = $derived(earlierWaterQuality?.payload.waterQuality?.initials || '');
-	// #130: routine readings and weekly chemistry can be separate entries on the same day.
+	// #133: routine readings and weekly chemistry can be separate entries on the same day.
 	let earlierWeeklyChemistry = $derived(earlierWaterQuality?.payload.waterQuality?.isWeeklyCheck === true);
 	const routineKeys = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', 'doA', 'doB'] as const;
 	let routineDraftEntered = $derived(routineKeys.some(key => (waterQualityData[key] || '') !== ''));

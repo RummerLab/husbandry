@@ -82,7 +82,7 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	if (module === 'waterQuality') {
 		if (typeof value.isWeeklyCheck !== 'boolean') reject('isWeeklyCheck', 'waterQuality: weekly check flag required');
 		// Routine readings and weekly chemistry are often taken at different times, so either section can be
-		// saved on its own (#130). An absent flag means a pre-upgrade record that carries both.
+		// saved on its own (#133). An absent flag means a pre-upgrade record that carries both.
 		const routineIncluded = value.routineIncluded !== false;
 		if (value.routineIncluded !== undefined && typeof value.routineIncluded !== 'boolean') reject('routineIncluded', 'waterQuality: routine inclusion flag must be true or false');
 		if (!routineIncluded && value.isWeeklyCheck !== true) reject('routineIncluded', 'waterQuality: include routine checks or weekly chemistry');

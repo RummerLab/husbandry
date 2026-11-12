@@ -185,7 +185,7 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 const measured = (value: string | undefined) => (value === NOT_MEASURED ? '' : value || '');
 
 export function formatWaterQualityRow(data: WaterQualityData): (string | number)[] {
-	// A chemistry-only entry leaves the routine columns blank, mirroring the LSS shift halves (#130).
+	// A chemistry-only entry leaves the routine columns blank, mirroring the LSS shift halves (#133).
 	const routine = data.routineIncluded !== false;
 	return [
 		data.date,                          // Col 1: DATE

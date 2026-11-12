@@ -38,7 +38,7 @@ it('keeps temperature and salinity numeric-only', () => {
 	expect(() => toggleNotMeasured(data, 'salinityB')).toThrow();
 });
 
-it('keeps routine draft answers when routine checks are excluded (#130)', () => {
+it('keeps routine draft answers when routine checks are excluded (#133)', () => {
 	const data = { ...createEmptyForms('2026-11-11', 'AB').waterQuality, tempA: '26' };
 	const excluded = includeRoutineMeasurements(data, false);
 	expect(excluded.routineIncluded).toBe(false);

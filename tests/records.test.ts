@@ -50,7 +50,7 @@ describe('spreadsheet contracts', () => {
 		const weekly = { ...water, isWeeklyCheck: true, ...Object.fromEntries(weeklyFields.map(f => [f, '0'])) } as WaterQualityData;
 		expect(formatWaterQualityRow(weekly).slice(10, 22)).toEqual(Array(12).fill('0'));
 	});
-	it('records weekly chemistry on its own without routine readings (#130)', () => {
+	it('records weekly chemistry on its own without routine readings (#133)', () => {
 		const chemistry = { ...water, isWeeklyCheck: true, routineIncluded: false, ...Object.fromEntries(weeklyFields.map(f => [f, '0'])) } as WaterQualityData;
 		expect(validateModule('waterQuality', chemistry)).toEqual([]);
 		// Routine columns stay blank even when the draft still holds earlier answers.
