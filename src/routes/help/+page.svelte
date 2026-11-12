@@ -30,7 +30,7 @@
 
 <svelte:head>
 	<title>Animal Welfare Escalation Guide · RummerLab Husbandry</title>
-	<meta name="robots" content="noindex, nofollow" />
+	<meta name="robots" content="noindex, nofollow, noarchive" />
 </svelte:head>
 
 <SiteHeader highlight="help" sticky={false} />

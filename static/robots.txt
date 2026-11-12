@@ -1,3 +1,3 @@
-# allow crawling everything by default
+# Disallow indexing across all search engines and web crawlers
 User-agent: *
-Disallow:
+Disallow: /
