@@ -24,6 +24,8 @@ Production URL: `https://husbandry.rummerlab.com`
    - Wi-Fi and mobile reception in Room 12 can drop. The application must cache submissions locally in an offline queue and automatically sync when network connectivity is restored.
 5. **Mock Fallback for Local Dev & Testing.**
    - If Google Cloud credentials (`GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`) are absent, the server must gracefully return `{ mode: 'mock', synced: true }` rather than crashing.
+6. **Australian English & Oxford Comma Standard.**
+   - All code comments, documentation (including `README.md` and `AGENTS.md`), GitHub issues, PR titles, and PR descriptions must consistently use **Australian English** (e.g. `-ise` endings like *synchronise*, *prioritise*, and *organise*; *behaviour*, *colour*, and *licence*) and the **Oxford (serial) comma** for lists of three or more items (*A, B, and C*).
 
 ---
 
@@ -82,7 +84,7 @@ The operational columns below must maintain exact parity with `Room 12 Records 2
 ### When to File an Issue
 Whenever you notice:
 - A potential edge-case bug or validation loophole.
-- An area of the codebase that needs refactoring or optimization.
+- An area of the codebase that needs refactoring or optimisation.
 - A new feature idea (e.g. barcode/QR tag scanning for eggs, audio confirmations).
 - Changes in Room 12 tank configurations or animal moves that need spreadsheet updates.
 
@@ -91,7 +93,7 @@ Whenever you notice:
 2. Context and rationale (why it matters for lab workflow or ethics).
 3. Proposed solution or technical approach.
 
-### Mandatory Labeling
+### Mandatory Labelling
 **Always label both Issues and PRs appropriately.** Never leave an Issue or PR without labels. Use:
 
 | Label | Purpose |
@@ -112,6 +114,7 @@ Whenever you notice:
   ```
 - Keep pull request diffs focused. Do not mix unrelated refactors with bug fixes.
 - Reference related issue numbers in the PR description (e.g. `Fixes #12` or `Closes #4`).
+- Write all PR titles, PR descriptions, commit messages, and code comments in **Australian English** with mandatory **Oxford comma** usage.
 - **Check the PR is still open before pushing to its branch, commenting on it or editing its description**, e.g. `gh pr view <n> --json state,mergedAt`. PRs here are often merged quickly, and commits pushed to a merged PR's branch never reach `main` (this happened with #74, and the work had to move to #80). If the PR is merged or closed, branch from the latest `origin/main`, cherry-pick the commits and open a new PR. Never rewrite a merged PR's description to cover work that is not in it.
 
 ---
@@ -120,11 +123,12 @@ Whenever you notice:
 
 | Date | Agent / Change Summary |
 | :--- | :--- |
+| 2026-11 | Standardised repository documentation, PR guidelines, and agent instructions to Australian English and mandatory Oxford comma (#127). |
 | 2026-11 | Initial release: Full SvelteKit 3 PWA with 4-module wizard, offline queue, per-device history, and Google Sheets sync API. |
-| 2026-11 | Branding standardized to **RummerLab**; secured `.gitignore` for service account credentials; updated remote to `RummerLab/husbandry`. |
+| 2026-11 | Branding standardised to **RummerLab**; secured `.gitignore` for service account credentials; updated remote to `RummerLab/husbandry`. |
 | 2026-11 | Enhanced environment variable diagnostics at `/api/health` and robust runtime `process.env` loading. |
 | 2026-11 | Purged raw Excel file from all git history with `git-filter-repo`; added `*.xlsx` to `.gitignore`; executed clean Snyk dependency audit (46 dependencies clean, 0 vulnerable paths). Pinned TypeScript 6 baseline for SvelteKit 3 compatibility. |
-| 2026-11 | Standardized Google Sheets structure to a single frozen header row across all four tabs (`LSS Checks`, `Tanks + Eggs`, `Feeds`, `Water Quality`), ensuring sequential bottom appending without multi-row header collision. |
+| 2026-11 | Standardised Google Sheets structure to a single frozen header row across all four tabs (`LSS Checks`, `Tanks + Eggs`, `Feeds`, `Water Quality`), ensuring sequential bottom appending without multi-row header collision. |
 | 2026-11 | Updated logo and favicon to official RummerLab assets; refreshed styling to RummerLab / Physioshark theme with Inter typography, design tokens, white header with [HUSBANDRY] badge, and navy accent stripe. |
 | 2026-11 | Hardened GitHub Actions CI workflow with explicit least-privilege token permissions (`contents: read`), resolving CodeQL code scanning alert #1. |
 
@@ -134,7 +138,7 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 
 - Remaining transition qualification (#112/#114/#115/#118/#119): `syncPolicy.ts` owns pure eligibility/deadline/backoff decisions; the scheduler coalesces authorisation as well as drains. `submissionOutcome` classifies HTTP/body results before storage effects. `transitionValidation` preserves revealed errors while editing and resets on context changes; weekly exclusion retains drafts; Room 12 and Room 6 share explicit `NOT_MEASURED` toggles (`toggleNotMeasured`, `toggleRoom6NotMeasured`). `guideSnapshot` derives escalation-guide review/seasonal state and `/help` refreshes the Brisbane date on focus/visibility. `inspectLocalHistory` exposes readable records for recovery without permitting any drain while damage remains. Setup readers reject incomplete metadata/header responses; metadata and restricted-log setup return explicit refusal/reinspection outcomes. `scripts/pwa-qualification.mjs` and `docs/pwa-qualification.md` exercise the real compiled worker with isolated synthetic pages and two builds; never point that fixture at a real workbook or infer phone installation UI from it.
 
-- 2026-11: Shared runtime validation is in `src/lib/validation.ts`; observations start unanswered. Bulk measurement defaults are prohibited. Dates use Australia/Brisbane. Run `npm test` plus check/build. Pure spreadsheet formatters live in `src/lib/server/rows.ts`; routine-only chemistry exports blank cells.
+- 2026-11: Shared runtime validation is in `src/lib/validation.ts`; observations start unanswered. Bulk measurement defaults are prohibited. Dates use Australia/Brisbane. Run `npm test`, `npm run check`, and `npm run build`. Pure spreadsheet formatters live in `src/lib/server/rows.ts`; routine-only chemistry exports blank cells.
 
 - 2026-11: Submissions persist before network access under per-record localStorage keys (legacy history migrates only after all writes succeed). Pending records are never evicted; mock acknowledgements remain pending. Online startup/reconnect drains the queue with bounded backoff while the app is open.
 - Sheets writes use one atomic batch containing operational rows and a unique named-range receipt. Do not delete or rename `husbandry_*` named ranges: they prevent duplicate retries. They contain hashes, not raw submissions; operational column counts stay unchanged. Reconcile any pre-upgrade partially written queued records manually before retrying: old writes have no receipts.
@@ -147,7 +151,7 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 
 
 - Shared HTTP Basic lab gate lives in `hooks.server.ts`/`server/access.ts`; LAB_ACCESS_ENABLED defaults false for staged rollout; once true, production/Vercel fail closed without rate enforcement and a 24+ character server password. APIs never redirect to login. Offline auth pause resumes only after network `/api/access` verification. Static assets/minimal health are public; diagnostics use a separate bearer gate. Never cache `/login`.
-- Rate protection uses Vercel SDK rules `husbandry-submit`/`husbandry-login` and regional counters. RATE_LIMIT_MODE defaults to off until rules are configured; explicit enforce fails closed and Log is observation-only. 429/503 persist queue cooldown; 401/403 pause until a server-authorized page resumes. Never clear cooldown from manual sync.
+- Rate protection uses Vercel SDK rules `husbandry-submit`/`husbandry-login` and regional counters. RATE_LIMIT_MODE defaults to off until rules are configured; explicit enforce fails closed and Log is observation-only. 429/503 persist queue cooldown; 401/403 pause until a server-authorised page resumes. Never clear cooldown from manual sync.
 - Required-field indicators: the four egg-check text inputs (wind/new eggs, new/dead egg tags) and shared Formula/Elasmotab headings must display the existing red `required-star` marker. Egg inputs also expose native `required`; shared validation remains authoritative.
 - Form layout: use shrinkable grid tracks (`minmax(0, 1fr)`), `min-width: 0` field wrappers and width-bounded inputs so native input sizing cannot overflow feeding cards; outer grid minimums must also fit narrow screens.
 - Incomplete Next remains activatable to reveal/focus missing answers, never to advance. `getModuleIssues` is the shared rule source; `data-field` paths connect its issues to native inputs and radio groups. Error highlights clear as answers become valid; do not bypass `canAdvance`/`canNavigate`.
@@ -188,6 +192,6 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - Mobile header (#97): at <=640px show a compact destination/status bar and Menu disclosure; full navigation is hidden until opened. Close it after selection, outside click or Escape (return focus to Menu). Preserve all workflow deep links, >=48px touch controls, desktop navigation and the non-sticky `/help` header.
 - Room 6 workbook parity (#99): modules `room6Eggs`, `room6WaterQuality`, `room6Lss`, `room6Ammonia` (forms `Room6*Form.svelte`, layout in `room6Config.ts`, tab registry `ROOM6_SHEETS` in `server/room6Sheet.ts`). The Room 6 tab is a section picker: each section is a standalone, fully validated entry saved on its own (no `canNavigate` chain), because the sections happen at different times. Rules: egg counts are safe whole numbers and need IDs when > 0; WQ temperature and salinity always need numbers and other values may be `NOT_MEASURED` (blank cell); LSS tank/tick jobs are `Y` or blank (as in the workbook) but the four flow checks need Y/N and any N requires notes; ammonia checks need a 24-hour `HH:MM` time. Feeds (no Room 6 animals since 18 Oct 2026) and the Egg Log (per-egg rows updated over time) are follow-ups in #99.
 
-- Navigation (#98/#101): `createHomeTabObserver` accepts only changed URL searches; keep URL-to-view synchronization untracked and separate from click-to-URL writes because shallow navigation is asynchronous. In SvelteKit 3 use `page.shallow?.url ?? page.url` and `goto(url, { shallow: true, replace: true, reset: false })`; `page.url` alone stays on the last full navigation. Never reload forms to switch tabs. Room 12/Room 6 are separate recording contexts; each room shows only its own submenu, and returning to Room 12 restores its last workflow. Shared device history preserves room context and all unsaved datasets.
+- Navigation (#98/#101): `createHomeTabObserver` accepts only changed URL searches; keep URL-to-view synchronisation untracked and separate from click-to-URL writes because shallow navigation is asynchronous. In SvelteKit 3 use `page.shallow?.url ?? page.url` and `goto(url, { shallow: true, replace: true, reset: false })`; `page.url` alone stays on the last full navigation. Never reload forms to switch tabs. Room 12/Room 6 are separate recording contexts; each room shows only its own submenu, and returning to Room 12 restores its last workflow. Shared device history preserves room context and all unsaved datasets.
 
 - Header stability (#107): use fixed desktop brand/navigation grid columns and put device sync status below the logo. Both room submenus share one sizing grid cell; the inactive submenu must retain `visibility: hidden`, `inert` and `aria-hidden` so room changes cannot resize the header or expose hidden controls. Keep the 68px mobile bar.
