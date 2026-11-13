@@ -1,6 +1,6 @@
 import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data, Room6EggChecksData, Room6WaterQualityData, Room6LssData, Room6AmmoniaData } from '../types';
 import { ROOM6_LSS_FLOWS, ROOM6_TANK_TASK_KEYS, ROOM6_WATER_CHANGE } from '../room6Config';
-import { ROOM12_TANKS } from '../tanksConfig';
+import { ALL_ROOM12_TANKS } from '../tanksConfig';
 import { NOT_MEASURED } from '../validation';
 /** The animal welfare answer shares Col 20 so the LSS tab keeps its 21 operational columns. */
 export function formatLSSConcerns(data: LSSData): string {
@@ -84,8 +84,9 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 		data.initials
 	];
 
-	for (const tank of ROOM12_TANKS) {
+	for (const tank of ALL_ROOM12_TANKS) {
 		const tankEntry = data.tanks[tank.id] || { amountFed: '', meds: {}, uneatenGrams: '' };
+		const tankStart = row.length;
 
 		// Fed amount for tank
 		row.push(tankEntry.amountFed || '');
@@ -174,6 +175,12 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 			row.push(tankEntry.meds['121'] || 'N');
 			row.push(tankEntry.uneatenGrams || '0');
 		}
+
+		// #140: retired tanks are no longer shown or validated, so a new record never measures them.
+		// Leave their cells blank rather than writing the 'N' medication and '0' uneaten defaults,
+		// which would read as observations nobody made. Legacy records that did record a fed amount
+		// for a retired tank are still written exactly as before.
+		if (tank.retired && !String(tankEntry.amountFed ?? '').trim()) row.fill('', tankStart);
 	}
 
 	// Final Col 84: Notes/Observations
@@ -185,17 +192,19 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 const measured = (value: string | undefined) => (value === NOT_MEASURED ? '' : value || '');
 
 export function formatWaterQualityRow(data: WaterQualityData): (string | number)[] {
+	// A chemistry-only entry leaves the routine columns blank, mirroring the LSS shift halves (#133).
+	const routine = data.routineIncluded !== false;
 	return [
 		data.date,                          // Col 1: DATE
 		data.initials || '',                // Col 2: INITIALS
-		data.tempA || '',                   // Col 3: Temp A
-		data.tempB || '',                   // Col 4: Temp B
-		measured(data.pHA),                     // Col 5: pH A
-		measured(data.pHB),                     // Col 6: pH B
-		data.salinityA || '',               // Col 7: Salinity A
-		data.salinityB || '',               // Col 8: Salinity B
-		data.doA || '/',                    // Col 9: DO % A
-		data.doB || '/',                    // Col 10: DO % B
+		routine ? data.tempA || '' : '',    // Col 3: Temp A
+		routine ? data.tempB || '' : '',    // Col 4: Temp B
+		routine ? measured(data.pHA) : '',  // Col 5: pH A
+		routine ? measured(data.pHB) : '',  // Col 6: pH B
+		routine ? data.salinityA || '' : '', // Col 7: Salinity A
+		routine ? data.salinityB || '' : '', // Col 8: Salinity B
+		routine ? data.doA || '/' : '',      // Col 9: DO % A
+		routine ? data.doB || '/' : '',      // Col 10: DO % B
 		(data.isWeeklyCheck ? measured(data.alkA) : ''),                   // Col 11: Alk A
 		(data.isWeeklyCheck ? measured(data.alkB) : ''),                   // Col 12: Alk B
 		(data.isWeeklyCheck ? measured(data.weeklypHA) : ''),              // Col 13: pH A (weekly)

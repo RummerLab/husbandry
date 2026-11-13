@@ -110,7 +110,9 @@ it('maps tabs to bounded destinations while retaining existing shift validation 
 	expect(activeDestinationStep(destinationForTab('history'))).toBeNull();
 	expect(destinationSteps(destinationForTab('waterQuality'))).toEqual(['waterQuality']);
 	expect(activeDestinationStep(room6Destination('room6Lss'))).toBe('room6Lss');
+	expect(activeDestinationStep(shiftDestination('noon', 1))).toBe('feeds');
 	expect(activeDestinationStep(shiftDestination('noon', 2))).toBe('tanksEggs');
+	expect(activeDestinationStep(shiftDestination('noon', 3))).toBe('lssPM');
 	expect(shiftDestination('noon', 3)).toEqual({ kind: 'shift', shift: 'noon', step: 3 });
 	for (const step of [0, 4, 1.5, NaN]) expect(() => shiftDestination('noon', step)).toThrow();
 });

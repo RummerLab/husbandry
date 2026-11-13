@@ -5,7 +5,7 @@
 	import { destinationForTab, destinationTab, shiftDestination, room6Destination, resolveInitialTab, destinationSteps, activeDestinationStep, type EntryDestination } from '../lib/entryDestination';
 	import { readQueueSnapshot, observeDeviceQueue } from '../lib/queueSnapshot';
 	import { startAutoSync } from '../lib/autoSync';
-	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, brisbaneTime } from '../lib/recordRules';
+	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, waterQualityChemistrySavedOn, brisbaneTime } from '../lib/recordRules';
 	import { getModuleIssues, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { describeWaterQualityIssue, sortWaterQualityIssues } from '../lib/waterQualityGuide';
@@ -64,7 +64,7 @@
 	let activeStep = $derived(shiftSteps[currentStep - 1]);
 	const shiftIntro: Record<Shift, { title: string; text: string }> = {
 		morning: { title: 'AM shift — LSS + Water Quality', text: 'Record the daily animal welfare check and AM tank checks, then water quality when due (at least every second day). If water quality is not due, save AM LSS alone. Filters, skimmer and hygiene are recorded by the PM shift.' },
-		noon: { title: 'PM shift — LSS, Eggs + Feeds', text: 'Record the PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds. If you only did the PM checks, save PM LSS alone. The AM shift records its own checks.' },
+		noon: { title: 'PM shift — Feeds, Eggs + LSS', text: 'Record Feeds, then Tanks + Eggs, and complete PM LSS (PM tank checks, filters, skimmer, and hygiene) last. Feeds can be saved on its own as soon as it is complete; each later section opens once the sections before it are complete. The AM shift records its own checks.' },
 		offDay: { title: 'Off-day check (Tue, Thu, Sat, Sun)', text: 'The daily minimum: the animal welfare check and AM tank checks, then water quality if it is due. Filters, skimmer and hygiene are not required on off-days.' }
 	};
 	let userInitials = $state<string>('');
@@ -273,6 +273,17 @@
 	// #58: warn (never block) when this device already saved Water Quality for the record date.
 	let earlierWaterQuality = $derived(waterQualitySavedOn(deviceHistory, selectedDate));
 	let earlierWaterQualityBy = $derived(earlierWaterQuality?.payload.waterQuality?.initials || '');
+	// #133: routine readings and weekly chemistry can be separate entries on the same day, in either order.
+	let earlierChemistry = $derived(waterQualityChemistrySavedOn(deviceHistory, selectedDate));
+	let latestHasChemistry = $derived(earlierWaterQuality?.payload.waterQuality?.isWeeklyCheck === true);
+	let earlierChemistryBy = $derived(earlierChemistry?.payload.waterQuality?.initials || '');
+	const routineKeys = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', 'doA', 'doB'] as const;
+	let routineDraftEntered = $derived(routineKeys.some(key => (waterQualityData[key] || '') !== ''));
+	function startChemistryEntry() {
+		if (isSubmitting) return;
+		waterQualityData = { ...waterQualityData, routineIncluded: false, isWeeklyCheck: true };
+		validationFeedback = transitionValidation(validationFeedback, 'changeContext');
+	}
 	function refreshPending() {
 		const snapshot = readQueueSnapshot();
 		deviceHistory = snapshot.records ?? [];
@@ -295,10 +306,20 @@
 		<aside class="duplicate-wq-notice" role="note" aria-label="Water Quality already saved for this date">
 			<strong>Water Quality already saved for this date</strong>
 			<p>
-				This device saved Water Quality for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
+				This device saved {latestHasChemistry ? 'Water Quality' : 'the routine Water Quality readings'} for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
 				Saving again adds a second Water Quality row for {selectedDate}. Only continue if this is a new set of readings.
+				{#if !latestHasChemistry}
+					{#if earlierChemistry}
+						Weekly chemistry is already saved for {selectedDate}{brisbaneTime(earlierChemistry.submittedAt) ? ` at ${brisbaneTime(earlierChemistry.submittedAt)}` : ''}{earlierChemistryBy ? ` (${earlierChemistryBy})` : ''}, so only the routine readings are outstanding.
+					{:else}
+						If the weekly chemistry was tested after those routine readings, untick <em>Include routine checks</em> in the form so the routine values are neither retyped nor written twice.
+					{/if}
+				{/if}
 				{#if inRoutine}If these readings are already recorded, save AM LSS alone with <em>Save only AM LSS to Sheets</em>.{/if}
 			</p>
+			{#if !inRoutine && !earlierChemistry && !routineDraftEntered && waterQualityData.routineIncluded !== false}
+				<button type="button" class="wq-chemistry-btn" onclick={startChemistryEntry}>Record weekly chemistry for {selectedDate}</button>
+			{/if}
 		</aside>
 	{/if}
 {/snippet}
@@ -1010,6 +1031,22 @@
 		margin: 0.3rem 0 0;
 		line-height: 1.45;
 	}
+
+	.wq-chemistry-btn {
+		margin-top: 0.6rem;
+		min-height: 48px;
+		padding: 0.5rem 0.9rem;
+		border: 1.5px solid #1d5fb8;
+		border-radius: 6px;
+		background: #ffffff;
+		color: #1a4f99;
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.wq-chemistry-btn:focus-visible { outline: 3px solid #1d5fb8; outline-offset: 2px; }
 
 	.off-day-banner {
 		margin-bottom: 1rem;

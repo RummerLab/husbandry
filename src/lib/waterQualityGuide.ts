@@ -16,6 +16,7 @@ const PARAMETERS: Record<string, string> = {
 /** Plain-language correction for a shared validation issue; rules stay in getModuleIssues. */
 export function describeWaterQualityIssue(issue: ModuleIssue): string {
 	if (issue.field === 'initials') return 'Analyst initials are required.';
+	if (issue.field === 'routineIncluded') return 'Choose at least one section to record: routine checks, weekly chemistry, or both.';
 	if (issue.field === 'date') return 'Choose a valid date of records.';
 	const match = /^(.+)([AB])$/.exec(issue.field);
 	if (!match || !(match[1] in PARAMETERS)) return issue.message;
@@ -26,7 +27,7 @@ export function describeWaterQualityIssue(issue: ModuleIssue): string {
 	return `${label}: enter a number without units (e.g. 26.3; 0 is allowed)${orSkip}.`;
 }
 
-const FORM_ORDER = ['date', 'initials', 'tempA', 'tempB', 'salinityA', 'salinityB', 'pHA', 'pHB', 'doA', 'doB', 'alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
+const FORM_ORDER = ['date', 'initials', 'routineIncluded', 'tempA', 'tempB', 'salinityA', 'salinityB', 'pHA', 'pHB', 'doA', 'doB', 'alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
 
 /** List issues in the order fields appear on screen. */
 export function sortWaterQualityIssues(issues: ModuleIssue[]): ModuleIssue[] {

@@ -57,6 +57,27 @@ it.each(['morning', 'noon'] as const)('%s locks advancement and rejects any inco
 	}
 });
 
+describe('PM shift workflow ordering (#138)', () => {
+	it('defines noon shift steps as Feeds, Tanks + Eggs, and PM LSS so filters are done last', () => {
+		expect(shifts.noon.steps).toEqual(['feeds', 'tanksEggs', 'lssPM']);
+		expect(shifts.noon.label).toBe('PM: Feeds, Eggs + LSS');
+	});
+
+	it('locks advancement from Feeds to Eggs when Feeds is incomplete', () => {
+		const forms = completeForms();
+		const emptyFeeds = { ...forms, feeds: createEmptyStepForms(date).feeds };
+		expect(canNavigate(1, 2, shifts.noon.steps.map(step => stepValid(step, emptyFeeds)))).toBe(false);
+		expect(canNavigate(1, 2, shifts.noon.steps.map(step => stepValid(step, forms)))).toBe(true);
+	});
+
+	it('locks advancement from Eggs to PM LSS when Tanks + Eggs is incomplete', () => {
+		const forms = completeForms();
+		const emptyEggs = { ...forms, tanksEggs: createEmptyStepForms(date).tanksEggs };
+		expect(canNavigate(2, 3, shifts.noon.steps.map(step => stepValid(step, emptyEggs)))).toBe(false);
+		expect(canNavigate(2, 3, shifts.noon.steps.map(step => stepValid(step, forms)))).toBe(true);
+	});
+});
+
 describe('LSS shift halves', () => {
 	it('keeps the daily welfare check and concerns required in AM LSS', () => {
 		const forms = completeForms();
