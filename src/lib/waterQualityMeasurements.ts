@@ -19,6 +19,11 @@ export function includeWeeklyMeasurements(data: WaterQualityData, included: bool
 	return { ...data, isWeeklyCheck: included };
 }
 
+/** Excluding routine checks hides them and blanks exports, but retains the draft answers (#133). */
+export function includeRoutineMeasurements(data: WaterQualityData, included: boolean): WaterQualityData {
+	return { ...data, routineIncluded: included };
+}
+
 /** Display-only value for measurement inputs (does not change the stored answer). */
 export function measurementInputValue(value: string | undefined): string {
 	const answer = measurementAnswer(value);

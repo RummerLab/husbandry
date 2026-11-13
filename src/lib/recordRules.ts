@@ -29,6 +29,17 @@ export function waterQualitySavedOn<T extends { submittedAt: string; payload: { 
 		.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0];
 }
 
+/**
+ * Most recent Water Quality record on THIS device for the record date that includes weekly chemistry
+ * (#133). Routine readings and chemistry can be saved in either order, so the whole day is inspected:
+ * a chemistry-only row saved before the routine readings still means the chemistry is done.
+ */
+export function waterQualityChemistrySavedOn<T extends { submittedAt: string; payload: { date: string; modulesSubmitted: string[]; waterQuality?: { isWeeklyCheck?: boolean; initials?: string } } }>(history: T[], date: string): T | undefined {
+	return history
+		.filter(item => item.payload?.date === date && item.payload.modulesSubmitted?.includes('waterQuality') && item.payload.waterQuality?.isWeeklyCheck === true)
+		.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0];
+}
+
 export function brisbaneTime(iso: string): string {
 	const d = new Date(iso);
 	return isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: 'numeric', minute: '2-digit' }).format(d);

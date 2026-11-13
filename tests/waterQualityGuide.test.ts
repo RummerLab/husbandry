@@ -16,6 +16,19 @@ it('requires every weekly field once weekly data is included', () => {
 	expect(getModuleIssues('waterQuality', data).map(issue => issue.field)).toEqual(weeklyFields);
 });
 
+it('allows weekly chemistry on its own and still rejects an empty entry', () => {
+	const chemistry = {
+		...createEmptyForms('2026-11-09').waterQuality,
+		initials: 'TT',
+		isWeeklyCheck: true,
+		routineIncluded: false,
+		...Object.fromEntries(weeklyFields.map(f => [f, '0']))
+	};
+	expect(getModuleIssues('waterQuality', chemistry)).toEqual([]);
+	expect(getModuleIssues('waterQuality', { ...chemistry, isWeeklyCheck: false }).map(issue => issue.field)).toEqual(['routineIncluded']);
+	expect(describeWaterQualityIssue({ field: 'routineIncluded', message: '' })).toContain('at least one section');
+});
+
 it('flags typed-but-invalid values such as "98%" and explains how to correct them', () => {
 	const data = { ...createEmptyForms('2026-11-09').waterQuality, ...routine, doA: '98%', pHB: '15', tempA: '' };
 	const entered = enteredInvalidIssues(getModuleIssues('waterQuality', data), data);

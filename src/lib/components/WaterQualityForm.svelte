@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { validateModule, NOT_MEASURED } from "../validation";
-	import { measurementInputValue, toggleNotMeasured, includeWeeklyMeasurements } from '../waterQualityMeasurements';
+	import { measurementInputValue, toggleNotMeasured, includeWeeklyMeasurements, includeRoutineMeasurements } from '../waterQualityMeasurements';
 	import type { WaterQualityData } from '../types';
 
-	type MeasurableField = Exclude<keyof WaterQualityData, 'date' | 'initials' | 'isWeeklyCheck' | 'notes'>;
+	type MeasurableField = Exclude<keyof WaterQualityData, 'date' | 'initials' | 'isWeeklyCheck' | 'routineIncluded' | 'notes'>;
 
 	interface Props {
 		data: WaterQualityData;
@@ -49,7 +49,7 @@
 	<div class="header-box">
 		<div class="header-text">
 			<h3>Room 12 Water Quality Log</h3>
-			<p class="subtitle">Side A & Side B system testing (Routine at least every second day + Weekly Chemistry)</p>
+			<p class="subtitle">Side A & Side B system testing. Routine checks (at least every second day) and weekly chemistry can be saved together or as separate entries.</p>
 		</div>
 		<div class="btn-group-header">
 
@@ -76,7 +76,20 @@
 
 	<!-- Routine checks: at least every second day, including weekends -->
 	<div class="section-card">
-		<h4>2. Routine Checks (at least every second day, including weekends)</h4>
+		<div class="card-header-flex">
+			<h4>2. Routine Checks (at least every second day, including weekends)</h4>
+			<label class="toggle-label">
+				<input
+					type="checkbox"
+					checked={data.routineIncluded !== false}
+					data-field="routineIncluded"
+					onchange={(event) => data = includeRoutineMeasurements(data, event.currentTarget.checked)}
+				/>
+				<span>Include routine checks</span>
+			</label>
+		</div>
+
+		{#if data.routineIncluded !== false}
 		<p class="section-hint">All routine fields are required. Enter numbers only, without units or % signs (pH must be 0–14). If the DO meter is unavailable, enter N/A. If pH was not measured this time (e.g. measured by MARFU), tap <em>Not measured</em> below that side.</p>
 
 		<div class="table-grid">
@@ -128,6 +141,9 @@
 				<input type="text" placeholder="98" aria-label="Dissolved Oxygen (%) Side B" data-field="doB" bind:value={data.doB} />
 			</div>
 		</div>
+		{:else}
+			<p class="section-hint">Routine readings are left out of this entry, so they are not retyped or written to the sheet. Use this when the routine checks were already saved and only the weekly chemistry is outstanding.</p>
+		{/if}
 	</div>
 
 	<!-- Weekly Testing Panel -->

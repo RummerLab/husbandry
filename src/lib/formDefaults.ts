@@ -64,6 +64,7 @@ export function createEmptyForms(date: string, initials = ''): HusbandryForms {
 			date,
 			initials,
 			isWeeklyCheck: false,
+			routineIncluded: true,
 			tempA: '',
 			tempB: '',
 			pHA: '',
