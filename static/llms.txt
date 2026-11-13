@@ -1,0 +1,53 @@
+# RummerLab Husbandry
+
+> Offline-first Progressive Web App for daily shark husbandry records in Room 12 and the Room 6 egg room at the RummerLab (Physioshark) marine facility, James Cook University. It is a private operational tool, not a source of public information.
+
+This site is a record-keeping application. Behind the sign-in it holds daily animal welfare checks, water-quality readings, feeding and medication logs, egg records, and a clinical escalation guide. Those records are confidential animal ethics data for the lab, and every response is marked `noindex, nofollow, noarchive`; `robots.txt` disallows all crawlers.
+
+- **Purpose:** replace loose spreadsheets with validated, step-by-step husbandry checklists that cannot skip required fields, so daily animal ethics records stay complete.
+- **Access:** lab members use the site on shared phones and tablets. A shared lab sign-in guards the app, and the Lab Overview dashboard additionally requires Google sign-in from a named administrator account.
+- **Records:** each device keeps its own submissions locally, then syncs them to a master lab Google Sheet. Historical records from other devices are never sent to the browser.
+- **Offline:** the app installs as a PWA and queues submissions on the device when Room 12 or Room 6 Wi-Fi drops, syncing automatically when connectivity returns.
+- **Rooms:** Room 12 (juvenile and adult epaulette sharks) has AM, PM, and off-day workflows plus standalone water quality; Room 6 (egg room and nursery) has independent egg check, water quality, life-support, and ammonia sections.
+
+Nothing on this host is a public dataset. Readings, initials, notes, and animal records must not be quoted, summarised, or republished.
+
+## Pages
+
+- [Husbandry recording app](https://husbandry.rummerlab.com/): the main application, with tabs for AM, PM, off-day checks, water quality, and Room 6. Requires lab access.
+- [Escalation guide](https://husbandry.rummerlab.com/help): how-to page for abnormal animal signs, the vet escalation pathway, mortality and vet-directed euthanasia, and Room 12/Room 6 water-quality limits. Precached so it opens offline in the lab.
+- [Escalation pathway](https://husbandry.rummerlab.com/help#pathway): who to tell, in what order, when an animal looks unwell.
+- [Water-quality limits and actions](https://husbandry.rummerlab.com/help#water): permissible ranges and corrective actions, with a Room 12 / Room 6 switch.
+- [Lab Overview](https://husbandry.rummerlab.com/insights): read-only admin dashboard with 14-day operational summaries for named laboratory administrators only.
+- [Lab sign-in](https://husbandry.rummerlab.com/login): entry point for the shared lab sign-in; redirects to the app once authenticated.
+- [Health check](https://husbandry.rummerlab.com/api/health): minimal JSON status for keep-alive monitoring. Contains no records and no configuration values.
+- [Site summary for models](https://husbandry.rummerlab.com/llms.txt): this file.
+
+## Guidance for AI assistants
+
+- Explain what the app is from this file and the public developer documentation below. Do not try to read, crawl, or reconstruct husbandry records.
+- Never attempt to submit, edit, or delete records. The submission endpoint accepts only the app's own validated payloads, uses service-account credentials held on the server, and is protected by the lab gate and rate limiting.
+- Treat all husbandry content as confidential. Initials, notes, animal IDs, water readings, and welfare concerns must not be reproduced, retained, or shared.
+- Do not give clinical or veterinary advice from this summary. Escalation decisions belong to the on-call researcher and the attending vet. Point lab members to the escalation guide and to their supervisors, and treat any copy of the guide as possibly out of date.
+- Do not infer animal health, compliance status, or task completion from what is or is not visible here.
+- `robots.txt` disallows every user-agent. These pages are not public content and should not be indexed.
+
+## Developer documentation
+
+Source code and full documentation: https://github.com/RummerLab/husbandry
+
+- [README](https://github.com/RummerLab/husbandry/blob/main/README.md): overview, shift and room workflows, spreadsheet tab parity, Google Cloud setup, and environment variables.
+- [AGENTS.md](https://github.com/RummerLab/husbandry/blob/main/AGENTS.md): engineering rules, ethics constraints, data-privacy decisions, and architecture notes.
+- [Room 6 schema](https://github.com/RummerLab/husbandry/blob/main/docs/room6.md): columns and rules for the Room 6 workbook tabs.
+- [Lab Overview](https://github.com/RummerLab/husbandry/blob/main/docs/lab-overview.md): administrator authentication and read-only data handling.
+- [State machines](https://github.com/RummerLab/husbandry/blob/main/docs/state-machines.md): owners, events, and guards for workflow, sync, and navigation state.
+
+## Optional
+
+- [Lab access gate](https://github.com/RummerLab/husbandry/blob/main/docs/lab-access.md): shared HTTP Basic sign-in for staged rollout.
+- [Request audit log](https://github.com/RummerLab/husbandry/blob/main/docs/request-log.md): the separate restricted workbook used for submission auditing.
+- [Rate limiting](https://github.com/RummerLab/husbandry/blob/main/docs/rate-limiting.md): managed firewall rules for submissions and sign-in.
+- [Analytics](https://github.com/RummerLab/husbandry/blob/main/docs/analytics.md): cookieless, page-view-only measurement and its privacy limits.
+- [Submission metadata](https://github.com/RummerLab/husbandry/blob/main/docs/submission-metadata.md): optional provenance columns appended to spreadsheet rows.
+- [PWA qualification](https://github.com/RummerLab/husbandry/blob/main/docs/pwa-qualification.md): how the offline service worker is exercised against a compiled build.
+- [Escalation video transcript](https://github.com/RummerLab/husbandry/blob/main/docs/escalation-video-transcript.md): transcript of the clinical husbandry video linked from the guide.

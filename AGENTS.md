@@ -131,6 +131,7 @@ Whenever you notice:
 | 2026-11 | Standardised Google Sheets structure to a single frozen header row across all four tabs (`LSS Checks`, `Tanks + Eggs`, `Feeds`, `Water Quality`), ensuring sequential bottom appending without multi-row header collision. |
 | 2026-11 | Updated logo and favicon to official RummerLab assets; refreshed styling to RummerLab / Physioshark theme with Inter typography, design tokens, white header with [HUSBANDRY] badge, and navy accent stripe. |
 | 2026-11 | Hardened GitHub Actions CI workflow with explicit least-privilege token permissions (`contents: read`), resolving CodeQL code scanning alert #1. |
+| 2026-11 | Added `/llms.txt` (public, crawl-discouraging summary for AI assistants) with a coverage test; it must never list credentials, spreadsheet IDs, emails, or phone numbers. |
 | 2026-11 | Water Quality entries can record routine checks, weekly chemistry, or both; chemistry-only rows leave the routine columns blank (#133). |
 
 _Add a row when you change behaviour, data structures, or conventions that future agents must know about._
@@ -197,3 +198,4 @@ _Add a row when you change behaviour, data structures, or conventions that futur
 - Navigation (#98/#101): `createHomeTabObserver` accepts only changed URL searches; keep URL-to-view synchronisation untracked and separate from click-to-URL writes because shallow navigation is asynchronous. In SvelteKit 3 use `page.shallow?.url ?? page.url` and `goto(url, { shallow: true, replace: true, reset: false })`; `page.url` alone stays on the last full navigation. Never reload forms to switch tabs. Room 12/Room 6 are separate recording contexts; each room shows only its own submenu, and returning to Room 12 restores its last workflow. Shared device history preserves room context and all unsaved datasets.
 
 - Header stability (#107): use fixed desktop brand/navigation grid columns and put device sync status below the logo. Both room submenus share one sizing grid cell; the inactive submenu must retain `visibility: hidden`, `inert` and `aria-hidden` so room changes cannot resize the header or expose hidden controls. Keep the 68px mobile bar.
+- `static/llms.txt` is served publicly (listed in `publicAssets` in `access.ts`) so an assistant given the URL can describe the project without lab credentials. Keep it crawl-discouraging, free of credentials, spreadsheet IDs, emails, phone numbers, and records, and update it when routes or docs change (`tests/llms.test.ts` checks every link resolves).
