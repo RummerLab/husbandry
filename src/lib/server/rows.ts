@@ -1,6 +1,6 @@
 import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data, Room6EggChecksData, Room6WaterQualityData, Room6LssData, Room6AmmoniaData } from '../types';
 import { ROOM6_LSS_FLOWS, ROOM6_TANK_TASK_KEYS, ROOM6_WATER_CHANGE } from '../room6Config';
-import { ROOM12_TANKS } from '../tanksConfig';
+import { ALL_ROOM12_TANKS } from '../tanksConfig';
 import { NOT_MEASURED } from '../validation';
 /** The animal welfare answer shares Col 20 so the LSS tab keeps its 21 operational columns. */
 export function formatLSSConcerns(data: LSSData): string {
@@ -84,8 +84,9 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 		data.initials
 	];
 
-	for (const tank of ROOM12_TANKS) {
+	for (const tank of ALL_ROOM12_TANKS) {
 		const tankEntry = data.tanks[tank.id] || { amountFed: '', meds: {}, uneatenGrams: '' };
+		const tankStart = row.length;
 
 		// Fed amount for tank
 		row.push(tankEntry.amountFed || '');
@@ -174,6 +175,12 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 			row.push(tankEntry.meds['121'] || 'N');
 			row.push(tankEntry.uneatenGrams || '0');
 		}
+
+		// #140: retired tanks are no longer shown or validated, so a new record never measures them.
+		// Leave their cells blank rather than writing the 'N' medication and '0' uneaten defaults,
+		// which would read as observations nobody made. Legacy records that did record a fed amount
+		// for a retired tank are still written exactly as before.
+		if (tank.retired && !String(tankEntry.amountFed ?? '').trim()) row.fill('', tankStart);
 	}
 
 	// Final Col 84: Notes/Observations

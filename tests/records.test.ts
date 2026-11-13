@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { room12Date, canNavigate, isOffDay } from '../src/lib/recordRules';
 import { validateModule, validateSubmission, lssChecks, weeklyFields } from '../src/lib/validation';
 import { formatLSSConcerns, formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow } from '../src/lib/server/rows';
-import { ROOM12_TANKS } from '../src/lib/tanksConfig';
+import { ALL_ROOM12_TANKS, ROOM12_TANKS } from '../src/lib/tanksConfig';
 import type { LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../src/lib/types';
 
 const water = { date: '2026-11-07', initials: 'AB', isWeeklyCheck: false, tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '/', doB: '/', notes: 'test' };
@@ -34,6 +34,33 @@ describe('record integrity', () => {
 		expect(validateModule('feeds', { date: water.date, initials: 'AB', tanks })).toEqual([]);
 		delete tanks.tank1.meds['103'];
 		expect(validateModule('feeds', { date: water.date, initials: 'AB', tanks })).not.toEqual([]);
+	});
+	it('retires duplicate historic options while preserving the 84-column Feeds contract (#140)', () => {
+		expect(ROOM12_TANKS).toHaveLength(15);
+		expect(ALL_ROOM12_TANKS).toHaveLength(17);
+		expect(ROOM12_TANKS.map(t => t.id)).not.toContain('historic_tank6_green_lid');
+		expect(ROOM12_TANKS.map(t => t.id)).not.toContain('historic_tank7');
+		const retired = ALL_ROOM12_TANKS.filter(t => t.retired);
+		expect(retired.map(t => t.id)).toEqual(['historic_tank6_green_lid', 'historic_tank7']);
+
+		// A submission containing only the 15 active tanks still formats to all 84 spreadsheet columns
+		const activeTanks = Object.fromEntries(ROOM12_TANKS.map(t => [t.id, { amountFed: '10', uneatenGrams: '1', meds: Object.fromEntries(t.sharks.map(s => [s.medId!, 'N'])) }]));
+		const feeds = { date: water.date, initials: 'AB', tanks: activeTanks, notes: 'done' } as FeedsData;
+		const row = formatFeedsRow(feeds);
+		expect(row).toHaveLength(84);
+		expect(row[83]).toBe('done');
+		// Retired columns stay blank: no 'N' medication or '0' uneaten defaults that nobody observed
+		expect(row.slice(58, 61)).toEqual(['', '', '']); // Historic Tank 6: fed, Formula 81, uneaten
+		expect(row.slice(71, 74)).toEqual(['', '', '']); // Historic Tank 7: fed, Elasmotab 117, uneaten
+		// Stale empty draft entries for retired tanks are treated the same as absent ones
+		const stale = { ...feeds, tanks: { ...activeTanks, historic_tank6_green_lid: { amountFed: '', meds: {}, uneatenGrams: '' }, historic_tank7: { amountFed: ' ', meds: {}, uneatenGrams: '' } } } as FeedsData;
+		expect(formatFeedsRow(stale)).toEqual(row);
+	});
+	it('still writes retired tank readings carried by legacy queued records (#140)', () => {
+		const legacy = { date: water.date, initials: 'AB', notes: '', tanks: { historic_tank7: { amountFed: '21', meds: { '117': 'Y' }, uneatenGrams: '2' } } } as FeedsData;
+		const row = formatFeedsRow(legacy);
+		expect(row).toHaveLength(84);
+		expect(row.slice(71, 74)).toEqual(['21', 'Y', '2']);
 	});
 });
 describe('spreadsheet contracts', () => {

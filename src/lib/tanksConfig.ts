@@ -3,6 +3,7 @@ export interface TankDefinition {
 	name: string;
 	targetAmt: string;
 	medicationType: 'Elasmotab' | 'Formula' | 'None';
+	retired?: boolean;
 	sharks: Array<{
 		id: string;
 		label: string;
@@ -10,7 +11,7 @@ export interface TankDefinition {
 	}>;
 }
 
-export const ROOM12_TANKS: TankDefinition[] = [
+export const ALL_ROOM12_TANKS: TankDefinition[] = [
 	{
 		id: 'tank1',
 		name: 'Tank 1',
@@ -134,6 +135,7 @@ export const ROOM12_TANKS: TankDefinition[] = [
 		name: 'Historic Tank 6 (Green Lid)',
 		targetAmt: '1g',
 		medicationType: 'Formula',
+		retired: true,
 		sharks: [
 			{ id: 'AM081_M', label: 'AM081 (M)', medId: '81' }
 		]
@@ -163,6 +165,7 @@ export const ROOM12_TANKS: TankDefinition[] = [
 		name: 'Historic Tank 7',
 		targetAmt: '21g',
 		medicationType: 'Elasmotab',
+		retired: true,
 		sharks: [
 			{ id: 'HO117_T7', label: 'HO117', medId: '117' }
 		]
@@ -180,3 +183,6 @@ export const ROOM12_TANKS: TankDefinition[] = [
 		]
 	}
 ];
+
+/** Active tanks displayed for daily feeding entry and Lab Overview (#140). */
+export const ROOM12_TANKS: TankDefinition[] = ALL_ROOM12_TANKS.filter(tank => !tank.retired);

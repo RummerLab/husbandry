@@ -65,7 +65,8 @@ The operational columns below must maintain exact parity with `Room 12 Records 2
    - Col 18–21: Animal/Egg Moves (Description, From, To, QTY)
 
 3. **`Feeds`** (Cols 1–84):
-   - Mapped dynamically using `ROOM12_TANKS` configuration (`src/lib/tanksConfig.ts`).
+   - Mapped dynamically using `ALL_ROOM12_TANKS` configuration (`src/lib/tanksConfig.ts`) across 84 columns.
+   - Active options presented in the UI and Lab Overview are bounded by `ROOM12_TANKS` (15 tanks); duplicate historic options (`historic_tank6_green_lid` and `historic_tank7`) are retired (#140) and stay in `ALL_ROOM12_TANKS` only to preserve column offsets: new records leave their cells blank (no `N`/`0` defaults), while legacy queued records that recorded a fed amount for them are still written as recorded.
    - Tracks intake (g), uneaten feed (g), and medication (Elasmotab or Formula).
    - Col 84: Notes/Observations.
 
@@ -134,6 +135,7 @@ Whenever you notice:
 | 2026-11 | Added `/llms.txt` (public, crawl-discouraging summary for AI assistants) with a coverage test; it must never list credentials, spreadsheet IDs, emails, or phone numbers. |
 | 2026-11 | Water Quality entries can record routine checks, weekly chemistry, or both; chemistry-only rows leave the routine columns blank (#133). |
 | 2026-11 | Reordered PM shift workflow to Feeds → Tanks + Eggs → PM LSS so feeding details can be recorded upon arrival and filter maintenance is completed last (#138). |
+| 2026-11 | Retired duplicate historic tank options (Historic Tank 6 and Historic Tank 7) from Room 12 feeding entry and Lab Overview while preserving the 84-column spreadsheet layout (#140). |
 
 _Add a row when you change behaviour, data structures, or conventions that future agents must know about._
 

@@ -101,7 +101,9 @@ describe('lab overview summaries', () => {
 
 	it('finds every tank’s fed and uneaten columns from the real Feeds layout', () => {
 		const cols = feedColumns();
-		expect(cols).toHaveLength(ROOM12_TANKS.length);
+		expect(cols).toHaveLength(15);
+		expect(cols.map(c => c.id)).not.toContain('historic_tank6_green_lid');
+		expect(cols.map(c => c.id)).not.toContain('historic_tank7');
 		for (const c of cols) { expect(c.fed).toBeGreaterThan(1); expect(c.uneaten).toBeGreaterThan(c.fed); }
 		expect(new Set(cols.flatMap(c => [c.fed, c.uneaten])).size).toBe(cols.length * 2);
 	});
@@ -113,6 +115,9 @@ describe('lab overview summaries', () => {
 		expect(tank1.days.map(d => d.eaten)).toEqual([0, 0, 6]);
 		expect(tank1.flagged).toBe(true);
 		expect(feeding.find(t => t.id !== 'tank1')!.flagged).toBe(false);
+		expect(feeding).toHaveLength(15);
+		expect(feeding.map(t => t.name)).not.toContain('Historic Tank 6 (Green Lid)');
+		expect(feeding.map(t => t.name)).not.toContain('Historic Tank 7');
 	});
 
 	it('builds a full overview from an empty sheet without errors', () => {
