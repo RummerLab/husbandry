@@ -66,7 +66,7 @@ The operational columns below must maintain exact parity with `Room 12 Records 2
 
 3. **`Feeds`** (Cols 1–84):
    - Mapped dynamically using `ALL_ROOM12_TANKS` configuration (`src/lib/tanksConfig.ts`) across 84 columns.
-   - Active options presented in the UI and Lab Overview are bounded by `ROOM12_TANKS` (15 tanks); duplicate historic options (`historic_tank6_green_lid` and `historic_tank7`) are retired (#140) and format safely as empty/default cells to preserve column offsets in the master workbook.
+   - Active options presented in the UI and Lab Overview are bounded by `ROOM12_TANKS` (15 tanks); duplicate historic options (`historic_tank6_green_lid` and `historic_tank7`) are retired (#140) and stay in `ALL_ROOM12_TANKS` only to preserve column offsets: new records leave their cells blank (no `N`/`0` defaults), while legacy queued records that recorded a fed amount for them are still written as recorded.
    - Tracks intake (g), uneaten feed (g), and medication (Elasmotab or Formula).
    - Col 84: Notes/Observations.
 

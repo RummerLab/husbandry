@@ -86,6 +86,7 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 
 	for (const tank of ALL_ROOM12_TANKS) {
 		const tankEntry = data.tanks[tank.id] || { amountFed: '', meds: {}, uneatenGrams: '' };
+		const tankStart = row.length;
 
 		// Fed amount for tank
 		row.push(tankEntry.amountFed || '');
@@ -174,6 +175,12 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 			row.push(tankEntry.meds['121'] || 'N');
 			row.push(tankEntry.uneatenGrams || '0');
 		}
+
+		// #140: retired tanks are no longer shown or validated, so a new record never measures them.
+		// Leave their cells blank rather than writing the 'N' medication and '0' uneaten defaults,
+		// which would read as observations nobody made. Legacy records that did record a fed amount
+		// for a retired tank are still written exactly as before.
+		if (tank.retired && !String(tankEntry.amountFed ?? '').trim()) row.fill('', tankStart);
 	}
 
 	// Final Col 84: Notes/Observations

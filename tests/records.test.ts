@@ -49,13 +49,18 @@ describe('record integrity', () => {
 		const row = formatFeedsRow(feeds);
 		expect(row).toHaveLength(84);
 		expect(row[83]).toBe('done');
-		// Retired columns are filled safely with empty fed amount and default values
-		expect(row[58]).toBe(''); // Historic Tank 6 fed
-		expect(row[59]).toBe('N'); // Formula 81
-		expect(row[60]).toBe('0'); // Uneaten
-		expect(row[71]).toBe(''); // Historic Tank 7 fed
-		expect(row[72]).toBe('N'); // Elasmotab 117
-		expect(row[73]).toBe('0'); // Uneaten
+		// Retired columns stay blank: no 'N' medication or '0' uneaten defaults that nobody observed
+		expect(row.slice(58, 61)).toEqual(['', '', '']); // Historic Tank 6: fed, Formula 81, uneaten
+		expect(row.slice(71, 74)).toEqual(['', '', '']); // Historic Tank 7: fed, Elasmotab 117, uneaten
+		// Stale empty draft entries for retired tanks are treated the same as absent ones
+		const stale = { ...feeds, tanks: { ...activeTanks, historic_tank6_green_lid: { amountFed: '', meds: {}, uneatenGrams: '' }, historic_tank7: { amountFed: ' ', meds: {}, uneatenGrams: '' } } } as FeedsData;
+		expect(formatFeedsRow(stale)).toEqual(row);
+	});
+	it('still writes retired tank readings carried by legacy queued records (#140)', () => {
+		const legacy = { date: water.date, initials: 'AB', notes: '', tanks: { historic_tank7: { amountFed: '21', meds: { '117': 'Y' }, uneatenGrams: '2' } } } as FeedsData;
+		const row = formatFeedsRow(legacy);
+		expect(row).toHaveLength(84);
+		expect(row.slice(71, 74)).toEqual(['21', 'Y', '2']);
 	});
 });
 describe('spreadsheet contracts', () => {
