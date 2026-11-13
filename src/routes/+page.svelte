@@ -5,7 +5,7 @@
 	import { destinationForTab, destinationTab, shiftDestination, room6Destination, resolveInitialTab, destinationSteps, activeDestinationStep, type EntryDestination } from '../lib/entryDestination';
 	import { readQueueSnapshot, observeDeviceQueue } from '../lib/queueSnapshot';
 	import { startAutoSync } from '../lib/autoSync';
-	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, brisbaneTime } from '../lib/recordRules';
+	import { room12Date, canNavigate, isOffDay, waterQualitySavedOn, waterQualityChemistrySavedOn, brisbaneTime } from '../lib/recordRules';
 	import { getModuleIssues, validateModule } from '../lib/validation';
 	import { markInvalidFields, focusFirstInvalidField } from '../lib/validationGuide';
 	import { describeWaterQualityIssue, sortWaterQualityIssues } from '../lib/waterQualityGuide';
@@ -273,8 +273,10 @@
 	// #58: warn (never block) when this device already saved Water Quality for the record date.
 	let earlierWaterQuality = $derived(waterQualitySavedOn(deviceHistory, selectedDate));
 	let earlierWaterQualityBy = $derived(earlierWaterQuality?.payload.waterQuality?.initials || '');
-	// #133: routine readings and weekly chemistry can be separate entries on the same day.
-	let earlierWeeklyChemistry = $derived(earlierWaterQuality?.payload.waterQuality?.isWeeklyCheck === true);
+	// #133: routine readings and weekly chemistry can be separate entries on the same day, in either order.
+	let earlierChemistry = $derived(waterQualityChemistrySavedOn(deviceHistory, selectedDate));
+	let latestHasChemistry = $derived(earlierWaterQuality?.payload.waterQuality?.isWeeklyCheck === true);
+	let earlierChemistryBy = $derived(earlierChemistry?.payload.waterQuality?.initials || '');
 	const routineKeys = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', 'doA', 'doB'] as const;
 	let routineDraftEntered = $derived(routineKeys.some(key => (waterQualityData[key] || '') !== ''));
 	function startChemistryEntry() {
@@ -304,14 +306,18 @@
 		<aside class="duplicate-wq-notice" role="note" aria-label="Water Quality already saved for this date">
 			<strong>Water Quality already saved for this date</strong>
 			<p>
-				This device saved {earlierWeeklyChemistry ? 'Water Quality' : 'the routine Water Quality readings'} for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
+				This device saved {latestHasChemistry ? 'Water Quality' : 'the routine Water Quality readings'} for {selectedDate}{brisbaneTime(earlierWaterQuality.submittedAt) ? ` at ${brisbaneTime(earlierWaterQuality.submittedAt)}` : ''}{earlierWaterQualityBy ? ` (${earlierWaterQualityBy})` : ''}.
 				Saving again adds a second Water Quality row for {selectedDate}. Only continue if this is a new set of readings.
-				{#if !earlierWeeklyChemistry}
-					If the weekly chemistry was tested after those routine readings, untick <em>Include routine checks</em> in the form so the routine values are neither retyped nor written twice.
+				{#if !latestHasChemistry}
+					{#if earlierChemistry}
+						Weekly chemistry is already saved for {selectedDate}{brisbaneTime(earlierChemistry.submittedAt) ? ` at ${brisbaneTime(earlierChemistry.submittedAt)}` : ''}{earlierChemistryBy ? ` (${earlierChemistryBy})` : ''}, so only the routine readings are outstanding.
+					{:else}
+						If the weekly chemistry was tested after those routine readings, untick <em>Include routine checks</em> in the form so the routine values are neither retyped nor written twice.
+					{/if}
 				{/if}
 				{#if inRoutine}If these readings are already recorded, save AM LSS alone with <em>Save only AM LSS to Sheets</em>.{/if}
 			</p>
-			{#if !inRoutine && !earlierWeeklyChemistry && !routineDraftEntered && waterQualityData.routineIncluded !== false}
+			{#if !inRoutine && !earlierChemistry && !routineDraftEntered && waterQualityData.routineIncluded !== false}
 				<button type="button" class="wq-chemistry-btn" onclick={startChemistryEntry}>Record weekly chemistry for {selectedDate}</button>
 			{/if}
 		</aside>
