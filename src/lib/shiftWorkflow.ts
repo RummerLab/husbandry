@@ -29,8 +29,8 @@ export const ROOM6_SECTIONS: { step: Room6Section; label: string; hint: string }
 
 export const shifts = {
 	morning: { label: 'AM: LSS + WQ', steps: ['lssAM', 'waterQuality'] },
-	// PM LSS comes first so someone doing only the PM checks can save it without Eggs + Feeds.
-	noon: { label: 'PM: LSS, Eggs + Feeds', steps: ['lssPM', 'tanksEggs', 'feeds'] },
+	// #138: PM shift does feeds and egg checks first upon arrival; filters and LSS maintenance are completed last.
+	noon: { label: 'PM: Feeds, Eggs + LSS', steps: ['feeds', 'tanksEggs', 'lssPM'] },
 	// #78: off-days (Tue/Thu/Sat/Sun) need only the daily minimum. It reuses the AM LSS draft, so required
 	// fields are identical to the AM shift; water quality is saved with it only when due.
 	offDay: { label: 'Off-day check', steps: ['lssAM', 'waterQuality'] }

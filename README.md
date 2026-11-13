@@ -37,7 +37,7 @@ The application supports data entry for both operational facilities:
 │      🦈 Room 12 (Main Sharks)     │       🥚 Room 6 (Egg Room)         │
 ├───────────────────────────────────┼────────────────────────────────────┤
 │ • AM Shift (LSS + Water Quality)  │ • Egg Checks                       │
-│ • PM Shift (LSS, Eggs + Feeds)    │ • Water Quality                    │
+│ • PM Shift (Feeds, Eggs + LSS)    │ • Water Quality                    │
 │ • Off-Day Checks (Tue/Thu/Sat/Sun)│ • LSS + Maintenance (Tanks 1–9)    │
 │ • Standalone Water Quality        │ • Ammonia + Nitrite                │
 └───────────────────────────────────┴────────────────────────────────────┘
@@ -54,11 +54,10 @@ Room 12 houses juvenile and adult epaulette sharks across Tanks 1–8. To stream
    - **Mandatory Animal Ethics Welfare Check**: Required question: *"All animals sighted & normal: Y/N"*. Selecting **No** strictly requires an explanation of concerns in notes.
    - **AM Tank Checks**: Water levels, water flows, and aeration/airstones across Tanks 1–8.
    - **Water Quality**: Routine testing (conducted at least every second day) or weekly chemistry when due. Routine readings and weekly chemistry can be saved together or as separate entries.
-2. **PM Shift (`PM: LSS, Eggs + Feeds`)**:
-   - **PM Tank Checks**: Afternoon water levels, flow, and airstones.
-   - **Equipment & Hygiene**: Protein skimmer venturi & spray down, canister filter checks/replacements, tank vacuuming & netting, scrub walls & overflows, floor hosing, foot tub/lids, and Virkon disinfection.
-   - **Tanks + Eggs (Oviposition)**: Female palpation tracking for listed sharks (`HO103`, `HO102`, `HO116`, `HO105`, and `HO117` with options `0`, `L`, `R`, `B`), wind eggs, new eggs, candling status, WhatsApp team updates, and animal moves between tanks.
+2. **PM Shift (`PM: Feeds, Eggs + LSS`)**:
    - **Feeds (Nutrition & Medication)**: Tank-by-tank intake tracking against target weights (g), uneaten feed weights (g), and medication tags (Elasmotab or Formula).
+   - **Tanks + Eggs (Oviposition)**: Female palpation tracking for listed sharks (`HO103`, `HO102`, `HO116`, `HO105`, and `HO117` with options `0`, `L`, `R`, `B`), wind eggs, new eggs, candling status, WhatsApp team updates, and animal moves between tanks.
+   - **PM LSS (Tank Checks & Maintenance)**: Afternoon water levels, flow, and airstones; protein skimmer venturi & spray down, canister filter checks/replacements, tank vacuuming & netting, scrub walls & overflows, floor hosing, foot tub/lids, and Virkon disinfection. Completed last so filtration clears feeding waste.
 3. **Off-Day Checks (`Off-day check`)**:
    - Automatically opens on scheduled off-days (**Tuesday, Thursday, Saturday, and Sunday**).
    - Focuses strictly on essential animal welfare: AM Animal Welfare Check, AM Tank Checks, and Water Quality if due. Heavy PM cleaning and equipment maintenance tasks are excluded.

@@ -64,7 +64,7 @@
 	let activeStep = $derived(shiftSteps[currentStep - 1]);
 	const shiftIntro: Record<Shift, { title: string; text: string }> = {
 		morning: { title: 'AM shift — LSS + Water Quality', text: 'Record the daily animal welfare check and AM tank checks, then water quality when due (at least every second day). If water quality is not due, save AM LSS alone. Filters, skimmer and hygiene are recorded by the PM shift.' },
-		noon: { title: 'PM shift — LSS, Eggs + Feeds', text: 'Record the PM tank checks, filters, skimmer and hygiene, then Tanks + Eggs and Feeds. If you only did the PM checks, save PM LSS alone. The AM shift records its own checks.' },
+		noon: { title: 'PM shift — Feeds, Eggs + LSS', text: 'Record Feeds, then Tanks + Eggs, and complete PM LSS (PM tank checks, filters, skimmer, and hygiene) last. Individual sections can also be saved on their own. The AM shift records its own checks.' },
 		offDay: { title: 'Off-day check (Tue, Thu, Sat, Sun)', text: 'The daily minimum: the animal welfare check and AM tank checks, then water quality if it is due. Filters, skimmer and hygiene are not required on off-days.' }
 	};
 	let userInitials = $state<string>('');

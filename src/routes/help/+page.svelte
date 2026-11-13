@@ -272,8 +272,8 @@
 		<h2 id="app">9. Recording it in this app (Room 12)</h2>
 		<ul>
 			<li><strong>Daily welfare check (<em>AM: LSS + WQ</em> tab, AM LSS section):</strong> answer <em>"All animals sighted, with normal appearance &amp; behaviour"</em> with <strong>No</strong> if anything is wrong, then describe the animal, tank and signs under <em>New Concerns</em>. Saving the record does not notify anyone: tell your supervisor (or call the vet) as well.</li>
-			<li><strong>Mortalities and moves (<em>PM: LSS, Eggs + Feeds</em> tab, Tanks + Eggs section):</strong> use <em>Animal &amp; Egg Transfers / Mortalities</em>: description (e.g. "Mortality: HO105, found 8:10 am"), from tank, to tank and quantity. Add detail in <em>Observations / Notes</em>.</li>
-			<li><strong>Feeding (<em>PM: LSS, Eggs + Feeds</em> tab, Feeds section):</strong> record intake and uneaten feed per tank; note any refusal in the feeding observations.</li>
+			<li><strong>Mortalities and moves (<em>PM: Feeds, Eggs + LSS</em> tab, Tanks + Eggs section):</strong> use <em>Animal &amp; Egg Transfers / Mortalities</em>: description (e.g. "Mortality: HO105, found 8:10 am"), from tank, to tank and quantity. Add detail in <em>Observations / Notes</em>.</li>
+			<li><strong>Feeding (<em>PM: Feeds, Eggs + LSS</em> tab, Feeds section):</strong> record intake and uneaten feed per tank; note any refusal in the feeding observations.</li>
 			<li><strong>Water quality (<em>AM: LSS + WQ</em> tab, or the <em>Water Quality</em> tab on its own):</strong> record the readings, and use <em>Observations, Water Changes &amp; Actions</em> for retests, water changes and who you told.</li>
 		</ul>
 	</section>
