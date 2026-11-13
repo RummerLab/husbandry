@@ -1,0 +1,22 @@
+/* TEAM */
+
+	Lab: RummerLab (Physioshark), James Cook University
+	Lab director: Jodie Rummer
+	Developer and maintainer: Luen Warneke
+	GitHub: https://github.com/Luen
+	Contact: https://github.com/RummerLab/husbandry/issues
+	From: Australia
+
+/* THANKS */
+
+	The Room 12 researchers and students who keep the sharks fed and the records complete.
+	The SvelteKit, Svelte, and Vercel communities for the tools this app is built on.
+
+/* SITE */
+
+	Last update: 2026/11/13
+	Language: English (Australian)
+	Doctype: HTML5
+	Standards: HTML5, CSS3, ECMAScript
+	Components: SvelteKit, Svelte, TypeScript, Vercel
+	Software: Vite, Vitest, Google Sheets API

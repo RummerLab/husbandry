@@ -32,6 +32,9 @@ it('does not resolve protected endpoints for rejected requests and keeps health 
  expect(await checkLabAccess(new Request('https://lab.test/api/health'))).toBeNull();
  expect(await checkLabAccess(new Request('https://lab.test/api/health/diagnostics'))).toBeNull(); // Route has independent Bearer gate.
 });
+it('keeps humans.txt readable without lab sign-in', async () => {
+ config(); expect(await checkLabAccess(new Request('https://lab.test/humans.txt'))).toBeNull();
+});
 it('respects managed login throttling and rejects insecure deployed access', async () => {
  config(); vi.mocked(enforceRateLimit).mockResolvedValueOnce(new Response('limited', { status: 429 }));
  expect((await checkLabAccess(request('/', 'wrong')))?.status).toBe(429);
