@@ -173,6 +173,7 @@ The PWA is branded as **RummerLab Husbandry** (display name **Husbandry**) with 
 - **Restricted Request Audit Log:** Synced submissions can optionally record IP address, approximate geo-location, user-agent, and client/server timestamps into a completely separate, restricted workbook (`GOOGLE_REQUEST_LOG_SHEET_ID`; see [docs/request-log.md](docs/request-log.md)).
 - **Rate Limiting:** Managed DDoS and submission abuse protection via Vercel Firewall SDK (`docs/rate-limiting.md`).
 - **Privacy-Preserving Analytics:** Lightweight, cookieless page-view tracking via Vercel Web Analytics (no cookies, no PII, and no custom tracking; see [docs/analytics.md](docs/analytics.md)).
+- **Machine-Readable Summary:** `/llms.txt` describes the app for AI assistants and search models, repeating the no-index rule and discouraging any attempt to read or submit records. It contains no lab data, credentials, spreadsheet identifiers, or contact details.
 - **Environment Write Protection:** Local development (`npm run dev`) and Vercel Preview deployments operate in Mock Mode by default, preventing accidental test data injection into production sheets.
 
 ---
