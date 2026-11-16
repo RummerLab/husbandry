@@ -620,9 +620,7 @@
 		</p>
 		<p><a href="/help">Animal welfare escalation guide &amp; vet video</a></p>
 		<p><a href="/insights">Lab Overview (lab administrators, Google sign-in)</a></p>
-		<p class="privacy-note">
-			<strong>Privacy:</strong> when records sync, the server logs your IP address, approximate location (city/region/country), browser details and this device's ID, for security and audit of husbandry records. Only lab administrators can see this log; it is not part of the shared spreadsheet. Named lab administrators who sign in with Google can also view all submitted records in the Lab Overview.
-		</p>
+		<p><a href="/privacy">Privacy</a></p>
 	</footer>
 </div>
 
@@ -1123,20 +1121,6 @@
 
 	.app-footer p {
 		margin: 0.3rem auto;
-	}
-
-	.app-footer p.privacy-note,
-	.privacy-note {
-		display: block;
-		width: min(100%, 46rem);
-		max-width: 46rem;
-		margin: 0.75rem auto 0;
-		padding: 0 0.5rem;
-		box-sizing: border-box;
-		text-align: center;
-		font-size: 0.75rem;
-		line-height: 1.45;
-		color: #8d9aae;
 	}
 
 	.app-footer p.ethics-note,

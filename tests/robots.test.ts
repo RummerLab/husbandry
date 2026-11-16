@@ -21,7 +21,7 @@ describe('search engine and crawler exclusion', () => {
 		expect(content).toMatch(/<meta\s+name=["']robots["']\s+content=["']noindex,\s*nofollow,\s*noarchive["']\s*\/?>/i);
 	});
 
-	it('includes noarchive in the route-level meta tags for help and insights', () => {
+	it('includes noarchive in the route-level meta tags for help, insights, and privacy', () => {
 		const helpPath = resolve(__dirname, '../src/routes/help/+page.svelte');
 		const helpContent = readFileSync(helpPath, 'utf8');
 		expect(helpContent).toMatch(/<meta\s+name=["']robots["']\s+content=["']noindex,\s*nofollow,\s*noarchive["']\s*\/?>/i);
@@ -29,6 +29,10 @@ describe('search engine and crawler exclusion', () => {
 		const insightsPath = resolve(__dirname, '../src/routes/insights/+page.svelte');
 		const insightsContent = readFileSync(insightsPath, 'utf8');
 		expect(insightsContent).toMatch(/<meta\s+name=["']robots["']\s+content=["']noindex,\s*nofollow,\s*noarchive["']\s*\/?>/i);
+
+		const privacyPath = resolve(__dirname, '../src/routes/privacy/+page.svelte');
+		const privacyContent = readFileSync(privacyPath, 'utf8');
+		expect(privacyContent).toMatch(/<meta\s+name=["']robots["']\s+content=["']noindex,\s*nofollow,\s*noarchive["']\s*\/?>/i);
 	});
 
 	it('serves /robots.txt publicly without requiring lab access authentication', async () => {

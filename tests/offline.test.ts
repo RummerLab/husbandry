@@ -24,7 +24,7 @@ const navigation = () => { const request = new Request(origin + '/'); Object.def
 it('installs all dependencies and boots offline without HTTP cache', async () => {
 	const { storage, network } = harness();
 	const cache = createOfflineCache(storage, network, origin, 'a', ['/_app/immutable/start.js', '/app.css', '/sw.js']);
-	await cache.install(); expect(network).toHaveBeenCalledTimes(4); // 2 assets (sw.js excluded) + shell + /help
+	await cache.install(); expect(network).toHaveBeenCalledTimes(5); // 2 assets (sw.js excluded) + shell + /help + /privacy
 	network.mockRejectedValue(new Error('offline'));
 	expect(await (await cache.respond(navigation())).text()).toContain('network:https://lab.test/');
 	expect(await (await cache.respond(new Request(origin + '/_app/immutable/start.js'))).text()).toContain('start.js');
@@ -84,6 +84,7 @@ it('falls back for 5xx, offline help and deep links, and reports a genuinely mis
 	network.mockRejectedValue(new Error('Offline'));
 	const nav = (path: string) => ({ url: origin + path, mode: 'navigate', method: 'GET' }) as Request;
 	expect(await (await cache.respond(nav('/help#pathway'))).text()).toContain('/help');
+	expect(await (await cache.respond(nav('/privacy'))).text()).toContain('/privacy');
 	expect(await (await cache.respond(nav('/?tab=room6'))).text()).toContain('network:https://lab.test/');
 	const empty = createOfflineCache(storage, network, origin, 'empty', []);
 	expect((await empty.respond(navigation())).status).toBe(503);
@@ -94,7 +95,7 @@ it('excludes sensitive and telemetry paths even when offered as precache files o
 	const paths = ['/api/submit', '/login', '/auth/google', '/insights', '/_vercel/insights/script.js', '/_vercel/speed-insights/script.js', '/sw.js'];
 	const cache = createOfflineCache(storage, network, origin, 'privacy', paths);
 	await cache.install();
-	expect(network).toHaveBeenCalledTimes(2); // Only the two offline pages.
+	expect(network).toHaveBeenCalledTimes(3); // Only the three offline pages.
 	for (const path of paths) {
 		expect(cache.handles(new Request(origin + path))).toBe(false);
 		expect(cache.handles({ url: origin + path, method: 'GET', mode: 'navigate' } as Request)).toBe(false);

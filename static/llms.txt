@@ -19,6 +19,7 @@ Nothing on this host is a public dataset. Readings, initials, notes, and animal 
 - [Escalation pathway](https://husbandry.rummerlab.com/help#pathway): who to tell, in what order, when an animal looks unwell.
 - [Water-quality limits and actions](https://husbandry.rummerlab.com/help#water): permissible ranges and corrective actions, with a Room 12 / Room 6 switch.
 - [Lab Overview](https://husbandry.rummerlab.com/insights): read-only admin dashboard with 14-day operational summaries for named laboratory administrators only.
+- [Privacy](https://husbandry.rummerlab.com/privacy): collection notice for the request audit log and Lab Overview access; no records or credentials.
 - [Lab sign-in](https://husbandry.rummerlab.com/login): entry point for the shared lab sign-in; redirects to the app once authenticated.
 - [Health check](https://husbandry.rummerlab.com/api/health): minimal JSON status for keep-alive monitoring. Contains no records and no configuration values.
 - [Site summary for models](https://husbandry.rummerlab.com/llms.txt): this file.

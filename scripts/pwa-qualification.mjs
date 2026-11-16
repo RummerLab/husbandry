@@ -57,9 +57,14 @@ export async function servePwaBuilds(directory, port = 5186) {
 				offered = mode; response.end(mode); return;
 			}
 			const build = offered === 'A' ? 'A' : 'B';
-			if (url.pathname === '/' || url.pathname === '/help') {
+			if (url.pathname === '/' || url.pathname === '/help' || url.pathname === '/privacy') {
 				response.setHeader('Content-Type', 'text/html; charset=utf-8');
-				response.end(url.pathname === '/' ? shell(build) : `<!doctype html><title>Offline test guide ${build}</title><h1>Offline guide build ${build}</h1><p>Synthetic guide cached by the production worker.</p>`); return;
+				const body = url.pathname === '/'
+					? shell(build)
+					: url.pathname === '/help'
+						? `<!doctype html><title>Offline test guide ${build}</title><h1>Offline guide build ${build}</h1><p>Synthetic guide cached by the production worker.</p>`
+						: `<!doctype html><title>Offline test privacy ${build}</title><h1>Offline privacy build ${build}</h1><p>Synthetic privacy notice cached by the production worker.</p>`;
+				response.end(body); return;
 			}
 			if (url.pathname.startsWith('/api/') || url.pathname === '/login' || url.pathname === '/insights' || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/_vercel/')) {
 				response.setHeader('Content-Type', 'application/json'); response.end('{"mode":"mock","authorized":false}'); return;

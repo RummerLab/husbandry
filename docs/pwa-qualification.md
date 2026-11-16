@@ -25,7 +25,7 @@ produces a new SvelteKit version/cache name even when the worker source is uncha
 No spreadsheet migration or production configuration is required.
 
 1. Open `http://127.0.0.1:5186/` in Chrome. Wait until the page reports controlled=true,
-   active=activated, installing=null. Confirm its application cache contains `/`, `/help`
+   active=activated, installing=null. Confirm its application cache contains `/`, `/help`, `/privacy`
    and the generated/static dependencies.
 2. Enter a synthetic draft. Select **Probe excluded routes**. The fixture only returns
    synthetic responses. Confirm no `/api/*`, `/login`, `/insights`, `/auth/*`, `/_vercel/*`
