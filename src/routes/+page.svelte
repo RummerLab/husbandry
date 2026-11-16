@@ -1145,6 +1145,22 @@
 		color: #8d9aae;
 	}
 
+	/* Explicit link colour: browser defaults are too dark on navy. */
+	.app-footer a,
+	.app-footer a:visited {
+		color: var(--on-navy);
+	}
+
+	.app-footer a:hover,
+	.app-footer a:focus-visible {
+		color: #ffffff;
+	}
+
+	.app-footer a:focus-visible {
+		outline: 3px solid var(--on-navy);
+		outline-offset: 2px;
+	}
+
 
 	@media (max-width: 640px) {
 		.step-label {
