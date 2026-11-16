@@ -1,6 +1,6 @@
 const PREFIX = 'rummerlab-shell-';
-/** Navigations kept for offline use: the app shell and the escalation guide (#help). */
-const OFFLINE_PAGES = ['/', '/help'];
+/** Navigations kept for offline use: the app shell, escalation guide, and privacy notice. */
+const OFFLINE_PAGES = ['/', '/help', '/privacy'];
 /** Apply to both precache inputs and fetch handling, even if a route looks like an asset. */
 export function networkOnlyPath(path: string): boolean {
 	return path.startsWith('/api/') || path === '/login' || path.startsWith('/insights') ||

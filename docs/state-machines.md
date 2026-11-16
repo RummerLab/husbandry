@@ -108,7 +108,7 @@ new atomic log guard retroactively.
 | Machine | Ownership / invariant |
 | --- | --- |
 | Worker installing / failed / waiting / active | Browser + `service-worker/index.ts`. No skipWaiting or forced reload; failed precache leaves the old worker/cache available. Activation cleans only obsolete application caches. |
-| Navigation network / auth response / timeout or 5xx fallback / missing shell | `offlineCache.ts`. Return 401/403 as-is, never replace them with a cached authenticated shell. Deep links fall back to `/`; `/help` has its own cached page. |
+| Navigation network / auth response / timeout or 5xx fallback / missing shell | `offlineCache.ts`. Return 401/403 as-is, never replace them with a cached authenticated shell. Deep links fall back to `/`; `/help` and `/privacy` have their own cached pages. |
 | Asset cache hit / miss; excluded path | `networkOnlyPath` applies to both precache inputs and fetch routing. `/api/*`, `/login`, `/auth/*`, `/insights`, `/_vercel/*`, and the legacy `/sw.js` bridge stay network-only. |
 | Install hint unsupported / standalone / dismissed / Safari / Chrome / other | Existing `installHint.ts` and component. Keep lightweight; instructions do not prove a worker is installed or ready. iOS has no beforeinstallprompt dependency. |
 | Workbook setup inspected / planned / refused / dryRun / applied / reinspected / complete | Existing planners plus `setupRoom6Workbook`. A rerun after tab creation initialises missing headers only; completion verifies the final plan is empty. Failed header reads never imply empty tabs, including the restricted log setup script. |

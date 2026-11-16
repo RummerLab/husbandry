@@ -29,4 +29,4 @@ Submission ID · Server Logged At (UTC) · Client Submitted At (UTC) · Record D
 
 ## Privacy
 
-An IP address with location is personal information under the Australian Privacy Act. The app footer shows a collection notice: what is logged, why, and who can see it. Agree a retention period with the lab directors (e.g. delete rows older than 12 months) and keep the workbook's sharing restricted. To stop logging, remove the variable and redeploy; existing rows stay until deleted.
+An IP address with location is personal information under the Australian Privacy Act. The `/privacy` page shows a collection notice: what is logged, why, and who can see it. The site footer links to that page. Agree a retention period with the lab directors (e.g. delete rows older than 12 months) and keep the workbook's sharing restricted. To stop logging, remove the variable and redeploy; existing rows stay until deleted.

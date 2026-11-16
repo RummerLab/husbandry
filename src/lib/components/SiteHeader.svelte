@@ -4,7 +4,7 @@
 	import { readQueueSnapshot, observeDeviceQueue } from '../queueSnapshot';
 	import { roomForTab, type HomeTab, type RecordingRoom, type Room12Tab } from '../homeTab';
 
-	export type HeaderHighlight = HomeTab | 'help' | 'insights';
+	export type HeaderHighlight = HomeTab | 'help' | 'insights' | 'privacy';
 
 	interface Props {
 		/** Which destination is current (utility or recording tab). */
@@ -29,8 +29,8 @@
 	let menuOpen = $state(false);
 	let menuButton: HTMLButtonElement;
 	let headerElement: HTMLElement;
-	const utilityLabels = { waterQuality: 'Water Quality', room6: 'Room 6', history: 'My Device History', help: 'Escalation Guide', insights: 'Lab Overview' };
-	let currentRoom = $derived(room ?? (highlight === 'help' || highlight === 'insights' ? null : roomForTab(highlight)));
+	const utilityLabels = { waterQuality: 'Water Quality', room6: 'Room 6', history: 'My Device History', help: 'Escalation Guide', insights: 'Lab Overview', privacy: 'Privacy' };
+	let currentRoom = $derived(room ?? (highlight === 'help' || highlight === 'insights' || highlight === 'privacy' ? null : roomForTab(highlight)));
 	let destinationLabel = $derived(highlight in shifts ? shifts[highlight as Shift].label : utilityLabels[highlight as keyof typeof utilityLabels]);
 	let currentLabel = $derived(currentRoom ? `${currentRoom === 'room6' ? 'Room 6' : 'Room 12'} · ${highlight === 'room6' ? 'Egg room' : destinationLabel}` : destinationLabel);
 
