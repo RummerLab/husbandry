@@ -203,8 +203,8 @@ export function formatWaterQualityRow(data: WaterQualityData): (string | number)
 		routine ? measured(data.pHB) : '',  // Col 6: pH B
 		routine ? data.salinityA || '' : '', // Col 7: Salinity A
 		routine ? data.salinityB || '' : '', // Col 8: Salinity B
-		routine ? data.doA || '/' : '',      // Col 9: DO % A
-		routine ? data.doB || '/' : '',      // Col 10: DO % B
+		routine ? (data.doA ? measured(data.doA) : '/') : '', // Col 9: DO % A
+		routine ? (data.doB ? measured(data.doB) : '/') : '', // Col 10: DO % B
 		(data.isWeeklyCheck ? measured(data.alkA) : ''),                   // Col 11: Alk A
 		(data.isWeeklyCheck ? measured(data.alkB) : ''),                   // Col 12: Alk B
 		(data.isWeeklyCheck ? measured(data.weeklypHA) : ''),              // Col 13: pH A (weekly)

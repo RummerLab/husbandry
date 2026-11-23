@@ -10,7 +10,7 @@ it('shows a short display label for Not measured without changing the stored val
 	expect(NOT_MEASURED_DISPLAY.length).toBeLessThan(NOT_MEASURED.length);
 });
 
-it.each(['pH', 'po4'] as const)('preserves %s A when only B was not measured', prefix => {
+it.each(['pH', 'do', 'po4'] as const)('preserves %s A when only B was not measured', prefix => {
 	const original = {
 		...createEmptyForms('2026-11-11', 'AB').waterQuality,
 		tempA: '26', tempB: '26', salinityA: '36', salinityB: '36',
@@ -20,11 +20,11 @@ it.each(['pH', 'po4'] as const)('preserves %s A when only B was not measured', p
 	};
 	const data = toggleNotMeasured(original, `${prefix}B`);
 	// Complete the unrelated missing field for the routine pH case.
-	if (prefix === 'pH') data.po4B = '1.8';
+	if (prefix !== 'po4') data.po4B = '1.8';
 	expect(data[`${prefix}A`]).toBe(original[`${prefix}A`]);
 	expect(data[`${prefix}B`]).toBe(NOT_MEASURED);
 	expect(validateModule('waterQuality', data)).toEqual([]);
-	const col = prefix === 'pH' ? 4 : 20;
+	const col = { pH: 4, do: 8, po4: 20 }[prefix];
 	expect(formatWaterQualityRow(data).slice(col, col + 2)).toEqual([original[`${prefix}A`], '']);
 	const cleared = toggleNotMeasured(data, `${prefix}B`);
 	expect(cleared[`${prefix}A`]).toBe(original[`${prefix}A`]);
@@ -36,6 +36,16 @@ it('keeps temperature and salinity numeric-only', () => {
 	const data = createEmptyForms('2026-11-11').waterQuality;
 	expect(() => toggleNotMeasured(data, 'tempA')).toThrow();
 	expect(() => toggleNotMeasured(data, 'salinityB')).toThrow();
+});
+
+it('still accepts legacy DO N/A and / answers from records already queued on devices', () => {
+	const data = {
+		...createEmptyForms('2026-11-11', 'AB').waterQuality,
+		tempA: '26', tempB: '26', salinityA: '36', salinityB: '36', pHA: '8.2', pHB: '8.1', doA: 'N/A', doB: '/'
+	};
+	expect(validateModule('waterQuality', data)).toEqual([]);
+	expect(formatWaterQualityRow(data).slice(8, 10)).toEqual(['N/A', '/']);
+	expect(validateModule('waterQuality', { ...data, doA: 'N/a' }).join()).toContain('doA');
 });
 
 it('keeps routine draft answers when routine checks are excluded (#133)', () => {
