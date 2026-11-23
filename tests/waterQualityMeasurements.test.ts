@@ -38,14 +38,14 @@ it('keeps temperature and salinity numeric-only', () => {
 	expect(() => toggleNotMeasured(data, 'salinityB')).toThrow();
 });
 
-it('still accepts legacy DO N/A and / answers from records already queued on devices', () => {
+it('rejects typed DO N/A and / answers: use the Not measured button instead', () => {
 	const data = {
 		...createEmptyForms('2026-11-11', 'AB').waterQuality,
-		tempA: '26', tempB: '26', salinityA: '36', salinityB: '36', pHA: '8.2', pHB: '8.1', doA: 'N/A', doB: '/'
+		tempA: '26', tempB: '26', salinityA: '36', salinityB: '36', pHA: '8.2', pHB: '8.1', doA: '98', doB: NOT_MEASURED
 	};
 	expect(validateModule('waterQuality', data)).toEqual([]);
-	expect(formatWaterQualityRow(data).slice(8, 10)).toEqual(['N/A', '/']);
-	expect(validateModule('waterQuality', { ...data, doA: 'N/a' }).join()).toContain('doA');
+	expect(formatWaterQualityRow(data).slice(8, 10)).toEqual(['98', '']);
+	for (const typed of ['N/A', '/', 'N/a']) expect(validateModule('waterQuality', { ...data, doA: typed }).join()).toContain('doA');
 });
 
 it('keeps routine draft answers when routine checks are excluded (#133)', () => {

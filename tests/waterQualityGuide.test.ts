@@ -3,7 +3,7 @@ import { createEmptyForms } from '../src/lib/formDefaults';
 import { getModuleIssues, weeklyFields } from '../src/lib/validation';
 import { describeWaterQualityIssue, enteredInvalidIssues, sortWaterQualityIssues } from '../src/lib/waterQualityGuide';
 
-const routine = { initials: 'TT', tempA: '26.3', tempB: '26.2', salinityA: '36', salinityB: '36', pHA: '8.2', pHB: '8.25', doA: '98', doB: 'N/A' };
+const routine = { initials: 'TT', tempA: '26.3', tempB: '26.2', salinityA: '36', salinityB: '36', pHA: '8.2', pHB: '8.25', doA: '98', doB: '97' };
 
 it('requires every routine field, including pH and dissolved oxygen', () => {
 	const fields = getModuleIssues('waterQuality', createEmptyForms('2026-11-09').waterQuality).map(issue => issue.field).sort();

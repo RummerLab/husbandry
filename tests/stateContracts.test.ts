@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { persistNewSubmission, syncPendingSubmissions, saveLocalSubmission, getLocalHistory, migrateLocalHistory } from '../src/lib/storage';
+import { persistNewSubmission, syncPendingSubmissions, saveLocalSubmission, getLocalHistory } from '../src/lib/storage';
 import { readQueueSnapshot, observeDeviceQueue, snapshotTone } from '../src/lib/queueSnapshot';
 import { pauseSync, getSyncPause, resumeAuthenticatedSync } from '../src/lib/syncPause';
 import { prepareSave, completeSave, failSave, saveErrorMessage } from '../src/lib/saveState';
@@ -22,7 +22,7 @@ class MemoryStorage {
 }
 const payload = (id = 'sub_state'): FullHusbandrySubmission => ({ id, submittedAt: '2026-11-11T00:00:00Z', date: '2026-11-11', initials: 'AB', modulesSubmitted: ['waterQuality'], waterQuality: {
 	...createEmptyStepForms('2026-11-11', 'AB').waterQuality,
-	tempA: '26', tempB: '26', salinityA: '36', salinityB: '36', pHA: '8.2', pHB: '8.1', doA: '98', doB: 'N/A'
+	tempA: '26', tempB: '26', salinityA: '36', salinityB: '36', pHA: '8.2', pHB: '8.1', doA: '98', doB: '97'
 } });
 beforeEach(() => {
 	vi.stubGlobal('window', new EventTarget());
@@ -141,7 +141,7 @@ it('never calls a blocked or unreadable queue up to date, and publishes same/cro
 	expect(localStorage.getItem('rummerlab_submission_bad')).toBe('{broken');
 });
 
-it('keeps authentication and cooldown independent, including upgraded legacy pauses', () => {
+it('keeps authentication and cooldown independent', () => {
 	vi.useFakeTimers();
 	vi.setSystemTime(new Date('2026-11-11T00:00:00Z'));
 	persistNewSubmission(payload());
@@ -162,12 +162,6 @@ it('keeps authentication and cooldown independent, including upgraded legacy pau
 	expect(getSyncPause()).toMatchObject({ until: deadline, message: 'Rate limited' });
 	vi.advanceTimersByTime(124000);
 	expect(getSyncPause()).toBeNull();
-	localStorage.setItem('rummerlab_sync_pause', JSON.stringify({ until: Date.now() + 60000, authentication: true, message: 'Old auth pause' }));
-	expect(getSyncPause()?.authentication).toBe(true);
-	resumeAuthenticatedSync();
-	expect(getSyncPause()?.until).toBeGreaterThan(Date.now());
-	vi.advanceTimersByTime(60001);
-	expect(getSyncPause()).toBeNull();
 });
 
 it('retains known identity conflicts for review instead of retrying them', async () => {
@@ -177,27 +171,6 @@ it('retains known identity conflicts for review instead of retrying them', async
 	await syncPendingSubmissions();
 	expect(fetch).toHaveBeenCalledTimes(1);
 	expect(getLocalHistory()[0]).toMatchObject({ synced: false, syncBlocked: true });
-});
-
-it('migrates interrupted legacy copies without overwriting newer records or losing raw data', () => {
-	const first = persistNewSubmission(payload('a'));
-	const second = { ...first, id: 'b', payload: payload('b') };
-	localStorage.setItem('rummerlab_husbandry_local_history', JSON.stringify([{ ...first, synced: true }, second]));
-	const originalWrite = localStorage.setItem.bind(localStorage);
-	vi.spyOn(localStorage, 'setItem').mockImplementationOnce(() => { throw new Error('Quota'); });
-	expect(() => migrateLocalHistory()).toThrow('Quota');
-	expect(localStorage.getItem('rummerlab_husbandry_local_history')).not.toBeNull();
-	vi.mocked(localStorage.setItem).mockImplementation(originalWrite);
-	expect(migrateLocalHistory()).toBe('complete');
-	expect(getLocalHistory()).toHaveLength(2);
-	expect(getLocalHistory().find(record => record.id === 'a')?.synced).toBe(false);
-	expect(migrateLocalHistory()).toBe('notNeeded');
-	localStorage.setItem('rummerlab_husbandry_local_history', JSON.stringify([first]));
-	vi.spyOn(localStorage, 'removeItem').mockImplementationOnce(() => { throw new Error('Remove failed'); });
-	expect(() => migrateLocalHistory()).toThrow('Remove failed');
-	expect(localStorage.getItem('rummerlab_husbandry_local_history')).not.toBeNull();
-	expect(migrateLocalHistory()).toBe('complete');
-	expect(getLocalHistory()).toHaveLength(2);
 });
 
 it('keeps answer semantics separate from validation visibility and weekly inclusion', () => {

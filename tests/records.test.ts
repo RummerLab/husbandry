@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { room12Date, canNavigate, isOffDay } from '../src/lib/recordRules';
-import { validateModule, validateSubmission, lssChecks, weeklyFields } from '../src/lib/validation';
+import { validateModule, validateSubmission, lssAmChecks, lssChecks, weeklyFields } from '../src/lib/validation';
 import { formatLSSConcerns, formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow } from '../src/lib/server/rows';
 import { ALL_ROOM12_TANKS, ROOM12_TANKS } from '../src/lib/tanksConfig';
 import type { LSSData, TanksEggsData, FeedsData, WaterQualityData } from '../src/lib/types';
 
-const water = { date: '2026-11-07', initials: 'AB', isWeeklyCheck: false, tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '/', doB: '/', notes: 'test' };
+const water = { date: '2026-11-07', initials: 'AB', isWeeklyCheck: false, routineIncluded: true, tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '98', doB: '97', notes: 'test' };
 describe('record integrity', () => {
 	it.each(['2026-11-06T14:01:00Z', '2026-11-06T23:59:00Z', '2026-11-07T00:00:00Z'])('uses Brisbane date at %s', instant => expect(room12Date(new Date(instant))).toBe('2026-11-07'));
 	it('blocks jumps over incomplete steps and permits going back', () => {
@@ -56,11 +56,11 @@ describe('record integrity', () => {
 		const stale = { ...feeds, tanks: { ...activeTanks, historic_tank6_green_lid: { amountFed: '', meds: {}, uneatenGrams: '' }, historic_tank7: { amountFed: ' ', meds: {}, uneatenGrams: '' } } } as FeedsData;
 		expect(formatFeedsRow(stale)).toEqual(row);
 	});
-	it('still writes retired tank readings carried by legacy queued records (#140)', () => {
-		const legacy = { date: water.date, initials: 'AB', notes: '', tanks: { historic_tank7: { amountFed: '21', meds: { '117': 'Y' }, uneatenGrams: '2' } } } as FeedsData;
-		const row = formatFeedsRow(legacy);
+	it('never writes retired tank cells, even when a payload carries them (#140)', () => {
+		const stray = { date: water.date, initials: 'AB', notes: '', tanks: { historic_tank7: { amountFed: '21', meds: { '117': 'Y' }, uneatenGrams: '2' } } } as FeedsData;
+		const row = formatFeedsRow(stray);
 		expect(row).toHaveLength(84);
-		expect(row.slice(71, 74)).toEqual(['21', 'Y', '2']);
+		expect(row.slice(71, 74)).toEqual(['', '', '']);
 	});
 });
 describe('spreadsheet contracts', () => {
@@ -81,14 +81,14 @@ describe('spreadsheet contracts', () => {
 		const chemistry = { ...water, isWeeklyCheck: true, routineIncluded: false, ...Object.fromEntries(weeklyFields.map(f => [f, '0'])) } as WaterQualityData;
 		expect(validateModule('waterQuality', chemistry)).toEqual([]);
 		// Routine columns stay blank even when the draft still holds earlier answers.
-		expect(formatWaterQualityRow({ ...chemistry, tempA: '26', doA: '/' }).slice(2, 10)).toEqual(Array(8).fill(''));
+		expect(formatWaterQualityRow({ ...chemistry, tempA: '26', doA: '98' }).slice(2, 10)).toEqual(Array(8).fill(''));
 		expect(formatWaterQualityRow(chemistry).slice(10, 22)).toEqual(Array(12).fill('0'));
-		// Pre-upgrade records without the flag keep the full routine contract.
-		expect(validateModule('waterQuality', { ...water, routineIncluded: undefined })).toEqual([]);
+		// Every record states whether routine readings are included.
+		expect(validateModule('waterQuality', { ...water, routineIncluded: undefined }).join()).toContain('routine inclusion flag');
 	});
 });
 describe('daily animal welfare check', () => {
-	const lss = { date: water.date, amInitials: 'AB', pmInitials: '', concerns: '', notes: '', ...Object.fromEntries(lssChecks.map(f => [f, 'N/A'])) } as unknown as LSSData;
+	const lss = { date: water.date, shiftPart: 'AM', amInitials: 'AB', pmInitials: '', concerns: '', notes: '', ...Object.fromEntries(lssAmChecks.map(f => [f, 'N/A'])) } as unknown as LSSData;
 	it('requires the animal check on new forms and concerns when it fails', () => {
 		expect(validateModule('lss', { ...lss, animalsChecked: '' })).not.toEqual([]);
 		expect(validateModule('lss', { ...lss, animalsChecked: 'Y' })).toEqual([]);
@@ -96,11 +96,11 @@ describe('daily animal welfare check', () => {
 		expect(validateModule('lss', { ...lss, animalsChecked: 'N', concerns: 'Redness on a shark in tank 3' })).toEqual([]);
 		expect(validateModule('lss', { ...lss, animalsChecked: 'N/A' })).not.toEqual([]);
 	});
-	it('still accepts pre-upgrade queued records without the field', () => expect(validateModule('lss', lss)).toEqual([]));
+	it('rejects AM records without the welfare answer', () => expect(validateModule('lss', lss).join()).toContain('animalsChecked'));
 	it('records the answer in the existing concerns column', () => {
 		expect(formatLSSConcerns({ ...lss, animalsChecked: 'Y' })).toBe('All animals sighted & normal: Y');
 		expect(formatLSSConcerns({ ...lss, animalsChecked: 'N', concerns: 'Redness in tank 3' })).toBe('All animals sighted & normal: N. Redness in tank 3');
-		expect(formatLSSConcerns({ ...lss, concerns: 'legacy' })).toBe('legacy');
+		expect(formatLSSConcerns({ ...lss, shiftPart: 'PM', concerns: 'Pump noisy' })).toBe('Pump noisy');
 		expect(formatLSSRow({ ...lss, animalsChecked: 'Y' })).toHaveLength(21);
 	});
 	it.each([['2026-11-09', false], ['2026-11-10', true], ['2026-11-11', false], ['2026-11-13', false], ['2026-11-14', true], ['2026-11-15', true], ['bad', false]] as const)('treats %s as off day: %s', (date, expected) => expect(isOffDay(date)).toBe(expected));

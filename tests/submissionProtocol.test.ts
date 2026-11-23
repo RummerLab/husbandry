@@ -10,7 +10,7 @@ vi.mock('../src/lib/server/sheets', () => ({ appendSubmissionToSheets: vi.fn() }
 beforeEach(() => vi.clearAllMocks());
 const payload = {
 	id: 'sub_protocol', date: '2026-11-11', submittedAt: '2026-11-11T00:00:00Z', initials: 'TEST', modulesSubmitted: ['waterQuality'],
-	waterQuality: { ...createEmptyStepForms('2026-11-11', 'TEST').waterQuality, tempA: '26', tempB: '26', pHA: '8.2', pHB: '8.1', salinityA: '36', salinityB: '36', doA: '98', doB: 'N/A' }
+	waterQuality: { ...createEmptyStepForms('2026-11-11', 'TEST').waterQuality, tempA: '26', tempB: '26', pHA: '8.2', pHB: '8.1', salinityA: '36', salinityB: '36', doA: '98', doB: '97' }
 };
 function submit() {
 	return POST({ request: new Request('https://lab.test/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }), getClientAddress: () => '192.0.2.1' } as Parameters<typeof POST>[0]);

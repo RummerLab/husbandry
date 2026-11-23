@@ -6,7 +6,7 @@ import { writeAtomicSubmission } from '../src/lib/server/atomicSubmission';
 import type { FullHusbandrySubmission, LocalHistoryItem } from '../src/lib/types';
 import type { sheets_v4 } from 'googleapis';
 
-const payload = (id = 'sub_test'): FullHusbandrySubmission => ({ id, submittedAt: '2026-11-07T00:00:00Z', date: '2026-11-07', initials: 'AB', modulesSubmitted: ['feeds', 'waterQuality'], feeds: { date: '2026-11-07', initials: 'AB', tanks: {}, notes: '=1+1' }, waterQuality: { date: '2026-11-07', initials: 'AB', isWeeklyCheck: false, tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '/', doB: '/', notes: '' } });
+const payload = (id = 'sub_test'): FullHusbandrySubmission => ({ id, submittedAt: '2026-11-07T00:00:00Z', date: '2026-11-07', initials: 'AB', modulesSubmitted: ['feeds', 'waterQuality'], feeds: { date: '2026-11-07', initials: 'AB', tanks: {}, notes: '=1+1' }, waterQuality: { date: '2026-11-07', initials: 'AB', isWeeklyCheck: false, routineIncluded: true, tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '98', doB: '97', notes: '' } });
 class MemoryStorage {
 	data = new Map<string, string>();
 	get length() { return this.data.size; }
@@ -89,12 +89,6 @@ describe('durable device queue', () => {
 		vi.mocked(fetch).mockResolvedValue(new Response('<html>Login</html>', { headers: { 'Content-Type': 'text/html' } }));
 		await syncPendingSubmissions(); await syncPendingSubmissions();
 		expect(fetch).toHaveBeenCalledTimes(1); expect(getLocalHistory()[0].synced).toBe(false);
-	});
-	it('migrates old history without losing records and keeps corrupt data', () => {
-		const item = { id: 'old', payload: payload('old'), synced: false, submittedAt: '2026-11-07T00:00:00Z' } as LocalHistoryItem;
-		localStorage.setItem('rummerlab_husbandry_local_history', JSON.stringify([item]));
-		expect(getLocalHistory()[0].id).toBe('old'); expect(localStorage.getItem('rummerlab_husbandry_local_history')).toBeNull();
-		localStorage.setItem('rummerlab_husbandry_local_history', '{broken'); expect(() => getLocalHistory()).toThrow(); expect(localStorage.getItem('rummerlab_husbandry_local_history')).toBe('{broken');
 	});
 });
 

@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { createEmptyForms, resetSubmittedForms } from '../src/lib/formDefaults';
 import { createSubmissionFeedback } from '../src/lib/submissionFeedback';
-import { getModuleIssues, validateModule, modules, lssChecks } from '../src/lib/validation';
+import { getModuleIssues, validateModule, modules, lssAmChecks } from '../src/lib/validation';
 import { markInvalidFields, focusFirstInvalidField } from '../src/lib/validationGuide';
 afterEach(() => vi.unstubAllGlobals());
 it('creates fresh unanswered forms and resets only submitted sections', () => {
@@ -24,7 +24,7 @@ it('structured issues match authoritative validation and point at individual fie
  const forms = createEmptyForms('2026-11-07');
  const issues = getModuleIssues('lss', forms.lss);
  expect(issues.map(issue => issue.message)).toEqual(validateModule('lss', forms.lss)); expect(issues[0].field).toBe('amInitials');
- forms.lss.amInitials = 'AB'; forms.lss.animalsChecked = 'Y'; for (const key of lssChecks) (forms.lss as unknown as Record<string,string>)[key] = 'N';
+ forms.lss.amInitials = 'AB'; forms.lss.animalsChecked = 'Y'; for (const key of lssAmChecks) (forms.lss as unknown as Record<string,string>)[key] = 'N';
  expect(getModuleIssues('lss', forms.lss)).toEqual([]);
  expect(getModuleIssues('tanksEggs', forms.tanksEggs).some(issue => issue.field === 'newEggTag')).toBe(true);
  forms.feeds.tanks.tank1 = { amountFed:'0', uneatenGrams:'0', meds:{} };

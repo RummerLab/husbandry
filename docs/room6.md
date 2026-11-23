@@ -36,8 +36,4 @@ node --env-file=.env scripts/setup-room6.mjs --apply   # creates any missing Roo
 
 The script reads which tabs exist first, then reads header rows only for those tabs. It creates only missing tabs and fills only empty header rows. If a tab already has different headers it stops so the tab can be inspected by hand, and a failed header read aborts rather than being treated as empty.
 
-## Legacy `Room 6` tab (#79)
-
-The first Room 6 tab recorded one row per check: eggs normal, dead-egg count, temperature, salinity, pH and water change. The app no longer offers it. The server still accepts records already queued on devices (module `room6`) and writes them to the existing `Room 6` tab; the setup script leaves that tab alone when its headers match.
-
 Lab Overview (`/insights`) does not read Room 6 yet.

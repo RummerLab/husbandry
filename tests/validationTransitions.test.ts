@@ -38,7 +38,7 @@ it('adds and removes conditional Room 6 ID and flow-note requirements during edi
 
 it('retains weekly drafts through exclusion and keeps each side an explicit independent answer', () => {
 	let form = createEmptyStepForms('2026-11-11', 'TEST').waterQuality;
-	Object.assign(form, { tempA: '26', tempB: '26', salinityA: '36', salinityB: '36', doA: 'N/A', doB: '/', pHA: '8.2', pHB: '8.1', alkA: '116', po4B: '0' });
+	Object.assign(form, { tempA: '26', tempB: '26', salinityA: '36', salinityB: '36', doA: '98', doB: '97', pHA: '8.2', pHB: '8.1', alkA: '116', po4B: '0' });
 	form = includeWeeklyMeasurements(form, true);
 	expect(getModuleIssues('waterQuality', form).length).toBeGreaterThan(0);
 	form = toggleNotMeasured(form, 'pHB');

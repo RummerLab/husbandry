@@ -4,10 +4,6 @@ import { pathToFileURL } from 'node:url';
 // Keep in sync with src/lib/server/room6Sheet.ts and src/lib/room6Config.ts (a test checks this).
 const METADATA = ['Submission ID', 'Client Device ID', 'Client Submitted At (UTC)', 'Server Received At (UTC)'];
 
-/** Legacy single-row Room 6 tab (#79). Kept so records already queued on devices can still be written. */
-export const TAB = 'Room 6';
-export const HEADERS = ['Date', 'Initials', 'All eggs sighted & normal', 'Dead eggs removed', 'Temp (°C)', 'Salinity (ppt)', 'pH', 'Water change', 'Concerns', 'Notes', ...METADATA];
-
 const CLEAN = { siphon: 'Siphon', sandVac: 'Sand Vac', overflow: 'O/f', scrubWalls: 'Scrub walls', scrubPipes: 'Scrub Pipes', sandChange: 'Sand Change' };
 const ALL = Object.keys(CLEAN);
 const LSS_TANKS = [1, 2, 3, 4, 5, 6, 7].map(n => ({ name: `Tank ${n}`, tasks: ALL }))
@@ -20,7 +16,7 @@ export const WORKBOOK_TABS = [
 	{ tab: 'Room 6 LSS', headers: ['Date', 'Initials', ...LSS_TANKS.flatMap(t => t.tasks.map(task => `${t.name}: ${CLEAN[task]}`)), 'Sump: Water Change', 'Sump: Top Up', 'Sump: Vac', 'Biofilter: Clean', 'Biofilter Flow: Air', 'Biofilter Flow: Water', 'Tank Flow: Air', 'Tank Flow: Water', 'Gutters: Vac', 'Gutters: Scrub', 'Notes', ...METADATA] },
 	{ tab: 'Room 6 Ammonia + Nitrite', headers: ['Date', 'Time', 'Initials', 'Ammonia (ppm)', 'Nitrite (ppm)', 'Notes', ...METADATA] }
 ];
-export const ALL_TABS = [{ tab: TAB, headers: HEADERS }, ...WORKBOOK_TABS];
+export const ALL_TABS = WORKBOOK_TABS;
 
 /** Plan one tab: create it if missing, write headers only into an empty or matching header row. */
 export function planTabSetup(data, tab, headers) {
@@ -41,11 +37,6 @@ export function planTabSetup(data, tab, headers) {
 	];
 }
 
-/** Plan the legacy Room 6 tab. */
-export function planRoom6Setup(data) {
-	return planTabSetup(data, TAB, HEADERS);
-}
-
 /** Plan every Room 6 tab; any tab that cannot be safely planned stops the whole plan. */
 export function planAllRoom6Setup(data, tabs = ALL_TABS) {
 	return tabs.flatMap(({ tab, headers }) => planTabSetup(data, tab, headers));
@@ -63,11 +54,6 @@ export async function readTabsSetup(sheets, spreadsheetId, tabs = ALL_TABS.map(t
 	const headers = (await sheets.spreadsheets.get({ spreadsheetId, includeGridData: true, ranges: existing.map(tab => `'${tab}'!1:1`), fields: 'sheets(properties,data(rowData(values(userEnteredValue))))' })).data;
 	if (!existing.every(tab => headers.sheets?.some(sheet => sheet.properties?.title === tab && Array.isArray(sheet.data)))) throw new Error('Header inspection was incomplete; refusing to assume absence');
 	return headers;
-}
-
-/** Read only the legacy Room 6 tab. */
-export async function readRoom6Setup(sheets, spreadsheetId) {
-	return readTabsSetup(sheets, spreadsheetId, [TAB]);
 }
 
 /** Restartable phases: inspect -> plan -> create -> reinspect -> initialise -> verify. */

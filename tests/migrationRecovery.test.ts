@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { inspectLocalHistory, getLocalHistory, migrateLocalHistory, syncPendingSubmissions } from '../src/lib/storage';
+import { inspectLocalHistory, syncPendingSubmissions } from '../src/lib/storage';
 import { readQueueSnapshot } from '../src/lib/queueSnapshot';
 import { migrateMetadataWorkbook } from '../scripts/migrate-sheet-metadata.mjs';
 import { setupRequestLogWorkbook, TAB, HEADERS } from '../scripts/setup-request-log.mjs';
@@ -15,21 +15,7 @@ class MemoryStorage {
 	removeItem(key: string) { this.data.delete(key); }
 }
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
-const items = [1, 2, 3].map(i => ({ id: `sub_legacy_${i}`, submittedAt: '2026-11-11T00:00:00Z', synced: false, payload: { id: `sub_legacy_${i}`, date: '2026-11-11', modulesSubmitted: ['waterQuality'] } }));
-
-it.each([1, 2, 3, 'remove'])('recovers after interruption at legacy migration operation %s without duplicates or enrichment', failing => {
-	const memory = new MemoryStorage(); vi.stubGlobal('window', new EventTarget()); vi.stubGlobal('localStorage', memory);
-	const raw = JSON.stringify(items); memory.setItem('rummerlab_husbandry_local_history', raw);
-	const write = memory.setItem.bind(memory); const remove = memory.removeItem.bind(memory); let count = 0;
-	vi.spyOn(memory, 'setItem').mockImplementation((key, value) => { if (++count === failing) throw new Error('Interrupted copy'); write(key, value); });
-	vi.spyOn(memory, 'removeItem').mockImplementation(key => { if (failing === 'remove') throw new Error('Interrupted removal'); remove(key); });
-	expect(() => migrateLocalHistory()).toThrow('Interrupted');
-	expect(memory.getItem('rummerlab_husbandry_local_history')).toBe(raw);
-	vi.mocked(memory.setItem).mockImplementation(write); vi.mocked(memory.removeItem).mockImplementation(remove);
-	expect(migrateLocalHistory()).toBe('complete');
-	expect(getLocalHistory().map(item => item.payload)).toEqual(items.map(item => item.payload));
-	expect(memory.length).toBe(3);
-});
+const items = [1, 2, 3].map(i => ({ id: `sub_${i}`, submittedAt: '2026-11-11T00:00:00Z', synced: false, modules: ['waterQuality'], payload: { id: `sub_${i}`, date: '2026-11-11', modulesSubmitted: ['waterQuality'] } }));
 
 it('preserves readable records for inspection while damaged data keeps all syncing paused', async () => {
 	const memory = new MemoryStorage(); vi.stubGlobal('window', new EventTarget()); vi.stubGlobal('localStorage', memory); vi.stubGlobal('fetch', vi.fn());
@@ -50,7 +36,7 @@ it('does not mistake incomplete metadata or omitted existing tabs for confirmed 
 		expect(await setupRequestLogWorkbook({ spreadsheets: { get, batchUpdate } }, 'disposable', true)).toMatchObject({ state: 'refused' });
 		expect(batchUpdate).not.toHaveBeenCalled();
 	}
-	const get = vi.fn().mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6', sheetId: 1 } }] } }).mockResolvedValueOnce({ data: { sheets: [] } });
+	const get = vi.fn().mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6 LSS', sheetId: 1 } }] } }).mockResolvedValueOnce({ data: { sheets: [] } });
 	await expect(readTabsSetup({ spreadsheets: { get } }, 'disposable')).rejects.toThrow('incomplete');
 });
 it('refuses incomplete or failed collision inspection without attempting metadata writes', async () => {

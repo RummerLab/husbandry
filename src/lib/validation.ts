@@ -2,7 +2,7 @@ import { createEmptyForms } from './formDefaults';
 import { ROOM12_TANKS } from './tanksConfig';
 import { ROOM6_LSS_FLOWS, ROOM6_LSS_TICKS, ROOM6_TANK_TASK_KEYS, ROOM6_TOP_UP, ROOM6_WATER_CHANGE } from './room6Config';
 
-export const modules = ['lss', 'tanksEggs', 'feeds', 'waterQuality', 'room6', 'room6Eggs', 'room6WaterQuality', 'room6Lss', 'room6Ammonia'] as const;
+export const modules = ['lss', 'tanksEggs', 'feeds', 'waterQuality', 'room6Eggs', 'room6WaterQuality', 'room6Lss', 'room6Ammonia'] as const;
 export type Module = typeof modules[number];
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim();
@@ -43,14 +43,7 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	if (module === 'lss') {
 		const part = value.shiftPart;
 		const blank = (key: string) => { const v = value[key]; if (v !== undefined && v !== '') reject(key, `lss: ${key} belongs to the other shift and must be left blank`); };
-		if (part === undefined) {
-			// Pre-split records carry both shifts in one row.
-			require('amInitials');
-			lssChecks.forEach(key => enumField(key));
-			// New forms always carry animalsChecked; only pre-upgrade queued records omit it.
-			if (value.animalsChecked !== undefined) enumField('animalsChecked', ['Y', 'N']);
-			if (value.animalsChecked === 'N') require('concerns');
-		} else if (part === 'AM') {
+		if (part === 'AM') {
 			// The daily animal welfare check stays with the AM shift.
 			require('amInitials');
 			enumField('animalsChecked', ['Y', 'N']);
@@ -82,33 +75,22 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	if (module === 'waterQuality') {
 		if (typeof value.isWeeklyCheck !== 'boolean') reject('isWeeklyCheck', 'waterQuality: weekly check flag required');
 		// Routine readings and weekly chemistry are often taken at different times, so either section can be
-		// saved on its own (#133). An absent flag means a pre-upgrade record that carries both.
-		const routineIncluded = value.routineIncluded !== false;
-		if (value.routineIncluded !== undefined && typeof value.routineIncluded !== 'boolean') reject('routineIncluded', 'waterQuality: routine inclusion flag must be true or false');
+		// saved on its own (#133).
+		const routineIncluded = value.routineIncluded === true;
+		if (typeof value.routineIncluded !== 'boolean') reject('routineIncluded', 'waterQuality: routine inclusion flag must be true or false');
 		if (!routineIncluded && value.isWeeklyCheck !== true) reject('routineIncluded', 'waterQuality: include routine checks or weekly chemistry');
-		const routineFields = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB'];
+		const routineFields = ['tempA', 'tempB', 'pHA', 'pHB', 'salinityA', 'salinityB', 'doA', 'doB'];
 		const measurement = (key: string) => {
 			if (value[key] === NOT_MEASURED && notMeasurableFields.includes(key)) return;
 			if (!numeric(value[key]) || (key.toLowerCase().includes('ph') && Number(value[key]) > 14)) reject(key, `waterQuality: ${key} invalid measurement`);
 		};
 		if (routineIncluded) {
 			for (const key of [...routineFields, ...(value.isWeeklyCheck === true ? weeklyFields : [])]) measurement(key);
-			// DO accepts the explicit Not measured answer; '/' and 'N/A' stay valid for records already queued on devices.
-			for (const key of ['doA', 'doB']) if (value[key] !== NOT_MEASURED && !numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or Not measured required`);
 		} else {
 			// Chemistry-only rows leave the routine columns blank in the sheet. Their hidden draft answers are
 			// retained (so re-including routine checks restores them) but are never exported.
 			if (value.isWeeklyCheck === true) for (const key of weeklyFields) measurement(key);
 		}
-	}
-	if (module === 'room6') {
-		enumField('eggsChecked', ['Y', 'N']);
-		if (value.eggsChecked === 'N') require('concerns');
-		if (!text(value.deadEggsRemoved) || !/^\d+$/.test(value.deadEggsRemoved.trim()) || !Number.isSafeInteger(Number(value.deadEggsRemoved))) reject('deadEggsRemoved', 'room6: deadEggsRemoved must be a whole number (0 if none)');
-		for (const key of ['temp', 'salinity']) if (!numeric(value[key])) reject(key, `room6: ${key} invalid measurement`);
-		if (value.pH !== NOT_MEASURED && (!numeric(value.pH) || Number(value.pH) > 14)) reject('pH', 'room6: pH invalid measurement');
-		enumField('waterChange', ['None', '50%', '75%', 'Other']);
-		if (value.waterChange === 'Other') require('notes');
 	}
 	// A whole-number count (0 if none) that converts to a safe integer for the numeric sheet cell.
 	const count = (key: string) => {
@@ -148,7 +130,7 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 	return errors;
 }
 
-/** Keep legacy extension fields intact for receipt hashes, but bound their shape. */
+/** Keep extension fields intact for receipt hashes, but bound their shape. */
 export function validatePayloadBounds(value: unknown, path = 'Submission', depth = 0): string[] {
 	if (depth > 8) return [`${path}: nesting exceeds 8 levels`];
 	if (typeof value === 'string') return value.length > 5000 ? [`${path}: maximum 5000 characters`] : [];

@@ -17,16 +17,16 @@
 		if (onValidChange) onValidChange(isValid);
 	});
 
-	// Shift-part records show only that shift's items; pre-split records show everything.
-	let showAM = $derived(data.shiftPart !== 'PM');
-	let showPM = $derived(data.shiftPart !== 'AM');
+	// Each shift's record shows only that shift's items.
+	let showAM = $derived(data.shiftPart === 'AM');
+	let showPM = $derived(data.shiftPart === 'PM');
 
 </script>
 
 <div class="form-container">
 	<div class="header-box">
 		<div class="header-text">
-			<h3>{data.shiftPart ? `${data.shiftPart} ` : ''}Life Support Systems (LSS) Checks</h3>
+			<h3>{data.shiftPart} Life Support Systems (LSS) Checks</h3>
 			<p class="subtitle">Room 12 Maintenance & Checks (Daily, including weekends & public holidays)</p>
 		</div>
 
@@ -35,7 +35,7 @@
 	<!-- Person In Charge -->
 	<div class="section-card">
 		<h4>Personnel & Initials</h4>
-		<div class={data.shiftPart ? '' : 'grid-2'}>
+		<div>
 			{#if showAM}
 			<div class="input-field">
 				<label for="lss-am-initials">
@@ -52,13 +52,13 @@
 			{/if}
 			{#if showPM}
 			<div class="input-field">
-				<label for="lss-pm-initials">PM Initials {#if data.shiftPart === 'PM'}<span class="required-star">*</span>{:else}(optional if AM only){/if}</label>
+				<label for="lss-pm-initials">PM Initials <span class="required-star">*</span></label>
 				<input
 					id="lss-pm-initials"
 					type="text"
 					placeholder="e.g. JR"
 					data-field="pmInitials" bind:value={data.pmInitials}
-					required={data.shiftPart === 'PM'}
+					required
 				/>
 			</div>
 			{/if}

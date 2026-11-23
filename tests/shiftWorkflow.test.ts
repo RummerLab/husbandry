@@ -12,7 +12,7 @@ function completeForms(): StepForms {
 	const forms = createEmptyStepForms(date, 'AB');
 	Object.assign(forms.lssAM, Object.fromEntries(lssAmChecks.map(key => [key, 'Y'])), { animalsChecked: 'Y' });
 	Object.assign(forms.lssPM, Object.fromEntries(lssPmChecks.map(key => [key, 'N/A'])));
-	Object.assign(forms.waterQuality, { tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '/', doB: '/' });
+	Object.assign(forms.waterQuality, { tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '98', doB: '97' });
 	Object.assign(forms.tanksEggs, {
 		...Object.fromEntries(['103', '102', '116', '105', '117'].map(id => [`palpationHO${id}`, 'N/A'])),
 		windEggs: '0', newEggs: '0', newEggTag: 'N/A', deadEggTag: 'N/A',
@@ -135,10 +135,9 @@ describe('LSS shift halves', () => {
 		expect(missingDailyChecks([formatLSSRow(forms.lssAM).map(String)], date, 1)).toEqual([]);
 	});
 
-	it('keeps pre-split records valid as before', () => {
-		const legacy = { ...createEmptyForms(date, 'AB').lss, animalsChecked: 'Y' as const, ...Object.fromEntries([...lssAmChecks, ...lssPmChecks].map(key => [key, 'Y'])) };
-		expect(validateModule('lss', legacy)).toEqual([]);
-		expect(validateModule('lss', { ...legacy, waterLevelsPM: '' }).length).toBeGreaterThan(0);
+	it('rejects LSS records that do not name their shift', () => {
+		const unsplit = { ...createEmptyForms(date, 'AB').lss, shiftPart: undefined, animalsChecked: 'Y' as const, ...Object.fromEntries([...lssAmChecks, ...lssPmChecks].map(key => [key, 'Y'])) };
+		expect(validateModule('lss', unsplit).join()).toContain('shift must be AM or PM');
 	});
 });
 

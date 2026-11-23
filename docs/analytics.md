@@ -7,7 +7,6 @@ The app counts page loads/views only, with [Vercel Web Analytics](https://vercel
 - `src/routes/+layout.svelte` calls `startPageViewAnalytics` (`src/lib/analytics.ts`) on mount. It appends a deferred, same-origin `/_vercel/insights/script.js` using Vercel's plain-HTML integration. The `@vercel/analytics` package is not used because it does not list SvelteKit 3 as a supported peer.
 - A `beforeSend` filter sends only `pageview` events, reduced to origin + path (no query string or fragment), and drops `/login` and `/api/*`. No custom events are sent. Never add form values, initials, notes, device/submission IDs, credentials or spreadsheet links.
 - Dev builds, `localhost`/`127.0.0.1`/`[::1]` and plain HTTP are skipped. The script only exists on Vercel deployments; preview and production are reported separately in the dashboard.
-- On every load the helper also removes the retired GA4 preference key (`rummerlab_usage_analytics`) and any `_ga`/`_ga_*` cookies from users who had opted in. It never touches submission storage.
 - Analytics is fire-and-forget: never awaited, wrapped so it cannot throw, and outside the service worker's cache scope (`/_vercel/insights/*` is not in the build manifest and not a navigation). An ad blocker or offline network only loses that count; forms and queue replay are unaffected.
 
 ## Setup
