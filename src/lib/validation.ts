@@ -17,7 +17,7 @@ export const lssShiftParts = ['AM', 'PM'] as const;
 /** Explicit answer for water tests not done in this session (e.g. pH by MARFU, PO4 only with a SpinTouch); exported as a blank cell. */
 export const NOT_MEASURED = 'Not measured';
 /** Water Quality fields that accept NOT_MEASURED. Temperature and salinity always need a reading. */
-export const notMeasurableFields = ['pHA', 'pHB', 'alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
+export const notMeasurableFields = ['pHA', 'pHB', 'doA', 'doB', 'alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
 export const room6NotMeasurableFields = ['pH', 'dissolvedOxygen', 'alk', 'weeklypH', 'nh3', 'no2', 'no3', 'po4'] as const;
 export const weeklyFields = ['alkA', 'alkB', 'weeklypHA', 'weeklypHB', 'nh3A', 'nh3B', 'no2A', 'no2B', 'no3A', 'no3B', 'po4A', 'po4B'];
 
@@ -93,7 +93,8 @@ export function getModuleIssues(module: Module, value: unknown): ModuleIssue[] {
 		};
 		if (routineIncluded) {
 			for (const key of [...routineFields, ...(value.isWeeklyCheck === true ? weeklyFields : [])]) measurement(key);
-			for (const key of ['doA', 'doB']) if (!numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or explicit N/A required`);
+			// DO accepts the explicit Not measured answer; '/' and 'N/A' stay valid for records already queued on devices.
+			for (const key of ['doA', 'doB']) if (value[key] !== NOT_MEASURED && !numeric(value[key]) && value[key] !== '/' && value[key] !== 'N/A') reject(key, `waterQuality: ${key} measurement or Not measured required`);
 		} else {
 			// Chemistry-only rows leave the routine columns blank in the sheet. Their hidden draft answers are
 			// retained (so re-including routine checks restores them) but are never exported.

@@ -33,7 +33,7 @@ it('flags typed-but-invalid values such as "98%" and explains how to correct the
 	const data = { ...createEmptyForms('2026-11-09').waterQuality, ...routine, doA: '98%', pHB: '15', tempA: '' };
 	const entered = enteredInvalidIssues(getModuleIssues('waterQuality', data), data);
 	expect(entered.map(issue => issue.field)).toEqual(['pHB', 'doA']);
-	expect(describeWaterQualityIssue(entered[1])).toBe('Dissolved oxygen (%), Side A: enter a number without % (e.g. 98), or N/A if not measured.');
+	expect(describeWaterQualityIssue(entered[1])).toBe('Dissolved oxygen (%), Side A: enter a number without % (e.g. 98), or tap Not measured if DO was not measured.');
 	expect(describeWaterQualityIssue(entered[0])).toContain('0 to 14');
 	expect(describeWaterQualityIssue({ field: 'tempA', message: '' })).toContain('Temperature (°C), Side A');
 	expect(describeWaterQualityIssue({ field: 'weeklypHB', message: '' })).toContain('Weekly pH, Side B: enter a number from 0 to 14');

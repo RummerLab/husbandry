@@ -21,7 +21,7 @@ export function describeWaterQualityIssue(issue: ModuleIssue): string {
 	const match = /^(.+)([AB])$/.exec(issue.field);
 	if (!match || !(match[1] in PARAMETERS)) return issue.message;
 	const label = `${PARAMETERS[match[1]]}, Side ${match[2]}`;
-	if (match[1] === 'do') return `${label}: enter a number without % (e.g. 98), or N/A if not measured.`;
+	if (match[1] === 'do') return `${label}: enter a number without % (e.g. 98), or tap Not measured if DO was not measured.`;
 	const orSkip = notMeasurableFields.includes(issue.field) ? ', or tap Not measured if this test was not done' : '';
 	if (match[1].endsWith('pH')) return `${label}: enter a number from 0 to 14 (e.g. 8.2)${orSkip}.`;
 	return `${label}: enter a number without units (e.g. 26.3; 0 is allowed)${orSkip}.`;

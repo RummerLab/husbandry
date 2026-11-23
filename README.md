@@ -77,7 +77,7 @@ Room 12 rows append to the master Google Sheet across four operational tabs:
 
 > [!NOTE]
 > **LSS Column Split:** AM and PM shifts write their own independent rows into `LSS Checks`, with the other shift's columns left cleanly blank (no false default values).
-> **Not Measured Water Quality:** Optional parameters (e.g. pH tested by MARFU, PO4 without a SpinTouch) accept an explicit **Not measured** (`NOT_MEASURED`) option that writes a blank cell. Temperature and Salinity always require measured readings.
+> **Not Measured Water Quality:** Optional parameters (e.g. pH tested by MARFU, DO when the meter is unavailable, or PO4 without a SpinTouch) accept an explicit **Not measured** (`NOT_MEASURED`) option that writes a blank cell. Temperature and Salinity always require measured readings.
 > **Separate Routine and Chemistry Entries:** A chemistry-only entry leaves the routine columns blank (including DO), and a routine-only entry leaves the weekly columns blank. Every weekly field still needs a reading or an explicit **Not measured**.
 
 ---

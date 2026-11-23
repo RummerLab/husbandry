@@ -48,7 +48,7 @@ it('retains weekly drafts through exclusion and keeps each side an explicit inde
 	expect(formatWaterQualityRow(form).slice(10, 22)).toEqual(Array(12).fill(''));
 	form = includeWeeklyMeasurements(form, true);
 	expect(form.alkA).toBe('116'); expect(form.po4B).toBe('0');
-	expect(getModuleIssues('waterQuality', { ...form, doA: NOT_MEASURED }).map(issue => issue.field)).toContain('doA');
+	expect(getModuleIssues('waterQuality', { ...form, doA: NOT_MEASURED }).map(issue => issue.field)).not.toContain('doA');
 	expect(() => toggleNotMeasured(form, 'tempA')).toThrow();
 	let room6 = createEmptyStepForms('2026-11-11', 'TEST').room6WaterQuality;
 	Object.assign(room6, { temp: '26', salinity: '36', pH: '8.1', dissolvedOxygen: '95', alk: '7', weeklypH: '8.1', nh3: '0', no2: '0', no3: '10', po4: '0.2' });

@@ -90,7 +90,7 @@
 		</div>
 
 		{#if data.routineIncluded !== false}
-		<p class="section-hint">All routine fields are required. Enter numbers only, without units or % signs (pH must be 0–14). If the DO meter is unavailable, enter N/A. If pH was not measured this time (e.g. measured by MARFU), tap <em>Not measured</em> below that side.</p>
+		<p class="section-hint">All routine fields are required. Enter numbers only, without units or % signs (pH must be 0–14). If pH or DO was not measured this time (e.g. pH measured by MARFU, or the DO meter is unavailable), tap <em>Not measured</em> below that side.</p>
 
 		<div class="table-grid">
 			<div class="grid-header">
@@ -137,8 +137,14 @@
 					<strong>Dissolved Oxygen (%)</strong>
 					<span class="required-star">*</span>
 				</div>
-				<input type="text" placeholder="98" aria-label="Dissolved Oxygen (%) Side A" data-field="doA" bind:value={data.doA} />
-				<input type="text" placeholder="98" aria-label="Dissolved Oxygen (%) Side B" data-field="doB" bind:value={data.doB} />
+				<div class="measurement">
+					{@render measurableInput('doA', '98', 'Dissolved Oxygen (%) Side A')}
+					{@render notMeasuredToggle('doA', 'Dissolved Oxygen Side A')}
+				</div>
+				<div class="measurement">
+					{@render measurableInput('doB', '98', 'Dissolved Oxygen (%) Side B')}
+					{@render notMeasuredToggle('doB', 'Dissolved Oxygen Side B')}
+				</div>
 			</div>
 		</div>
 		{:else}
