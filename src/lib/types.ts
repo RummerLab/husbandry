@@ -5,9 +5,9 @@ export interface LSSData {
 	date: string;
 	amInitials: string;
 	pmInitials: string;
-	/** Which shift's half of the LSS sheet this record covers. Absent on pre-split records, which cover both. */
-	shiftPart?: 'AM' | 'PM';
-	/** Daily animal welfare check. Pre-upgrade queued records may lack it at runtime; validation tolerates that. */
+	/** Which shift's half of the LSS sheet this record covers. */
+	shiftPart: 'AM' | 'PM';
+	/** Daily animal welfare check, answered by the AM shift and left blank on PM records. */
 	animalsChecked: '' | 'Y' | 'N';
 	// Protein skimmer
 	skimmerVenturi: YesNoNA;
@@ -92,8 +92,8 @@ export interface WaterQualityData {
 	date: string;
 	initials: string;
 	isWeeklyCheck: boolean;
-	/** False when this entry records weekly chemistry only; absent means the routine readings are included (#133). */
-	routineIncluded?: boolean;
+	/** False when this entry records weekly chemistry only (#133). */
+	routineIncluded: boolean;
 	// Routine checks (at least every second day, including weekends)
 	tempA: string;
 	tempB: string;
@@ -116,23 +116,6 @@ export interface WaterQualityData {
 	no3B?: string;
 	po4A?: string;
 	po4B?: string;
-	notes: string;
-}
-
-/** Room 6 (egg room) daily check (#79). Initial field list authorised by the repository owner on 2026-11-11. */
-export interface Room6Data {
-	date: string;
-	initials: string;
-	/** All eggs sighted with normal appearance (Y/N); N makes concerns required. */
-	eggsChecked: '' | 'Y' | 'N';
-	/** Dead or unviable eggs removed today (0 is a valid answer). */
-	deadEggsRemoved: string;
-	temp: string;
-	salinity: string;
-	/** A number, or NOT_MEASURED. */
-	pH: string;
-	waterChange: '' | 'None' | '50%' | '75%' | 'Other';
-	concerns: string;
 	notes: string;
 }
 
@@ -205,13 +188,11 @@ export interface FullHusbandrySubmission {
 	submittedAt: string;
 	date: string;
 	initials: string;
-	modulesSubmitted: ('lss' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6' | 'room6Eggs' | 'room6WaterQuality' | 'room6Lss' | 'room6Ammonia')[];
+	modulesSubmitted: ('lss' | 'tanksEggs' | 'feeds' | 'waterQuality' | 'room6Eggs' | 'room6WaterQuality' | 'room6Lss' | 'room6Ammonia')[];
 	lss?: LSSData;
 	tanksEggs?: TanksEggsData;
 	feeds?: FeedsData;
 	waterQuality?: WaterQualityData;
-	/** Legacy single-row Room 6 record (#79); new entries use the workbook-matching modules below. */
-	room6?: Room6Data;
 	room6Eggs?: Room6EggChecksData;
 	room6WaterQuality?: Room6WaterQualityData;
 	room6Lss?: Room6LssData;

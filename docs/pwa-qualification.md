@@ -28,8 +28,8 @@ No spreadsheet migration or production configuration is required.
    active=activated, installing=null. Confirm its application cache contains `/`, `/help`, `/privacy`
    and the generated/static dependencies.
 2. Enter a synthetic draft. Select **Probe excluded routes**. The fixture only returns
-   synthetic responses. Confirm no `/api/*`, `/login`, `/insights`, `/auth/*`, `/_vercel/*`
-   or `/sw.js` entry appears in any application cache.
+   synthetic responses. Confirm no `/api/*`, `/login`, `/insights`, `/auth/*`, or `/_vercel/*`
+   entry appears in any application cache.
 3. Select **Offer broken build B**. It deliberately returns 503 for candidate dependencies.
    Wait for installing=null and waiting=null. Build A must remain active, with its cache
    intact and the input unchanged. An empty candidate cache may exist; that is not readiness.

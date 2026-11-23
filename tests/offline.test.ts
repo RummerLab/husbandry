@@ -23,8 +23,8 @@ const origin = 'https://lab.test';
 const navigation = () => { const request = new Request(origin + '/'); Object.defineProperty(request, 'mode', { value: 'navigate' }); return request; };
 it('installs all dependencies and boots offline without HTTP cache', async () => {
 	const { storage, network } = harness();
-	const cache = createOfflineCache(storage, network, origin, 'a', ['/_app/immutable/start.js', '/app.css', '/sw.js']);
-	await cache.install(); expect(network).toHaveBeenCalledTimes(5); // 2 assets (sw.js excluded) + shell + /help + /privacy
+	const cache = createOfflineCache(storage, network, origin, 'a', ['/_app/immutable/start.js', '/app.css', '/_vercel/insights/script.js']);
+	await cache.install(); expect(network).toHaveBeenCalledTimes(5); // 2 assets (Vercel script excluded) + shell + /help + /privacy
 	network.mockRejectedValue(new Error('offline'));
 	expect(await (await cache.respond(navigation())).text()).toContain('network:https://lab.test/');
 	expect(await (await cache.respond(new Request(origin + '/_app/immutable/start.js'))).text()).toContain('start.js');
@@ -92,7 +92,7 @@ it('falls back for 5xx, offline help and deep links, and reports a genuinely mis
 
 it('excludes sensitive and telemetry paths even when offered as precache files or navigations', async () => {
 	const { storage, network } = harness();
-	const paths = ['/api/submit', '/login', '/auth/google', '/insights', '/_vercel/insights/script.js', '/_vercel/speed-insights/script.js', '/sw.js'];
+	const paths = ['/api/submit', '/login', '/auth/google', '/insights', '/_vercel/insights/script.js', '/_vercel/speed-insights/script.js'];
 	const cache = createOfflineCache(storage, network, origin, 'privacy', paths);
 	await cache.install();
 	expect(network).toHaveBeenCalledTimes(3); // Only the three offline pages.

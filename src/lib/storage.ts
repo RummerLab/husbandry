@@ -2,7 +2,6 @@ import { getSyncPause, pauseSync } from './syncPause';
 import { notifyDeviceQueueChanged } from './deviceEvents';
 import { deliveryState, submissionOutcome } from './submissionOutcome';
 import type { FullHusbandrySubmission, LocalHistoryItem } from './types';
-const LEGACY = 'rummerlab_husbandry_local_history';
 const PREFIX = 'rummerlab_submission_';
 const DEVICE = 'rummerlab_device_id';
 const INITIALS = 'rummerlab_user_initials';
@@ -21,37 +20,19 @@ function storedJSON(raw: string): unknown {
 function parse(raw: string): LocalHistoryItem {
  const item = storedJSON(raw) as LocalHistoryItem;
  if (!item || typeof item.id !== 'string' || !item.payload || typeof item.payload !== 'object' || Array.isArray(item.payload) || typeof item.synced !== 'boolean' || typeof item.submittedAt !== 'string') throw new DamagedLocalRecordError('Stored record is damaged. Keep this device data and contact the lab administrator.');
- const modules = item.modules ?? item.payload.modulesSubmitted;
- if (!Array.isArray(modules) || !modules.every(module => typeof module === 'string')) throw new DamagedLocalRecordError('Stored record is damaged. Keep this device data and contact the lab administrator.');
+ if (!Array.isArray(item.modules) || !item.modules.every(module => typeof module === 'string')) throw new DamagedLocalRecordError('Stored record is damaged. Keep this device data and contact the lab administrator.');
  return item;
-}
-export function migrateLocalHistory(): 'notNeeded' | 'complete' {
- const raw = localStorage.getItem(LEGACY);
- if (!raw) return 'notNeeded';
- const items = storedJSON(raw);
- if (!Array.isArray(items)) throw new DamagedLocalRecordError('Stored history is damaged. Keep this device data and contact the lab administrator.');
- for (const value of items) {
-  const item = parse(JSON.stringify(value));
-  if (!localStorage.getItem(PREFIX + item.id)) localStorage.setItem(PREFIX + item.id, JSON.stringify(item));
- }
- // Remove the old copy only after every record has been persisted.
- localStorage.removeItem(LEGACY);
- return 'complete';
 }
 export type LocalHistoryInspection =
  | { state: 'readable'; records: LocalHistoryItem[] }
  | { state: 'damaged'; records: LocalHistoryItem[]; damagedCount: number; message: string }
  | { state: 'unavailable'; records: LocalHistoryItem[]; message: string };
 
-/** Recovery inspection retains legacy migration, but never repairs/deletes damaged values or authorises sync. */
+/** Recovery inspection never repairs/deletes damaged values or authorises sync. */
 export function inspectLocalHistory(): LocalHistoryInspection {
  if (typeof window === 'undefined') return { state: 'readable', records: [] };
  try {
   let damagedCount = 0;
-  try { migrateLocalHistory(); } catch (error) {
-   if (!(error instanceof DamagedLocalRecordError)) throw error;
-   damagedCount++; // The untouched legacy copy is one damaged storage entry.
-  }
   const records: LocalHistoryItem[] = [];
   for (let i = 0; i < localStorage.length; i++) {
    const key = localStorage.key(i);
@@ -76,7 +57,6 @@ export function getLocalHistory(): LocalHistoryItem[] {
  return inspection.records;
 }
 export function saveLocalSubmission(item: LocalHistoryItem): void {
- migrateLocalHistory();
  // Independent keys prevent another tab's save from overwriting this queue.
  localStorage.setItem(PREFIX + item.id, JSON.stringify(item));
  notifyDeviceQueueChanged();
@@ -136,7 +116,6 @@ async function drain(): Promise<{ syncedCount: number; errors: string[] }> {
 }
 /** Durable boundary: never wait for delivery, and never reread after a successful write. */
 export function persistNewSubmission(payload: FullHusbandrySubmission): LocalHistoryItem {
- migrateLocalHistory();
  const existing = localStorage.getItem(PREFIX + payload.id);
  if (existing) {
   const record = parse(existing);

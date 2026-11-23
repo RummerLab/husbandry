@@ -1,4 +1,4 @@
-import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6Data, Room6EggChecksData, Room6WaterQualityData, Room6LssData, Room6AmmoniaData } from '../types';
+import type { LSSData, TanksEggsData, FeedsData, WaterQualityData, Room6EggChecksData, Room6WaterQualityData, Room6LssData, Room6AmmoniaData } from '../types';
 import { ROOM6_LSS_FLOWS, ROOM6_TANK_TASK_KEYS, ROOM6_WATER_CHANGE } from '../room6Config';
 import { ALL_ROOM12_TANKS } from '../tanksConfig';
 import { NOT_MEASURED } from '../validation';
@@ -10,44 +10,17 @@ export function formatLSSConcerns(data: LSSData): string {
 	return concerns ? `${check}. ${concerns}` : check;
 }
 
+const LSS_CHECK_COLUMNS = ['skimmerVenturi', 'skimmerSprayDown', 'filterCleaned', 'filterReplaced', 'waterLevelsAM', 'waterLevelsPM', 'waterFlowAM', 'waterFlowPM', 'airstonesAM', 'airstonesPM', 'vacNetTanks', 'tanksScrubbed', 'overflowCleaned', 'hoseFloorLadder', 'footTubLidsSqueegee', 'equipmentDisinfected'] as const;
+
+/** Each shift writes its own row and leaves the other shift's columns blank rather than inventing defaults. */
 export function formatLSSRow(data: LSSData): (string | number)[] {
-	// Shift-part records leave the other shift's columns blank rather than inventing defaults.
-	if (data.shiftPart) return formatLSSShiftRow(data);
 	return [
 		data.date,                          // Col 1: Date
 		data.amInitials || '',              // Col 2: AM Initials
 		data.pmInitials || '',              // Col 3: PM Initials
-		data.skimmerVenturi || '/',         // Col 4: Protein Skimmer Venturi
-		data.skimmerSprayDown || '/',       // Col 5: Protein Skimmer Spray down
-		data.filterCleaned || 'N',          // Col 6: Filter canister Cleaned
-		data.filterReplaced || '/',         // Col 7: Filter canister Replaced
-		data.waterLevelsAM || 'Y',          // Col 8: Water levels sufficient AM
-		data.waterLevelsPM || 'Y',          // Col 9: Water levels sufficient PM
-		data.waterFlowAM || 'Y',            // Col 10: Water flow AM
-		data.waterFlowPM || 'Y',            // Col 11: Water flow PM
-		data.airstonesAM || 'Y',            // Col 12: Airstones AM
-		data.airstonesPM || 'Y',            // Col 13: Airstones PM
-		data.vacNetTanks || 'Y',            // Col 14: Vac + net tanks
-		data.tanksScrubbed || '/',          // Col 15: Tanks scrubbed
-		data.overflowCleaned || 'Y',        // Col 16: O/F cleaned
-		data.hoseFloorLadder || 'Y',        // Col 17: Hose -> floor, ladder & tools
-		data.footTubLidsSqueegee || 'Y',    // Col 18: Foot tub refilled, lids on, squeegeed
-		data.equipmentDisinfected || 'Y',   // Col 19: Equipment disinfected
+		...LSS_CHECK_COLUMNS.map(key => data[key] || ''), // Cols 4-19: skimmer, filter, tank checks, and hygiene
 		formatLSSConcerns(data),            // Col 20: Concerns (new), prefixed with the daily animal check
 		data.notes || ''                    // Col 21: Notes
-	];
-}
-
-const LSS_CHECK_COLUMNS = ['skimmerVenturi', 'skimmerSprayDown', 'filterCleaned', 'filterReplaced', 'waterLevelsAM', 'waterLevelsPM', 'waterFlowAM', 'waterFlowPM', 'airstonesAM', 'airstonesPM', 'vacNetTanks', 'tanksScrubbed', 'overflowCleaned', 'hoseFloorLadder', 'footTubLidsSqueegee', 'equipmentDisinfected'] as const;
-
-function formatLSSShiftRow(data: LSSData): (string | number)[] {
-	return [
-		data.date,                          // Col 1
-		data.amInitials || '',              // Col 2
-		data.pmInitials || '',              // Col 3
-		...LSS_CHECK_COLUMNS.map(key => data[key] || ''), // Cols 4-19, same order as formatLSSRow
-		formatLSSConcerns(data),            // Col 20
-		data.notes || ''                    // Col 21
 	];
 }
 
@@ -176,11 +149,10 @@ export function formatFeedsRow(data: FeedsData): (string | number)[] {
 			row.push(tankEntry.uneatenGrams || '0');
 		}
 
-		// #140: retired tanks are no longer shown or validated, so a new record never measures them.
+		// #140: retired tanks are no longer shown or validated, so a record never measures them.
 		// Leave their cells blank rather than writing the 'N' medication and '0' uneaten defaults,
-		// which would read as observations nobody made. Legacy records that did record a fed amount
-		// for a retired tank are still written exactly as before.
-		if (tank.retired && !String(tankEntry.amountFed ?? '').trim()) row.fill('', tankStart);
+		// which would read as observations nobody made. Their columns stay to keep the 84-column layout.
+		if (tank.retired) row.fill('', tankStart);
 	}
 
 	// Final Col 84: Notes/Observations
@@ -193,7 +165,7 @@ const measured = (value: string | undefined) => (value === NOT_MEASURED ? '' : v
 
 export function formatWaterQualityRow(data: WaterQualityData): (string | number)[] {
 	// A chemistry-only entry leaves the routine columns blank, mirroring the LSS shift halves (#133).
-	const routine = data.routineIncluded !== false;
+	const routine = data.routineIncluded;
 	return [
 		data.date,                          // Col 1: DATE
 		data.initials || '',                // Col 2: INITIALS
@@ -203,8 +175,8 @@ export function formatWaterQualityRow(data: WaterQualityData): (string | number)
 		routine ? measured(data.pHB) : '',  // Col 6: pH B
 		routine ? data.salinityA || '' : '', // Col 7: Salinity A
 		routine ? data.salinityB || '' : '', // Col 8: Salinity B
-		routine ? (data.doA ? measured(data.doA) : '/') : '', // Col 9: DO % A
-		routine ? (data.doB ? measured(data.doB) : '/') : '', // Col 10: DO % B
+		routine ? measured(data.doA) : '',  // Col 9: DO % A
+		routine ? measured(data.doB) : '',  // Col 10: DO % B
 		(data.isWeeklyCheck ? measured(data.alkA) : ''),                   // Col 11: Alk A
 		(data.isWeeklyCheck ? measured(data.alkB) : ''),                   // Col 12: Alk B
 		(data.isWeeklyCheck ? measured(data.weeklypHA) : ''),              // Col 13: pH A (weekly)
@@ -218,22 +190,6 @@ export function formatWaterQualityRow(data: WaterQualityData): (string | number)
 		(data.isWeeklyCheck ? measured(data.po4A) : ''),                   // Col 21: Po4 A
 		(data.isWeeklyCheck ? measured(data.po4B) : ''),                   // Col 22: Po4 B
 		data.notes || ''                    // Col 23: Notes
-	];
-}
-
-/** Room 6 operational columns (ROOM6_OPERATIONAL_HEADERS); "Not measured" pH exports as a blank cell. */
-export function formatRoom6Row(data: Room6Data): (string | number)[] {
-	return [
-		data.date,                          // Col 1: Date
-		data.initials || '',                // Col 2: Initials
-		data.eggsChecked || '',             // Col 3: All eggs sighted & normal
-		data.deadEggsRemoved || '',         // Col 4: Dead eggs removed
-		data.temp || '',                    // Col 5: Temp (°C)
-		data.salinity || '',                // Col 6: Salinity (ppt)
-		measured(data.pH),                  // Col 7: pH
-		data.waterChange || '',             // Col 8: Water change
-		data.concerns || '',                // Col 9: Concerns
-		data.notes || ''                    // Col 10: Notes
 	];
 }
 

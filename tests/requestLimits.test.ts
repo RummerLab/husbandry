@@ -23,7 +23,7 @@ it('rejects malformed input and unsupported media before Sheets', async () => {
  }
  expect(appendSubmissionToSheets).not.toHaveBeenCalled();
 });
-const payload = { id: 'sub_test', date: '2026-11-07', submittedAt: '2026-11-07T00:00:00Z', modulesSubmitted: ['waterQuality'], waterQuality: { date: '2026-11-07', initials: 'AB', isWeeklyCheck: false, tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '/', doB: '/', notes: '' } };
+const payload = { id: 'sub_test', date: '2026-11-07', submittedAt: '2026-11-07T00:00:00Z', modulesSubmitted: ['waterQuality'], waterQuality: { date: '2026-11-07', initials: 'AB', isWeeklyCheck: false, routineIncluded: true, tempA: '26', tempB: '26', pHA: '8', pHB: '8', salinityA: '36', salinityB: '36', doA: '98', doB: '97', notes: '' } };
 it('accepts legacy fields without mutation, rejects bounded-field violations', () => {
  const legacy = structuredClone({ ...payload, futureField: { bounded: true } }); const before = JSON.stringify(legacy);
  expect(validateSubmission(legacy)).toEqual([]); expect(JSON.stringify(legacy)).toBe(before);

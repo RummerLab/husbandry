@@ -168,17 +168,17 @@ describe('Room 6 setup script', () => {
 		expect(data.sheets).toHaveLength(ALL_TABS.length);
 	});
 	it('creates only missing tabs and leaves matching ones alone', () => {
-		const existing = { tab: 'Room 6', headers: ALL_TABS[0].headers };
+		const existing = ALL_TABS[0];
 		const data = { sheets: [{ properties: { title: existing.tab, sheetId: 9 }, data: [{ rowData: [{ values: existing.headers.map(stringValue => ({ userEnteredValue: { stringValue } })) }] }] }] };
 		const plan = planAllRoom6Setup(data);
-		expect(plan.map((r: { addSheet: { properties: { title: string } } }) => r.addSheet.properties.title)).toEqual(WORKBOOK_TABS.map(t => t.tab));
+		expect(plan.map((r: { addSheet: { properties: { title: string } } }) => r.addSheet.properties.title)).toEqual(WORKBOOK_TABS.slice(1).map(t => t.tab));
 	});
 
 	it('reads header rows only for tabs that exist', async () => {
 		const get = vi.fn()
-			.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6', sheetId: 9 } }, { properties: { title: 'Room 6 LSS', sheetId: 10 } }] } })
-			.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6', sheetId: 9 }, data: [{}] }, { properties: { title: 'Room 6 LSS', sheetId: 10 }, data: [{}] }] } });
+			.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6 Egg Checks', sheetId: 9 } }, { properties: { title: 'Room 6 LSS', sheetId: 10 } }] } })
+			.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Room 6 Egg Checks', sheetId: 9 }, data: [{}] }, { properties: { title: 'Room 6 LSS', sheetId: 10 }, data: [{}] }] } });
 		await readTabsSetup({ spreadsheets: { get } }, 'sheet');
-		expect(get.mock.calls[1][0].ranges).toEqual(["'Room 6'!1:1", "'Room 6 LSS'!1:1"]);
+		expect(get.mock.calls[1][0].ranges).toEqual(["'Room 6 Egg Checks'!1:1", "'Room 6 LSS'!1:1"]);
 	});
 });

@@ -23,7 +23,7 @@ document.querySelector('#update').onclick=()=>offer('B').catch(e=>document.query
 document.querySelector('#broken').onclick=()=>offer('broken').catch(e=>document.querySelector('#probes').textContent=e.message);
 document.querySelector('#probe').onclick=async()=>{
  const results=[];
- for(const path of ['/api/submit','/api/access','/login','/insights','/auth/google','/_vercel/insights/script.js','/_vercel/speed-insights/script.js','/sw.js']){
+ for(const path of ['/api/submit','/api/access','/login','/insights','/auth/google','/_vercel/insights/script.js','/_vercel/speed-insights/script.js']){
   const response=await fetch(path,{cache:'no-store'}); results.push(path+': '+response.status);
  }
  document.querySelector('#probes').textContent=results.join('\\n');await status();

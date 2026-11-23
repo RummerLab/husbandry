@@ -13,14 +13,7 @@ function readCooldown(): Pause | null {
 	try {
 		pause = JSON.parse(raw) as Pause;
 	} catch { /* Discard malformed transport metadata, never submission data. */ }
-	if (pause && typeof pause.message === 'string' && Number.isFinite(pause.until)) {
-		// Upgrade conservatively: retain the deadline of an old combined pause.
-		if (pause.authentication) {
-			localStorage.setItem(AUTH_KEY, pause.message);
-			localStorage.setItem(KEY, JSON.stringify({ until: pause.until, message: 'Sync paused. Records will retry automatically.' }));
-		}
-		if (pause.until > Date.now()) return { until: pause.until, message: pause.authentication ? 'Sync paused. Records will retry automatically.' : pause.message };
-	}
+	if (pause && typeof pause.message === 'string' && Number.isFinite(pause.until) && pause.until > Date.now()) return { until: pause.until, message: pause.message };
 	localStorage.removeItem(KEY); return null;
 }
 export function getSyncPause(): Pause | null {
@@ -41,7 +34,6 @@ export function pauseSync(message: string, retryAfter: string | null, authentica
 }
 /** Call only after a server-authorized page load, never on a manual Sync click. */
 export function resumeAuthenticatedSync(): void {
-	readCooldown(); // Upgrade legacy auth before removing only its hold.
 	localStorage.removeItem(AUTH_KEY);
 	notifyDeviceQueueChanged();
 }

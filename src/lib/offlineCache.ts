@@ -4,7 +4,7 @@ const OFFLINE_PAGES = ['/', '/help', '/privacy'];
 /** Apply to both precache inputs and fetch handling, even if a route looks like an asset. */
 export function networkOnlyPath(path: string): boolean {
 	return path.startsWith('/api/') || path === '/login' || path.startsWith('/insights') ||
-		path.startsWith('/auth/') || path.startsWith('/_vercel/') || path === '/sw.js';
+		path.startsWith('/auth/') || path.startsWith('/_vercel/');
 }
 
 export function createOfflineCache(storage: CacheStorage, network: typeof fetch, origin: string, version: string, files: string[]) {

@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { SubmissionConflictError } from './submissionErrors';
 import type { sheets_v4 } from 'googleapis';
 import type { FullHusbandrySubmission } from '../types';
-import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow, formatRoom6Row, formatRoom6EggsRow, formatRoom6WaterQualityRow, formatRoom6LssRow, formatRoom6AmmoniaRow } from './rows';
-import { ALL_ROOM6_TABS, assertTabHeaders, ROOM6_SHEETS, ROOM6_TAB } from './room6Sheet';
+import { formatLSSRow, formatTanksEggsRow, formatFeedsRow, formatWaterQualityRow, formatRoom6EggsRow, formatRoom6WaterQualityRow, formatRoom6LssRow, formatRoom6AmmoniaRow } from './rows';
+import { ALL_ROOM6_TABS, assertTabHeaders, ROOM6_SHEETS } from './room6Sheet';
 
 const ROOM6_TAB_TITLES = new Set(ALL_ROOM6_TABS.map(t => t.tab));
 const ROOM6_NUMERIC = new Map(Object.values(ROOM6_SHEETS).map(s => [s.tab, new Set(s.numeric)]));
@@ -14,7 +14,6 @@ function cellValue(title: string, value: string | number, column: number, width:
 	// Keep measured quantities numeric for downstream spreadsheet calculations,
 	// while identifiers and free-text notes must never be interpreted as formulas.
 	const measured = ((title === 'Feeds' || title === 'Water Quality') && column >= 2 && column < width - 1)
-		|| (title === ROOM6_TAB && column >= 3 && column <= 6)
 		|| !!ROOM6_NUMERIC.get(title)?.has(column);
 	if (typeof value === 'number') return { numberValue: value };
 	if (measured && /^\d+(\.\d+)?$/.test(value.trim())) return { numberValue: Number(value) };
@@ -32,7 +31,6 @@ export async function writeAtomicSubmission(sheets: sheets_v4.Sheets, spreadshee
 	if (submission.modulesSubmitted.includes('tanksEggs') && submission.tanksEggs) rows.push({ title: 'Tanks + Eggs', values: formatTanksEggsRow(submission.tanksEggs) });
 	if (submission.modulesSubmitted.includes('feeds') && submission.feeds) rows.push({ title: 'Feeds', values: formatFeedsRow(submission.feeds) });
 	if (submission.modulesSubmitted.includes('waterQuality') && submission.waterQuality) rows.push({ title: 'Water Quality', values: formatWaterQualityRow(submission.waterQuality) });
-	if (submission.modulesSubmitted.includes('room6') && submission.room6) rows.push({ title: ROOM6_TAB, values: formatRoom6Row(submission.room6) });
 	if (submission.modulesSubmitted.includes('room6Eggs') && submission.room6Eggs) rows.push({ title: ROOM6_SHEETS.room6Eggs.tab, values: formatRoom6EggsRow(submission.room6Eggs) });
 	if (submission.modulesSubmitted.includes('room6WaterQuality') && submission.room6WaterQuality) rows.push({ title: ROOM6_SHEETS.room6WaterQuality.tab, values: formatRoom6WaterQualityRow(submission.room6WaterQuality) });
 	if (submission.modulesSubmitted.includes('room6Lss') && submission.room6Lss) rows.push({ title: ROOM6_SHEETS.room6Lss.tab, values: formatRoom6LssRow(submission.room6Lss) });
